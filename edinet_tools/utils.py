@@ -4,6 +4,7 @@ import pandas as pd
 import re
 import chardet
 import tempfile
+import warnings
 import zipfile
 import logging
 from typing import List, Dict, Any, Optional
@@ -153,6 +154,13 @@ def process_zip_directory(directory_path: str,
     :param doc_type_codes: Optional list of doc type codes to process.
     :return: List of structured data dictionaries for each successfully processed document.
     """
+    warnings.warn(
+        "process_zip_directory() is deprecated and will be removed in a future release. "
+        "Use extract_csv_from_zip() for in-memory CSV extraction, or extract_csv_to_disk() "
+        "for disk output (both in edinet_tools.parsers.extraction).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     all_structured_data = []
     if not os.path.isdir(directory_path):
         logger.error(f"Directory not found: {directory_path}")

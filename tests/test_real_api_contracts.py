@@ -298,5 +298,15 @@ class TestCriticalDocumentTypeRetrieval:
         # Log what we found (may not find all types in date range)
         print(f"Critical document types found: {sorted(critical_types_found)}")
         
-        # Test passes if we found at least one critical type, or just completes discovery
-        assert len(critical_types_found) >= 0  # Always passes, just for discovery
+        # Doc 180 (extraordinary reports) is filed every business day by SOMEONE on
+        # the TSE — even on quiet days there are typically multiple corporate-event
+        # filings. Across a 14-day rolling window, finding at least one of
+        # {140, 160, 180} is a real lower bound; finding zero would indicate an
+        # API contract change (docTypeCode field renamed/missing) or fetch failure.
+        # (140 is post-Apr 2024 sparse — historical only; 160 is bi-annual; 180 is daily.
+        # So 180 is the load-bearing one.)
+        assert len(critical_types_found) >= 1, (
+            f"no critical document types (140/160/180) found across 14-day window — "
+            f"API contract may have drifted or fetch returning empty results. "
+            f"found: {critical_types_found}"
+        )

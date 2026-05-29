@@ -152,7 +152,7 @@ def parse_shelf_registration(document=None, *, csv_files=None, doc_id=None, doc_
     is_amendment = amendment_flag == 'true' if amendment_flag else False
 
     # Categorize all elements
-    raw_fields, text_blocks, unmapped_fields = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
 
     return ShelfRegistrationReport(
         doc_id=doc_id,
@@ -161,6 +161,7 @@ def parse_shelf_registration(document=None, *, csv_files=None, doc_id=None, doc_
         raw_fields=raw_fields,
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
+        raw_facts=raw_facts,
 
         # Filer identification
         filer_name=filer_name,

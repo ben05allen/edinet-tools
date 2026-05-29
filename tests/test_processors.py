@@ -398,7 +398,7 @@ class TestProcessorDispatcher:
 
 class TestGenericReportProcessor:
     """Test the Generic Report processor (fallback)."""
-    
+
     def test_generic_processor_basic_functionality(self):
         """Test generic processor handles any document type."""
         mock_data = [
@@ -410,20 +410,265 @@ class TestGenericReportProcessor:
                 ]
             }
         ]
-        
+
         processor = GenericReportProcessor(mock_data, 'GENERIC01', '999')
         result = processor.process()
-        
+
         assert result is not None
         assert result['doc_type_code'] == '999'
         assert result['edinet_code'] == 'E12345'
-        
+
         # Generic processor should have empty key facts and financial tables
         assert result['key_facts'] == {}
         assert result['financial_tables'] == []
-        
+
         # Should extract text blocks
         assert len(result['text_blocks']) == 1
+
+
+class TestDispatcherEndToEndRealShape:
+    """End-to-end dispatcher tests with NO mocks — assert on real processor output.
+
+    AUDIT NOTE (false-confidence-test, 2026-05-22): TestProcessorDispatcher
+    above mocks the processor classes and asserts on the mock's stub
+    return ({'test': 'data'}). That asserts on what the mock returned, NOT on
+    what real code emits. Invisible to drift if the real processor signature
+    or output shape changes — the mock will just keep returning {'test': 'data'}
+    forever.
+
+    These complementary tests run the REAL processor for each dispatched type
+    with a minimal-but-valid input, and assert on the real output shape (keys
+    the real .process() method emits). If a processor's contract drifts, these
+    tests catch it.
+
+    The dispatcher-with-mock tests are retained because the dispatcher's job
+    IS routing — testing it with mocks is reasonable for that specific
+    behavior. But the dispatcher's CONTRACT also requires the dispatched
+    processor's return-shape promise to hold, which only real-shape tests can
+    verify.
+    """
+
+    def _minimal_csv_data(self, edinet_code='E12345'):
+        return [
+            {
+                'filename': 'minimal.csv',
+                'data': [
+                    {'要素ID': 'jpdei_cor:EDINETCodeDEI', '項目名': 'EDINETコード', '値': edinet_code},
+                    {'要素ID': 'jpdei_cor:FilerNameInJapaneseDEI', '項目名': '会社名', '値': 'テスト株式会社'},
+                ]
+            }
+        ]
+
+    def test_dispatch_120_real_returns_securities_report_shape(self):
+        """Doc 120 dispatch hits SecuritiesReportProcessor; result has real shape."""
+        result = process_raw_csv_data(self._minimal_csv_data(), 'S100R120', '120')
+        assert result is not None
+        # Real SecuritiesReportProcessor contract:
+        assert result['doc_id'] == 'S100R120'
+        assert result['doc_type_code'] == '120'
+        assert result['edinet_code'] == 'E12345'
+        assert 'key_facts' in result
+        assert 'financial_tables' in result
+        assert 'text_blocks' in result
+        # SecuritiesReportProcessor emits key_facts AS A DICT (not stub
+        # {'test': 'data'}), financial_tables AS A LIST. Drift catcher:
+        assert isinstance(result['key_facts'], dict)
+        assert isinstance(result['financial_tables'], list)
+        assert isinstance(result['text_blocks'], list)
+
+    def test_dispatch_180_real_returns_extraordinary_report_shape(self):
+        """Doc 180 dispatch hits ExtraordinaryReportProcessor; result has real shape."""
+        data = self._minimal_csv_data()
+        # Add a 180-specific element so we have something for key_facts:
+        data[0]['data'].append({
+            '要素ID': 'jpcrp-esr_cor:DateOfResolutionOfBoardOfDirectors',
+            '項目名': '取締役会決議日', '値': '2025-04-01'
+        })
+        result = process_raw_csv_data(data, 'S100R180', '180')
+        assert result is not None
+        assert result['doc_type_code'] == '180'
+        # ExtraordinaryReportProcessor.process() emits cleaned key:
+        assert 'DateOfResolutionOfBoardOfDirectors' in result['key_facts']
+        assert result['key_facts']['DateOfResolutionOfBoardOfDirectors'] == '2025-04-01'
+        # text_blocks must be a list (real contract)
+        assert isinstance(result['text_blocks'], list)
+
+    def test_dispatch_235_real_returns_internal_control_shape(self):
+        """Doc 235 dispatch hits InternalControlReportProcessor; result has real shape."""
+        data = self._minimal_csv_data()
+        data[0]['data'].append({
+            '要素ID': 'jpcrp_cor:InternalControlAssessmentResult',
+            '項目名': '評価結果', '値': '有効'
+        })
+        result = process_raw_csv_data(data, 'S100R235', '235')
+        assert result is not None
+        assert result['doc_type_code'] == '235'
+        # InternalControlReportProcessor.process() emits 'assessment_result' key:
+        assert 'assessment_result' in result['key_facts']
+        assert result['key_facts']['assessment_result'] == '有効'
+        # Internal control reports must emit financial_tables == [] (per
+        # the real processor contract — "Internal control reports don't have
+        # financial tables"):
+        assert result['financial_tables'] == []
+
+    def test_dispatch_unknown_type_real_returns_generic_shape(self):
+        """Unknown doc-type-code falls through to GenericReportProcessor."""
+        result = process_raw_csv_data(self._minimal_csv_data(), 'S100R999', '999')
+        assert result is not None
+        assert result['doc_type_code'] == '999'
+        # Generic emits empty key_facts and empty financial_tables (real contract):
+        assert result['key_facts'] == {}
+        assert result['financial_tables'] == []
+
+    def test_dispatch_160_real_returns_semi_annual_shape(self):
+        """Doc 160 dispatch hits SemiAnnualReportProcessor with real shape."""
+        data = self._minimal_csv_data()
+        data[0]['data'].append({
+            '要素ID': 'jpcrp_cor:OrdinaryIncome', '項目名': '経常利益',
+            'コンテキストID': 'CurrentYTDDuration', '値': '500000'
+        })
+        result = process_raw_csv_data(data, 'S100R160', '160')
+        assert result is not None
+        assert result['doc_type_code'] == '160'
+        # SemiAnnualReportProcessor emits 'OrdinaryIncome' as a cleaned key with
+        # current/prior shape:
+        assert 'OrdinaryIncome' in result['key_facts']
+        assert result['key_facts']['OrdinaryIncome']['current'] == '500000'
+        # has_enhanced_financials should be False (no zip_extract_path):
+        assert result['has_enhanced_financials'] is False
+
+
+class TestProcessorWithRealisticNoiseFixture:
+    """Run processors against a realistic 20+ row CSV with all known noise patterns.
+
+    AUDIT NOTE (false-confidence-test, 2026-05-22): the per-processor
+    setup_method fixtures above are 4-13 rows of pristine inputs. Real EDINET
+    filings carry far more noise: dimensional Member contexts, '－' nulls,
+    namespace variations (jpcrp_cor / jppfs_cor / jpigp_cor), TextBlock rows
+    mixed with metric rows, duplicate-id rows distinguished only by context.
+
+    The segments bug (fixed 2026-04-28) was invisible to clean fixtures
+    precisely because the per-segment Member rows that confused the parser
+    were absent from the test data.
+
+    This fixture is 25 rows with the noise patterns deliberately included.
+    """
+
+    def _build_realistic_securities_data(self):
+        return [
+            {
+                'filename': 'jpcrp030000-asr-001.csv',
+                'data': [
+                    {'要素ID': 'jpdei_cor:EDINETCodeDEI', '項目名': 'EDINETコード', '値': 'E54321'},
+                    {'要素ID': 'jpdei_cor:FilerNameInJapaneseDEI', '項目名': '会社名', '値': '株式会社ノイズ試験'},
+                    {'要素ID': 'jpdei_cor:FilerNameInEnglishDEI', '項目名': 'Name EN', '値': 'Noise Test Inc.'},
+                    # Headline metrics first (these should win get_value_by_id):
+                    {'要素ID': 'jpcrp_cor:NetSales', '項目名': '売上高',
+                     'コンテキストID': 'CurrentYearDuration', '値': '8000000000'},
+                    {'要素ID': 'jpcrp_cor:NetSales', '項目名': '売上高',
+                     'コンテキストID': 'Prior1YearDuration', '値': '7200000000'},
+                    {'要素ID': 'jpcrp_cor:OperatingIncome', '項目名': '営業利益',
+                     'コンテキストID': 'CurrentYearDuration', '値': '800000000'},
+                    {'要素ID': 'jpcrp_cor:TotalAssets', '項目名': '総資産',
+                     'コンテキストID': 'CurrentYearInstant', '値': '20000000000'},
+                    # Dimensional Member contexts (the segments-bug shape):
+                    {'要素ID': 'jpcrp_cor:NetSales', '項目名': '売上高',
+                     'コンテキストID': 'CurrentYearDuration_jpcrp030000-asr_E54321-000SegmentAMember',
+                     '値': '5000000000'},
+                    {'要素ID': 'jpcrp_cor:NetSales', '項目名': '売上高',
+                     'コンテキストID': 'CurrentYearDuration_jpcrp030000-asr_E54321-000SegmentBMember',
+                     '値': '3000000000'},
+                    # '－' EDINET null marker rows:
+                    {'要素ID': 'jpcrp_cor:DividendPerShare', '項目名': '配当',
+                     'コンテキストID': 'CurrentYearDuration', '値': '－'},
+                    {'要素ID': 'jpcrp_cor:OrdinaryIncome', '項目名': '経常利益',
+                     'コンテキストID': 'Prior1YearDuration', '値': '－'},
+                    # Namespace variants:
+                    {'要素ID': 'jppfs_cor:ProfitLossAttributableToOwnersOfParent',
+                     '項目名': '当期純利益', 'コンテキストID': 'CurrentYearDuration', '値': '600000000'},
+                    {'要素ID': 'jpigp_cor:RevenueIFRS', '項目名': '売上収益(IFRS)',
+                     'コンテキストID': 'CurrentYearDuration', '値': '8100000000'},
+                    # Business facts:
+                    {'要素ID': 'jpcrp_cor:NumberOfEmployees', '項目名': '従業員数', '値': '12000'},
+                    {'要素ID': 'jpcrp_cor:AverageAnnualSalary', '項目名': '平均給与', '値': '6800000'},
+                    {'要素ID': 'jpcrp_cor:NumberOfSharesIssuedAndOutstanding',
+                     '項目名': '発行済株式数', '値': '50000000'},
+                    # TextBlock rows mixed in:
+                    {'要素ID': 'jpcrp_cor:ManagementAnalysisOfFinancialPositionOperatingResultsAndCashFlowsTextBlock',
+                     '項目名': 'MD&A', '値': '当連結会計年度の業績について報告します。売上高は前年比増加しました。'},
+                    {'要素ID': 'jpcrp_cor:RiskFactorsTextBlock', '項目名': 'リスク要因',
+                     '値': '当社事業に係る主要なリスクは以下の通りです。'},
+                    {'要素ID': 'jpcrp_cor:CorporateGovernanceTextBlock', '項目名': 'ガバナンス',
+                     '値': '当社のコーポレートガバナンス体制について。'},
+                    {'要素ID': 'jpcrp_cor:ShareholderInformationTextBlock', '項目名': '株主情報',
+                     '値': '当社の主要株主は以下の通りです。'},
+                    # NonConsolidatedMember disambiguator:
+                    {'要素ID': 'jpcrp_cor:BookValuePerShare', '項目名': '1株当たり純資産',
+                     'コンテキストID': 'CurrentYearInstant_NonConsolidatedMember', '値': '400.00'},
+                    # Orphan/None rows:
+                    {'要素ID': None, '項目名': 'orphan', '値': 'no-id-row'},
+                    {'要素ID': 'jpcrp_cor:SomeUnmappedTextBlock', '項目名': 'unmapped',
+                     '値': None},  # None value should be filtered from text_blocks
+                    {'要素ID': 'jpcrp_cor:UnmappedFactNotInProcessorMap',
+                     '項目名': '何か', '値': 'ignored-by-processor'},
+                    {'要素ID': 'jpcrp_cor:AccountingStandardsFollowedInPreparationOfFinancialStatements',
+                     '項目名': '会計基準', '値': 'IFRS'},
+                ]
+            }
+        ]
+
+    def test_securities_processor_handles_realistic_noise(self):
+        """SecuritiesReportProcessor extracts cleanly from 20+ row noisy fixture."""
+        data = self._build_realistic_securities_data()
+        assert len(data[0]['data']) >= 20, "fixture must have ≥20 rows"
+
+        processor = SecuritiesReportProcessor(data, 'S100NOISE1', '120')
+        result = processor.process()
+
+        # Metadata robustness:
+        assert result['edinet_code'] == 'E54321'
+        assert result['company_name_ja'] == '株式会社ノイズ試験'
+        assert result['company_name_en'] == 'Noise Test Inc.'
+
+        # Financial metrics: headline values should win (first-match-on-Current).
+        # NOTE: The processor's get_value_by_id does a linear scan and returns
+        # the FIRST row whose 要素ID matches AND context contains the filter.
+        # The headline 'CurrentYearDuration' row precedes the Member-suffixed
+        # rows in this fixture, so 5000000000 (SegmentA) should NOT overwrite
+        # the 8000000000 headline.
+        kf = result['key_facts']
+        assert kf['net_sales']['current'] == '8000000000', (
+            f"headline NetSales overwritten by segment row — net_sales={kf.get('net_sales')}"
+        )
+        assert kf['net_sales']['prior'] == '7200000000'
+        assert kf['operating_income']['current'] == '800000000'
+        assert kf['total_assets']['current'] == '20000000000'
+        assert kf['net_income_attributable_to_owners']['current'] == '600000000'
+        assert kf['employee_count'] == '12000'
+        assert kf['average_annual_salary'] == '6800000'
+        assert kf['shares_outstanding'] == '50000000'
+        assert kf['accounting_standards'] == 'IFRS'
+
+        # Text blocks: only rows with non-None 値 should appear; None-valued
+        # SomeUnmappedTextBlock must be filtered out.
+        text_blocks = result['text_blocks']
+        tb_ids = [tb['id'] for tb in text_blocks]
+        assert 'jpcrp_cor:ManagementAnalysisOfFinancialPositionOperatingResultsAndCashFlowsTextBlock' in tb_ids
+        assert 'jpcrp_cor:RiskFactorsTextBlock' in tb_ids
+        assert 'jpcrp_cor:CorporateGovernanceTextBlock' in tb_ids
+        # Critical drift catch: None-valued TextBlock row must NOT appear.
+        assert 'jpcrp_cor:SomeUnmappedTextBlock' not in tb_ids, (
+            'None-valued TextBlock row leaked into output — get_all_text_blocks '
+            'should filter `if element_id and ... and value`'
+        )
+
+        # Categorization assigned for each block:
+        for tb in text_blocks:
+            assert 'category' in tb and tb['category'] in {
+                'business_overview', 'risk_factors', 'management_analysis',
+                'corporate_governance', 'shareholder_information',
+                'accounting_information', 'other', 'unknown'
+            }
 
 
 if __name__ == "__main__":

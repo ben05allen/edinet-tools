@@ -163,7 +163,7 @@ def parse_opinion_report(document=None, *, csv_files=None, doc_id=None, doc_type
     profit_provision_text = get('profit_provision_text')
     defense_policy_text = get('defense_policy_text')
 
-    raw_fields, text_blocks, unmapped_fields = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
 
     return OpinionReport(
         doc_id=doc_id,
@@ -172,6 +172,7 @@ def parse_opinion_report(document=None, *, csv_files=None, doc_id=None, doc_type
         raw_fields=raw_fields,
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
+        raw_facts=raw_facts,
 
         # Filer identification
         filer_name=filer_name,

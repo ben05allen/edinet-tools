@@ -203,7 +203,7 @@ def parse_quarterly_report(document=None, *, csv_files=None, doc_id=None, doc_ty
     company_name = get_dei('company_name')
     security_code = get_dei('security_code')
     is_consolidated_raw = get_dei('is_consolidated')
-    is_consolidated = is_consolidated_raw == 'true' if is_consolidated_raw else True
+    is_consolidated = (is_consolidated_raw == 'true') if is_consolidated_raw else None
 
     # Format ticker
     ticker = None
@@ -265,7 +265,7 @@ def parse_quarterly_report(document=None, *, csv_files=None, doc_id=None, doc_ty
     equity_ratio = parse_percentage(equity_str)
 
     # Categorize all elements
-    raw_fields, text_blocks, unmapped_fields = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
 
     return QuarterlyReport(
         doc_id=doc_id,
@@ -274,6 +274,7 @@ def parse_quarterly_report(document=None, *, csv_files=None, doc_id=None, doc_ty
         raw_fields=raw_fields,
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
+        raw_facts=raw_facts,
 
         # Identification
         filer_name=company_name or getattr(document, 'filer_name', None),

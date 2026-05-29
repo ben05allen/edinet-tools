@@ -32,93 +32,80 @@ from edinet_tools.parsers.issuance_withdrawal import (
 DOC_TYPES = ['060', '070', '080', '090', '100', '110']
 
 
-@pytest.mark.parametrize("code", DOC_TYPES)
-def test_issuance_type_does_not_fall_through(code):
-    """Issuance doc types must not fall through to RawReport."""
+def _make_routing_zip() -> bytes:
+    """Build a minimal valid EDINET-shaped ZIP containing a single CSV row.
+
+    A real (non-empty) ZIP makes parsers walk the real parse body
+    (extract_csv_from_zip → field extraction → categorize_elements) rather
+    than short-circuiting on the empty-csv_files branch.
+    """
+    row = 'jpdei_cor:EDINETCodeDEI\tlabel\tFilingDateInstant\t0\t連結\t期間\t\t\tE12345'
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w') as zf:
+        zf.writestr('XBRL_TO_CSV/test.csv', row.encode('utf-16le'))
+    return buf.getvalue()
+
+
+def _make_routing_doc(code: str) -> MagicMock:
     doc = MagicMock()
     doc.doc_type_code = code
     doc.doc_id = f"TEST_{code}"
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert not isinstance(result, RawReport), \
-            f"Doc type {code} fell through to RawReport instead of a typed parser"
-    except Exception:
-        pass  # Parser attempted but failed on mock data = correct routing
+    doc.filer_name = ''
+    doc.filer_edinet_code = ''
+    doc.fetch.return_value = _make_routing_zip()
+    return doc
+
+
+@pytest.mark.parametrize("code", DOC_TYPES)
+def test_issuance_type_does_not_fall_through(code):
+    """Issuance doc types must not fall through to RawReport."""
+    doc = _make_routing_doc(code)
+    result = parse(doc)
+    assert not isinstance(result, RawReport), (
+        f"Doc type {code} fell through to RawReport instead of a typed parser"
+    )
+    # Prove the parse body actually ran rather than short-circuiting on empty input.
+    assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345', (
+        f"Doc type {code}: parse body did not consume the input CSV row"
+    )
 
 
 def test_doc_080_routes_to_shelf_registration():
-    doc = MagicMock()
-    doc.doc_type_code = '080'
-    doc.doc_id = 'TEST_080'
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert isinstance(result, ShelfRegistrationReport)
-    except Exception:
-        pass
+    result = parse(_make_routing_doc('080'))
+    assert isinstance(result, ShelfRegistrationReport)
+    assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345'
 
 
 def test_doc_090_routes_to_shelf_registration():
     """Doc 090 (shelf registration amendment) routes to same parser as 080."""
-    doc = MagicMock()
-    doc.doc_type_code = '090'
-    doc.doc_id = 'TEST_090'
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert isinstance(result, ShelfRegistrationReport)
-    except Exception:
-        pass
+    result = parse(_make_routing_doc('090'))
+    assert isinstance(result, ShelfRegistrationReport)
+    assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345'
 
 
 def test_doc_070_routes_to_shelf_registration():
     """Doc 070 is also a shelf registration filing family."""
-    doc = MagicMock()
-    doc.doc_type_code = '070'
-    doc.doc_id = 'TEST_070'
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert isinstance(result, ShelfRegistrationReport)
-    except Exception:
-        pass
+    result = parse(_make_routing_doc('070'))
+    assert isinstance(result, ShelfRegistrationReport)
+    assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345'
 
 
 def test_doc_060_routes_to_issuance_notification():
-    doc = MagicMock()
-    doc.doc_type_code = '060'
-    doc.doc_id = 'TEST_060'
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert isinstance(result, IssuanceNotificationReport)
-    except Exception:
-        pass
+    result = parse(_make_routing_doc('060'))
+    assert isinstance(result, IssuanceNotificationReport)
+    assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345'
 
 
 def test_doc_100_routes_to_issuance_supplementary():
-    doc = MagicMock()
-    doc.doc_type_code = '100'
-    doc.doc_id = 'TEST_100'
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert isinstance(result, IssuanceSupplementaryReport)
-    except Exception:
-        pass
+    result = parse(_make_routing_doc('100'))
+    assert isinstance(result, IssuanceSupplementaryReport)
+    assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345'
 
 
 def test_doc_110_routes_to_issuance_withdrawal():
-    doc = MagicMock()
-    doc.doc_type_code = '110'
-    doc.doc_id = 'TEST_110'
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert isinstance(result, IssuanceWithdrawalReport)
-    except Exception:
-        pass
+    result = parse(_make_routing_doc('110'))
+    assert isinstance(result, IssuanceWithdrawalReport)
+    assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345'
 
 
 # --- ShelfRegistrationReport structure tests ---

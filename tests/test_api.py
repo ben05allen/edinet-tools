@@ -116,6 +116,81 @@ class TestFetchDocumentsList:
                 fetch_documents_list(invalid_date)
             assert "Invalid date string" in str(exc_info.value)
     
+    def test_response_body_matches_real_edinet_api_shape(self):
+        """Closes the audit's C/LOW gap: the URL-construction tests use a stub
+        b'{"results": []}' body and never exercise our JSON-parsing path against
+        the actual EDINET response shape. If the API renamed/dropped a field
+        (docTypeCode → docType, secCode → securityCode, etc.) or the response
+        nesting changed, the URL tests still pass green. This test fixes that
+        by feeding a realistic response body and asserting on the fields
+        downstream callers actually read."""
+        # Shape derived from the EDINET API spec — fields the rest of the
+        # codebase reads off `.get('results', [])[i]`.
+        realistic_body = (
+            b'{"metadata": {"title": "EDINET document list",'
+            b' "parameter": {"date": "2025-01-08", "type": "2"},'
+            b' "resultset": {"count": 2},'
+            b' "processDateTime": "2025-01-08 14:00",'
+            b' "status": "200", "message": "OK"},'
+            b' "results": ['
+            b'{"seqNumber": 1, "docID": "S100ABCD", "edinetCode": "E12345",'
+            b' "secCode": "12345", "JCN": "1234567890123",'
+            b' "filerName": "Test Corporation",'
+            b' "fundCode": null, "ordinanceCode": "010", "formCode": "030000",'
+            b' "docTypeCode": "120", "periodStart": "2024-04-01",'
+            b' "periodEnd": "2025-03-31", "submitDateTime": "2025-01-08 13:30",'
+            b' "docDescription": "Annual Securities Report",'
+            b' "issuerEdinetCode": null, "subjectEdinetCode": null,'
+            b' "subsidiaryEdinetCode": null, "currentReportReason": null,'
+            b' "parentDocID": null, "opeDateTime": null,'
+            b' "withdrawalStatus": "0", "docInfoEditStatus": "0",'
+            b' "disclosureStatus": "0", "xbrlFlag": "1", "pdfFlag": "1",'
+            b' "attachDocFlag": "0", "englishDocFlag": "0",'
+            b' "csvFlag": "1", "legalStatus": "1"},'
+            b'{"seqNumber": 2, "docID": "S100WXYZ", "edinetCode": "E67890",'
+            b' "secCode": null, "JCN": "9999999999999",'
+            b' "filerName": "Fund Trust", "fundCode": "F12345",'
+            b' "ordinanceCode": "030", "formCode": "07A000",'
+            b' "docTypeCode": "180", "periodStart": null, "periodEnd": null,'
+            b' "submitDateTime": "2025-01-08 14:15",'
+            b' "docDescription": "Extraordinary Report",'
+            b' "issuerEdinetCode": null, "subjectEdinetCode": null,'
+            b' "subsidiaryEdinetCode": null, "currentReportReason": null,'
+            b' "parentDocID": null, "opeDateTime": null,'
+            b' "withdrawalStatus": "0", "docInfoEditStatus": "0",'
+            b' "disclosureStatus": "0", "xbrlFlag": "1", "pdfFlag": "1",'
+            b' "attachDocFlag": "0", "englishDocFlag": "0",'
+            b' "csvFlag": "1", "legalStatus": "1"}]}'
+        )
+        with patch('urllib.request.urlopen') as mock_urlopen:
+            mock_response = Mock()
+            mock_response.getcode.return_value = 200
+            mock_response.read.return_value = realistic_body
+            mock_urlopen.return_value.__enter__.return_value = mock_response
+
+            result = fetch_documents_list('2025-01-08', api_key='test_key')
+
+        # Top-level shape — metadata + results, both required by downstream.
+        assert 'metadata' in result, "metadata block missing from parsed response"
+        assert 'results' in result, "results block missing from parsed response"
+        assert isinstance(result['results'], list)
+        assert len(result['results']) == 2
+
+        # Per-row contract — the field names downstream code (data_collection
+        # processors, ingestion sync) reads. If EDINET renamed any of these,
+        # downstream code would silently miss documents; this test surfaces it.
+        doc = result['results'][0]
+        for required_key in ('docID', 'edinetCode', 'docTypeCode',
+                             'submitDateTime', 'filerName'):
+            assert required_key in doc, f"contract drift: '{required_key}' missing from result row"
+
+        # Fund-style row (null secCode, set fundCode) — the second-row shape we
+        # depend on for filtering listed vs fund filings.
+        fund = result['results'][1]
+        assert fund['secCode'] is None
+        assert fund['fundCode'] == 'F12345'
+        assert fund['docTypeCode'] == '180'
+
     def test_future_date_handling(self):
         """Test handling of future dates."""
         with patch('urllib.request.urlopen') as mock_urlopen:

@@ -5,6 +5,7 @@ the full parser pipeline, and verifies extracted field values. This catches
 regressions in element IDs, context patterns, type conversions, and fallback logic.
 """
 import io
+import warnings
 import zipfile
 import pytest
 from datetime import date
@@ -12,9 +13,19 @@ from decimal import Decimal
 from unittest.mock import MagicMock
 
 
-def make_csv_row(element_id, context_id, value):
-    """Create a single EDINET CSV row dict."""
-    return {'要素ID': element_id, 'コンテキストID': context_id, '値': value}
+def make_csv_row(element_id, context_id, value, item_name=''):
+    """Create a single EDINET CSV row dict.
+
+    item_name corresponds to the Japanese `項目名` (label) column found in
+    real EDINET extracts. Defaults to empty string for backward compatibility
+    with existing tests that don't need label-based extraction.
+    """
+    return {
+        '要素ID': element_id,
+        'コンテキストID': context_id,
+        '値': value,
+        '項目名': item_name,
+    }
 
 
 def make_zip_with_rows(rows):
@@ -23,7 +34,8 @@ def make_zip_with_rows(rows):
     with zipfile.ZipFile(zip_buffer, 'w') as zf:
         lines = []
         for row in rows:
-            line = f"{row['要素ID']}\tlabel\t{row['コンテキストID']}\t0\t連結\t期間\tunit1\t円\t{row['値']}"
+            item_name = row.get('項目名', '')
+            line = f"{row['要素ID']}\t{item_name}\t{row['コンテキストID']}\t0\t連結\t期間\tunit1\t円\t{row['値']}"
             lines.append(line)
         content = '\n'.join(lines)
         zf.writestr('XBRL_TO_CSV/test.csv', content.encode('utf-16le'))
@@ -164,15 +176,15 @@ class TestSecuritiesExtraction:
         assert r.operating_cash_flow == 7000000000
         assert r.investing_cash_flow == -3000000000
 
-    def test_is_consolidated_default_true(self):
-        """When is_consolidated DEI element is absent, default to True."""
+    def test_is_consolidated_none_when_dei_missing(self):
+        """When is_consolidated DEI element is absent, return None (unknown)."""
         rows = [
             make_csv_row('jpdei_cor:EDINETCodeDEI', 'FilingDateInstant', 'E11111'),
             make_csv_row('jpdei_cor:FilerNameInJapaneseDEI', 'FilingDateInstant', 'テスト'),
         ]
         doc = make_mock_doc('S100DEF', '120', rows)
         r = parse_securities_report(doc)
-        assert r.is_consolidated is True
+        assert r.is_consolidated is None
 
     def test_ifrs_full_extraction(self):
         """IFRS company should extract via IFRS Summary and FS elements."""
@@ -432,6 +444,240 @@ class TestLargeHoldingExtraction:
         assert r.filer_name == 'アクティビスト投資'
         assert r.target_ticker == '2477.T'
 
+    def test_single_filer_holder1_only_is_not_joint(self):
+        """Real-shape single-filer LHR carries only FilerLargeVolumeHolder1Member."""
+        rows = self._base_rows() + [
+            # Real-EDINET-shape: primary filer's contribution under Holder1Member
+            make_csv_row(
+                'jplvh_cor:NumberOfStocksOrEquityHeld',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder1Member',
+                '5000000',
+            ),
+        ]
+        doc = make_mock_doc('S100SOLO', '350', rows)
+        r = parse_large_holding(doc)
+        assert r.is_joint_filing is False
+
+    def test_holder2_axis_marks_joint_filing(self):
+        """Real-shape joint LHR carries FilerLargeVolumeHolder2Member (or higher).
+
+        Joint Large Holding Reports (multiple co-reporters reporting the same
+        holding) carry per-co-reporter axis members in context_ids:
+        `..._FilerLargeVolumeHolder1Member`, `2Member`, `3Member`, etc.
+        Detection: presence of any Holder<N>Member where N >= 2 = joint filing.
+        Captured from real prod LHR rows id=100 (Mizuho Bank, 3 holders) and
+        id=50000 (SMBC Nikko, 3 holders).
+        """
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jplvh_cor:NumberOfStocksOrEquityHeld',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder1Member',
+                '3000000',
+            ),
+            make_csv_row(
+                'jplvh_cor:NumberOfStocksOrEquityHeld',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder2Member',
+                '2000000',
+            ),
+        ]
+        doc = make_mock_doc('S100JOINT', '350', rows)
+        r = parse_large_holding(doc)
+        assert r.is_joint_filing is True
+
+    def test_three_co_reporters_marks_joint_filing(self):
+        """3 co-reporters (Holder1+2+3 all present) is joint."""
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jplvh_cor:NumberOfStocksOrEquityHeld',
+                f'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder{n}Member',
+                '1000000',
+            )
+            for n in (1, 2, 3)
+        ]
+        doc = make_mock_doc('S100JOINT3', '350', rows)
+        r = parse_large_holding(doc)
+        assert r.is_joint_filing is True
+
+    def test_double_digit_holder_number_marks_joint_filing(self):
+        """Two-digit holder numbers (e.g. Holder12Member) are recognized as joint."""
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jplvh_cor:NumberOfStocksOrEquityHeld',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder12Member',
+                '500000',
+            ),
+        ]
+        doc = make_mock_doc('S100JOINT12', '350', rows)
+        r = parse_large_holding(doc)
+        assert r.is_joint_filing is True
+
+    def test_empty_zip_is_not_joint(self):
+        """Empty/missing csv_files returns is_joint_filing=False (default)."""
+        doc = make_mock_doc('S100EMPTY2', '350', rows=None)
+        r = parse_large_holding(doc)
+        assert r.is_joint_filing is False
+
+    def test_extract_joint_holders_returns_all_filers_for_4_holder_filing(self):
+        """A 4-holder Doc 350 should produce a 4-element joint_holders list
+        sorted by holder_number ascending, with identity fields populated."""
+        rows = self._base_rows() + [
+            # Holder 1 — primary, corporate
+            make_csv_row(
+                'jplvh_cor:NameOfReporter',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder1Member',
+                'プライマリ株式会社',
+                '氏名又は名称',
+            ),
+            make_csv_row(
+                'jplvh_cor:EdinetCodeOfReporter',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder1Member',
+                'E11111',
+                'EDINETコード、大量保有DEI',
+            ),
+            make_csv_row(
+                'jplvh_cor:NumberOfStocksOrEquityHeld',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder1Member',
+                '1000000',
+                '株券又は投資証券等、法第27条の23第3項本文',
+            ),
+            # Holder 2 — co-reporter, individual
+            make_csv_row(
+                'jplvh_cor:NameOfReporter',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder2Member',
+                '田中　太郎',
+                '氏名又は名称',
+            ),
+            make_csv_row(
+                'jplvh_cor:EdinetCodeOfReporter',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder2Member',
+                'E22222',
+                'EDINETコード、大量保有DEI',
+            ),
+            make_csv_row(
+                'jplvh_cor:NumberOfStocksOrEquityHeld',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder2Member',
+                '500000',
+                '株券又は投資証券等、法第27条の23第3項本文',
+            ),
+            # Holder 3 — co-reporter, corporate
+            make_csv_row(
+                'jplvh_cor:NameOfReporter',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder3Member',
+                'サードコ株式会社',
+                '氏名又は名称',
+            ),
+            make_csv_row(
+                'jplvh_cor:NumberOfStocksOrEquityHeld',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder3Member',
+                '250000',
+                '株券又は投資証券等、法第27条の23第3項本文',
+            ),
+            # Holder 4 — co-reporter, corporate, only name
+            make_csv_row(
+                'jplvh_cor:NameOfReporter',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder4Member',
+                'フォース株式会社',
+                '氏名又は名称',
+            ),
+        ]
+        doc = make_mock_doc('S100JOINT4FULL', '350', rows)
+        r = parse_large_holding(doc)
+        assert r.joint_holder_count == 4
+        assert len(r.joint_holders) == 4
+        assert [h.holder_number for h in r.joint_holders] == [1, 2, 3, 4]
+        assert r.joint_holders[0].name_jp == 'プライマリ株式会社'
+        assert r.joint_holders[0].edinet_code == 'E11111'
+        assert r.joint_holders[0].shares_held == 1000000
+        assert r.joint_holders[1].name_jp == '田中　太郎'
+        assert r.joint_holders[1].edinet_code == 'E22222'
+        assert r.joint_holders[1].shares_held == 500000
+        assert r.joint_holders[2].name_jp == 'サードコ株式会社'
+        assert r.joint_holders[2].shares_held == 250000
+        assert r.joint_holders[3].name_jp == 'フォース株式会社'
+        assert r.joint_holders[3].shares_held is None  # not provided
+        assert r.is_joint_filing is True  # K=4 >= 2
+
+    def test_extract_joint_holders_single_filer_returns_one_element_list(self):
+        """A single-filer LHR (only FilerLargeVolumeHolder1Member) returns
+        a 1-element list; is_joint_filing stays False."""
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jplvh_cor:NameOfReporter',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder1Member',
+                'ソロ株式会社',
+                '氏名又は名称',
+            ),
+            make_csv_row(
+                'jplvh_cor:NumberOfStocksOrEquityHeld',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder1Member',
+                '3000000',
+                '株券又は投資証券等、法第27条の23第3項本文',
+            ),
+        ]
+        doc = make_mock_doc('S100SOLOFULL', '350', rows)
+        r = parse_large_holding(doc)
+        assert r.joint_holder_count == 1
+        assert len(r.joint_holders) == 1
+        assert r.joint_holders[0].holder_number == 1
+        assert r.joint_holders[0].name_jp == 'ソロ株式会社'
+        assert r.joint_holders[0].shares_held == 3000000
+        assert r.is_joint_filing is False
+
+    def test_extract_joint_holders_empty_csv_files_returns_empty_list(self):
+        """Empty/missing csv_files returns joint_holders=[]; joint_holder_count=0."""
+        doc = make_mock_doc('S100EMPTYJH', '350', rows=None)
+        r = parse_large_holding(doc)
+        assert r.joint_holders == []
+        assert r.joint_holder_count == 0
+        assert r.is_joint_filing is False
+
+    def test_extract_joint_holders_normalizes_null_markers(self):
+        """A holder with all '－' fields appears in the list with NULL
+        identity/ownership but with holder_number populated."""
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jplvh_cor:NameOfReporter',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder1Member',
+                'プライマリ株式会社',
+                '氏名又は名称',
+            ),
+            make_csv_row(
+                'jplvh_cor:NumberOfStocksOrEquityHeld',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder1Member',
+                '1000000',
+                '株券又は投資証券等、法第27条の23第3項本文',
+            ),
+            # Holder 2 — all NULL markers
+            make_csv_row(
+                'jplvh_cor:NameOfReporter',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder2Member',
+                '－',
+                '氏名又は名称',
+            ),
+            make_csv_row(
+                'jplvh_cor:NumberOfStocksOrEquityHeld',
+                'FilingDateInstant_jplvh030000-lvh_E99001-000FilerLargeVolumeHolder2Member',
+                '－',
+                '株券又は投資証券等、法第27条の23第3項本文',
+            ),
+        ]
+        doc = make_mock_doc('S100NULLJH', '350', rows)
+        r = parse_large_holding(doc)
+        assert r.joint_holder_count == 2
+        assert r.joint_holders[0].name_jp == 'プライマリ株式会社'
+        assert r.joint_holders[0].shares_held == 1000000
+        assert r.joint_holders[1].holder_number == 2
+        assert r.joint_holders[1].name_jp is None
+        assert r.joint_holders[1].shares_held is None
+
+    def test_holder_name_html_unescaped(self):
+        """Holder names with HTML entities (&amp;) are unescaped — EDINET emits
+        raw entity references in some filer names (~4,400 rows carry '&amp;')."""
+        from edinet_tools.parsers.large_holding import _normalize_holder_value
+        assert _normalize_holder_value(
+            'HOKUBU Communication &amp; Industrial Co.,Ltd.', str
+        ) == 'HOKUBU Communication & Industrial Co.,Ltd.'
+
 
 # =====================================================================
 # Treasury Stock Report (Doc 220)
@@ -474,8 +720,12 @@ class TestTreasuryStockExtraction:
         # TextBlock content
         assert '株主総会決議' in r.by_shareholders_meeting
         assert '取締役会決議' in r.by_board_meeting
-        assert r.has_shareholder_authorization is True
-        assert r.has_board_authorization is True
+        # has_shareholder_authorization / has_board_authorization are deprecated v0.6.1;
+        # wrap to silence warnings while preserving the behavioral assertion.
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            assert r.has_shareholder_authorization is True
+            assert r.has_board_authorization is True
         assert '保有自己株式数' in r.disposal_holding_text
 
     def test_amendment_flag(self):
@@ -524,7 +774,6 @@ class TestExtraordinaryExtraction:
         assert r.filing_date == date(2025, 8, 1)
         assert r.reason_for_filing == '重要な変更が発生しました'
         assert r.event_type == 'material_change'
-        assert r.is_fund is False
 
     def test_fund_report(self):
         """Fund extraordinary report uses jpsps-esr_cor namespace."""
@@ -542,7 +791,6 @@ class TestExtraordinaryExtraction:
 
         assert r.fund_code == 'G12345'
         assert r.fund_name == 'テスト投資信託'
-        assert r.is_fund is True
         assert r.event_type == 'trust_termination'
         assert r.filing_date == date(2025, 9, 1)
 
@@ -607,19 +855,18 @@ class TestSemiAnnualExtraction:
         assert r.operating_income == 2000000000
         assert r.ordinary_income == 2100000000
         assert r.profit_loss == 1200000000
-        assert r.is_fund is False
 
     def test_fund_report(self):
-        """Fund semi-annual report should set is_fund=True."""
+        """Fund semi-annual report extracts fund_code from DEI."""
         rows = [
             make_csv_row('jpdei_cor:EDINETCodeDEI', 'FilingDateInstant', 'E77777'),
             make_csv_row('jpdei_cor:FilerNameInJapaneseDEI', 'FilingDateInstant', 'テスト投信'),
             make_csv_row('jpdei_cor:FundCodeDEI', 'FilingDateInstant', 'G12345'),
             make_csv_row('jpdei_cor:FundNameInJapaneseDEI', 'FilingDateInstant', 'テストファンド'),
+            make_csv_row('jpsps_cor:NetAssetsAtFiscalYearEnd', 'CurrentYearInstant', '1000000000'),
         ]
         doc = make_mock_doc('S100FUND', '160', rows)
         r = parse_semi_annual_report(doc)
-        assert r.is_fund is True
         assert r.fund_code == 'G12345'
 
     def test_ifrs_fallback(self):
@@ -651,3 +898,282 @@ class TestSemiAnnualExtraction:
         doc = make_mock_doc('S100FB', '160', rows)
         r = parse_semi_annual_report(doc)
         assert r.filing_date == date(2024, 9, 30)
+
+
+# =====================================================================
+# IFRS Summary Metrics Extraction (v0.7.2+)
+# =====================================================================
+
+
+class TestIFRSSummaryMetricsExtraction:
+    """Verify ifrs_summary_basic_eps / _roe / _bps extraction from
+    jpcrp_cor:*IFRSSummaryOfBusinessResults XBRL elements at the
+    CurrentYearDuration / CurrentYearInstant context."""
+
+    def _base_rows(self):
+        """Minimal csv_files-shape rows for a synthetic IFRS securities report."""
+        return [
+            make_csv_row('jpdei_cor:EDINETCodeDEI', 'FilingDateInstant', 'E99001'),
+            make_csv_row('jpdei_cor:CurrentFiscalYearStartDateDEI',
+                         'FilingDateInstant', '2024-04-01'),
+            make_csv_row('jpdei_cor:CurrentFiscalYearEndDateDEI',
+                         'FilingDateInstant', '2025-03-31'),
+            make_csv_row('jpdei_cor:AccountingStandardsDEI',
+                         'FilingDateInstant', 'IFRS'),
+        ]
+
+    def test_ifrs_reporter_populates_all_3_summary_fields(self):
+        """An IFRS reporter with all 3 summary fields at CurrentYear context
+        populates all 3 typed fields with correct Decimal values."""
+        from edinet_tools.parsers.securities import parse_securities_report
+        from edinet_tools.parsers.extraction import extract_csv_from_zip
+
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jpcrp_cor:BasicEarningsLossPerShareIFRSSummaryOfBusinessResults',
+                'CurrentYearDuration', '350.92',
+            ),
+            make_csv_row(
+                'jpcrp_cor:RateOfReturnOnEquityIFRSSummaryOfBusinessResults',
+                'CurrentYearDuration', '0.069',
+            ),
+            make_csv_row(
+                'jpcrp_cor:EquityToAssetRatioIFRSSummaryOfBusinessResults',
+                'CurrentYearInstant', '5150.56',
+            ),
+        ]
+        zip_bytes = make_zip_with_rows(rows)
+        csv_files = extract_csv_from_zip(zip_bytes)
+        r = parse_securities_report(csv_files=csv_files, doc_id='SIFRSALL',
+                                    doc_type_code='120')
+
+        assert r.ifrs_summary_basic_eps == Decimal('350.92')
+        assert r.ifrs_summary_roe == Decimal('0.069')
+        assert r.ifrs_summary_bps == Decimal('5150.56')
+
+    def test_jgaap_reporter_leaves_ifrs_summary_fields_null(self):
+        """A J-GAAP reporter (no IFRS summary fields in csv_files) returns
+        all 3 typed fields as None."""
+        from edinet_tools.parsers.securities import parse_securities_report
+        from edinet_tools.parsers.extraction import extract_csv_from_zip
+
+        rows = [r for r in self._base_rows()
+                if r['要素ID'] != 'jpdei_cor:AccountingStandardsDEI']
+        rows.append(make_csv_row('jpdei_cor:AccountingStandardsDEI',
+                                 'FilingDateInstant', 'Japan GAAP'))
+        zip_bytes = make_zip_with_rows(rows)
+        csv_files = extract_csv_from_zip(zip_bytes)
+        r = parse_securities_report(csv_files=csv_files, doc_id='SJGAAP',
+                                    doc_type_code='120')
+
+        assert r.ifrs_summary_basic_eps is None
+        assert r.ifrs_summary_roe is None
+        assert r.ifrs_summary_bps is None
+
+    def test_ifrs_reporter_partial_coverage_returns_partial(self):
+        """An IFRS reporter with only EPS summary present (missing ROE +
+        BPS) populates only ifrs_summary_basic_eps; others stay None."""
+        from edinet_tools.parsers.securities import parse_securities_report
+        from edinet_tools.parsers.extraction import extract_csv_from_zip
+
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jpcrp_cor:BasicEarningsLossPerShareIFRSSummaryOfBusinessResults',
+                'CurrentYearDuration', '780.82',
+            ),
+        ]
+        zip_bytes = make_zip_with_rows(rows)
+        csv_files = extract_csv_from_zip(zip_bytes)
+        r = parse_securities_report(csv_files=csv_files, doc_id='SIFRSPARTIAL',
+                                    doc_type_code='120')
+
+        assert r.ifrs_summary_basic_eps == Decimal('780.82')
+        assert r.ifrs_summary_roe is None
+        assert r.ifrs_summary_bps is None
+
+    def test_ifrs_reporter_ignores_prior_year_values(self):
+        """When both Prior4YearDuration and CurrentYearDuration rows are
+        present for the same element, only CurrentYearDuration is picked."""
+        from edinet_tools.parsers.securities import parse_securities_report
+        from edinet_tools.parsers.extraction import extract_csv_from_zip
+
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jpcrp_cor:BasicEarningsLossPerShareIFRSSummaryOfBusinessResults',
+                'Prior4YearDuration', '-35.22',  # should be ignored
+            ),
+            make_csv_row(
+                'jpcrp_cor:BasicEarningsLossPerShareIFRSSummaryOfBusinessResults',
+                'CurrentYearDuration', '350.92',  # should be picked
+            ),
+        ]
+        zip_bytes = make_zip_with_rows(rows)
+        csv_files = extract_csv_from_zip(zip_bytes)
+        r = parse_securities_report(csv_files=csv_files, doc_id='SIFRSCTX',
+                                    doc_type_code='120')
+
+        assert r.ifrs_summary_basic_eps == Decimal('350.92')
+
+    def test_ifrs_null_marker_normalizes_to_none(self):
+        """EDINET emits '－' (U+FF0D full-width minus) as the null marker
+        on numeric fields. A truthy check ('if x else None') lets the marker
+        through to Decimal() and crashes with ConversionSyntax. The 3 new
+        ifrs_summary_* extractions must normalize '－' / '-' / empty to None
+        before Decimal().
+        """
+        from edinet_tools.parsers.securities import parse_securities_report
+        from edinet_tools.parsers.extraction import extract_csv_from_zip
+
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jpcrp_cor:BasicEarningsLossPerShareIFRSSummaryOfBusinessResults',
+                'CurrentYearDuration', '－',  # U+FF0D full-width minus
+            ),
+            make_csv_row(
+                'jpcrp_cor:RateOfReturnOnEquityIFRSSummaryOfBusinessResults',
+                'CurrentYearDuration', '-',  # bare ASCII hyphen
+            ),
+            make_csv_row(
+                'jpcrp_cor:EquityToAssetRatioIFRSSummaryOfBusinessResults',
+                'CurrentYearInstant', '',  # empty string
+            ),
+        ]
+        zip_bytes = make_zip_with_rows(rows)
+        csv_files = extract_csv_from_zip(zip_bytes)
+        r = parse_securities_report(csv_files=csv_files, doc_id='SIFRSNULL',
+                                    doc_type_code='120')
+
+        assert r.ifrs_summary_basic_eps is None
+        assert r.ifrs_summary_roe is None
+        assert r.ifrs_summary_bps is None
+
+    def test_jgaap_eps_waterfall_null_markers_normalize_to_none(self):
+        """The pre-existing J-GAAP-then-IFRS EPS waterfall (line 432-436)
+        had the same truthy-vs-None pattern. Both branches must normalize
+        '－' to None — otherwise '－' in the J-GAAP element truthy-passes
+        the `if not eps_str` gate (skipping the fallback) and crashes
+        Decimal(); or '－' in the IFRS fallback after a missing J-GAAP
+        element similarly crashes Decimal()."""
+        from edinet_tools.parsers.securities import parse_securities_report
+        from edinet_tools.parsers.extraction import extract_csv_from_zip
+
+        # Case 1: J-GAAP EPS is '－', no IFRS fallback element.
+        # Without the fix: '－' truthy-passes, Decimal('－') crashes.
+        # With the fix: '－' normalized to None, falls through, no IFRS
+        # element → eps stays None.
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jpcrp_cor:BasicEarningsLossPerShareSummaryOfBusinessResults',
+                'CurrentYearDuration', '－',
+            ),
+        ]
+        zip_bytes = make_zip_with_rows(rows)
+        csv_files = extract_csv_from_zip(zip_bytes)
+        r = parse_securities_report(csv_files=csv_files, doc_id='SJGAPNULL',
+                                    doc_type_code='120')
+        assert r.earnings_per_share is None
+
+        # Case 2: J-GAAP EPS missing entirely, IFRS-element fallback is '－'.
+        # Without the fix: J-GAAP absent → falls through to IFRS → '－' →
+        # Decimal('－') crashes.
+        # With the fix: IFRS '－' normalized to None → eps stays None.
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jpcrp_cor:BasicEarningsLossPerShareIFRSSummaryOfBusinessResults',
+                'CurrentYearDuration', '－',
+            ),
+        ]
+        zip_bytes = make_zip_with_rows(rows)
+        csv_files = extract_csv_from_zip(zip_bytes)
+        r = parse_securities_report(csv_files=csv_files, doc_id='SIFRSFB',
+                                    doc_type_code='120')
+        assert r.earnings_per_share is None
+
+    def test_jgaap_navps_null_marker_normalizes_to_none(self):
+        """The pre-existing NAVPS extraction (line 430) had the same
+        truthy-vs-None pattern. Must normalize '－' / '-' / empty to
+        None before Decimal()."""
+        from edinet_tools.parsers.securities import parse_securities_report
+        from edinet_tools.parsers.extraction import extract_csv_from_zip
+
+        rows = self._base_rows() + [
+            make_csv_row(
+                'jpcrp_cor:NetAssetsPerShareSummaryOfBusinessResults',
+                'CurrentYearInstant', '－',  # U+FF0D
+            ),
+        ]
+        zip_bytes = make_zip_with_rows(rows)
+        csv_files = extract_csv_from_zip(zip_bytes)
+        r = parse_securities_report(csv_files=csv_files, doc_id='SNAVNULL',
+                                    doc_type_code='120')
+        assert r.net_assets_per_share is None
+
+    def test_extract_financial_uses_ifrs_fallback_when_jgaap_is_null_marker(self):
+        """Soft bug in extract_financial: if J-GAAP element is '－', the
+        truthy check `if value_str` passed (since '－' is truthy), parse_int
+        returned None, and the function returned None immediately — never
+        firing the IFRS fallback at the same context level. Result: IFRS
+        reporters that emit J-GAAP elements with '－' silently had None
+        for net_sales / operating_income / total_assets / etc.
+
+        Fix: normalize '－' to None BEFORE the truthy check so the IFRS
+        fallback fires correctly.
+        """
+        from edinet_tools.parsers.securities import parse_securities_report
+        from edinet_tools.parsers.extraction import extract_csv_from_zip
+
+        rows = self._base_rows() + [
+            # J-GAAP NetSales with null marker
+            make_csv_row(
+                'jppfs_cor:NetSales', 'CurrentYearDuration', '－',
+            ),
+            # IFRS Revenue with real value at the same context level
+            make_csv_row(
+                'jpigp_cor:RevenueIFRS', 'CurrentYearDuration', '5000000000',
+            ),
+            # J-GAAP OperatingIncome with null marker
+            make_csv_row(
+                'jppfs_cor:OperatingIncome', 'CurrentYearDuration', '－',
+            ),
+            # IFRS OperatingProfitLoss with real value
+            make_csv_row(
+                'jpigp_cor:OperatingProfitLossIFRS', 'CurrentYearDuration', '700000000',
+            ),
+        ]
+        zip_bytes = make_zip_with_rows(rows)
+        csv_files = extract_csv_from_zip(zip_bytes)
+        r = parse_securities_report(csv_files=csv_files, doc_id='SIFRSFB',
+                                    doc_type_code='120')
+
+        # Without the fix: both would be None (J-GAAP '－' truthy-passes →
+        # parse_int returns None → function returns None, IFRS fallback never
+        # fires). With the fix: IFRS values are picked up.
+        assert r.net_sales == 5000000000
+        assert r.operating_income == 700000000
+
+    def test_semi_annual_extract_financial_uses_ifrs_fallback_when_jgaap_is_null(self):
+        """Same soft-bug shape as extract_financial above, but in
+        semi_annual._extract_financial. Fix: normalize before truthy check
+        so IFRS fallback fires when J-GAAP element is '－'.
+        """
+        from edinet_tools.parsers.semi_annual import parse_semi_annual_report
+
+        rows = [
+            make_csv_row('jpdei_cor:EDINETCodeDEI', 'FilingDateInstant', 'E12345'),
+            make_csv_row('jpdei_cor:FilerNameInJapaneseDEI', 'FilingDateInstant', 'テスト'),
+            make_csv_row('jpdei_cor:CurrentFiscalYearStartDateDEI',
+                         'FilingDateInstant', '2024-04-01'),
+            make_csv_row('jpdei_cor:CurrentPeriodEndDateDEI',
+                         'FilingDateInstant', '2024-09-30'),
+            make_csv_row('jpdei_cor:DateOfSubmissionDEI',
+                         'FilingDateInstant', '2024-12-25'),
+            # J-GAAP Assets is '－', IFRS AssetsIFRS has a real value
+            make_csv_row('jppfs_cor:Assets', 'CurrentQuarterInstant', '－'),
+            make_csv_row('jpigp_cor:AssetsIFRS', 'CurrentQuarterInstant', '90000000000'),
+        ]
+        doc = make_mock_doc('S100IFRSFB', '160', rows)
+        r = parse_semi_annual_report(doc)
+
+        # Without the fix: total_assets would be None despite IFRS having
+        # a value. With the fix: total_assets is the IFRS value.
+        assert r.total_assets == 90000000000

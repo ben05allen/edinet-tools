@@ -115,6 +115,23 @@ class Document:
         from .parsers import parse
         return parse(self)
 
+    def save_extracted_csvs(self, output_dir) -> list:
+        """
+        Fetch this document (if not already fetched) and extract its CSVs to disk.
+
+        Convenience method combining fetch() + extract_csv_to_disk().
+
+        Args:
+            output_dir: Directory where CSV files will be written.
+                       Created recursively if missing. Accepts str or Path.
+
+        Returns:
+            List of Path objects, one per CSV file written.
+        """
+        from .parsers.extraction import extract_csv_to_disk
+        zip_bytes = self.fetch()
+        return extract_csv_to_disk(zip_bytes, output_dir)
+
     def __repr__(self) -> str:
         filer = self.filer_name or 'Unknown'
         if len(filer) > 20:

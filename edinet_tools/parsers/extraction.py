@@ -6,10 +6,14 @@ Handles in-memory extraction of XBRL CSV data from EDINET ZIP files.
 import csv
 import io
 import logging
+import unicodedata
 import zipfile
 from datetime import date, datetime
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, Optional
+
+from ._facts import Fact
 
 logger = logging.getLogger(__name__)
 
@@ -268,10 +272,14 @@ def get_context_patterns(is_consolidated: bool, period: str) -> list[str]:
         List of context patterns to try in priority order
     """
     if is_consolidated:
-        return [
-            period,                              # Bare context = consolidated (preferred)
-            f"{period}_NonConsolidatedMember",   # Fallback to non-consolidated
-        ]
+        # Strict consolidated: a missing consolidated value must fall through to the
+        # next ELEMENT/tier in the caller's waterfall, NOT silently borrow the
+        # non-consolidated (parent) value of THIS element. Borrowing the parent here
+        # is the root cause of IFRS/US-GAAP revenue reading the parent figure
+        # (e.g. Toyota ¥18T parent vs ¥48T consolidated). When no consolidated value
+        # exists for a metric, the typed field is honestly None — the parent value
+        # is still preserved in the fact-bag (raw_fields / raw_facts), not lost.
+        return [period]
     else:
         return [
             f"{period}_NonConsolidatedMember",   # Non-consolidated (preferred)
@@ -308,9 +316,17 @@ def extract_financial(
     # Try each context level with both primary and IFRS fallback before
     # falling through to the next context level. This prevents non-consolidated
     # J-GAAP data from leaking into results for consolidated IFRS filers.
+    #
+    # coerce_numeric_value() normalizes EDINET null markers ('－' / '-' / '−' / '')
+    # to None before the truthy check. Without it, IFRS reporters that emit
+    # J-GAAP elements with '－' would truthy-pass the primary-element check,
+    # parse_int('－') would return None, and the IFRS fallback would NEVER
+    # fire — silently masking valid IFRS values with None.
     for pattern in patterns:
         # Try primary element at this context level
-        value_str = extract_value(csv_files, element_id, context_patterns=[pattern])
+        value_str = coerce_numeric_value(
+            extract_value(csv_files, element_id, context_patterns=[pattern])
+        )
         if value_str:
             return parse_int(value_str)
 
@@ -322,7 +338,9 @@ def extract_financial(
                 if isinstance(fallbacks, str):
                     fallbacks = [fallbacks]
                 for ifrs_element in fallbacks:
-                    value_str = extract_value(csv_files, ifrs_element, context_patterns=[pattern])
+                    value_str = coerce_numeric_value(
+                        extract_value(csv_files, ifrs_element, context_patterns=[pattern])
+                    )
                     if value_str:
                         return parse_int(value_str)
 
@@ -331,27 +349,30 @@ def extract_financial(
 
 def categorize_elements(
     csv_files: list,
-    element_map: dict[str, str]
-) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    element_map: Optional[dict[str, str]] = None,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], list[Fact]]:
     """
-    Categorize all elements from csv_files into three buckets.
+    Categorize all elements from csv_files into four buckets.
 
     Args:
         csv_files: List of dicts with 'filename' and 'data' keys
-        element_map: Dict of field_name -> element_id for mapped fields
+        element_map: Dict of field_name -> element_id for mapped fields.
+                     Defaults to empty dict if not provided.
 
     Returns:
-        Tuple of (raw_fields, text_blocks, unmapped_fields):
-        - raw_fields: ALL elements by element_id (nothing lost)
+        Tuple of (raw_fields, text_blocks, unmapped_fields, raw_facts):
+        - raw_fields: ALL elements by element_id (last-wins, nothing lost)
         - text_blocks: TextBlock elements
         - unmapped_fields: Elements not in element_map (excluding TextBlocks)
+        - raw_facts: Every (element_id, context_id, value, unit_id) triple
     """
     # Build reverse map: element_id -> field_name
-    mapped_element_ids = set(element_map.values())
+    mapped_element_ids = set(element_map.values()) if element_map else set()
 
     raw_fields: dict[str, Any] = {}
     text_blocks: dict[str, Any] = {}
     unmapped_fields: dict[str, Any] = {}
+    raw_facts: list[Fact] = []
 
     for csv_file in csv_files or []:
         for row in csv_file.get('data', []):
@@ -361,8 +382,22 @@ def categorize_elements(
             if not elem_id or value is None:
                 continue
 
-            # Store in raw_fields (everything)
+            # Skip header row
+            if elem_id == '要素ID':
+                continue
+
+            # Store in raw_fields (everything, last-wins)
             raw_fields[elem_id] = value
+
+            # Collect every triple for raw_facts
+            context_id = row.get('コンテキストID', '')
+            unit_id = row.get('ユニットID', '') or None
+            raw_facts.append(Fact(
+                element_id=elem_id,
+                context_id=context_id,
+                value=value,
+                unit_id=unit_id,
+            ))
 
             # Categorize
             if 'TextBlock' in elem_id:
@@ -374,4 +409,162 @@ def categorize_elements(
                 key = elem_id.split(':')[-1] if ':' in elem_id else elem_id
                 unmapped_fields[key] = value
 
-    return raw_fields, text_blocks, unmapped_fields
+    return raw_fields, text_blocks, unmapped_fields, raw_facts
+
+
+def match_element_by_suffix(
+    csv_files: list,
+    canonical_name: str,
+    industry_suffixes: tuple = (),
+) -> list:
+    """Find CSV rows whose element_id ends with the canonical name or an industry-suffixed variant.
+
+    Per spec §3.5: handles per-filer custom-element namespaces
+    (jpcrp030000-asr_<EDINET>-000:NetSales) + industry suffixes
+    (NetSalesINS, NetSalesBNK).
+
+    Args:
+        csv_files: List of dicts with 'filename' + 'data' keys (the shape
+            returned by extract_csv_from_zip).
+        canonical_name: The base element name to match against (e.g., 'NetSales').
+        industry_suffixes: Optional tuple of industry suffixes to also accept
+            (e.g., ('INS', 'BNK') for insurance + bank variants).
+
+    Returns:
+        List of CSV row dicts (full rows, not just element_ids) whose element_id
+        ends with the canonical name or any of the suffixed variants.
+    """
+    accepted_endings = [canonical_name] + [
+        canonical_name + suffix for suffix in industry_suffixes
+    ]
+    results = []
+
+    for csv_file in csv_files or []:
+        for row in csv_file.get('data', []) or []:
+            elem_id = row.get('要素ID', '') or ''
+            if not elem_id or elem_id == '要素ID':
+                continue
+            # Match against the local-name portion (after the colon, if present)
+            local_name = elem_id.split(':')[-1] if ':' in elem_id else elem_id
+            if local_name in accepted_endings:
+                results.append(row)
+
+    return results
+
+
+def extract_csv_to_disk(zip_bytes: bytes, output_dir) -> list:
+    """
+    Extract CSV files from an EDINET ZIP and write them to disk.
+
+    Preserves the 9-column EDINET CSV shape (要素ID, 項目名, コンテキストID,
+    相対年度, 連結・個別, 期間・時点, ユニットID, 単位, 値) as utf-8 TSV.
+
+    This is the modular disk-output helper, complementing the in-memory
+    extract_csv_from_zip() for callers who want raw CSV files on disk
+    for debugging, archival, memory-constrained processing, or out-of-band
+    consumption.
+
+    Args:
+        zip_bytes: Raw bytes of the EDINET ZIP file
+        output_dir: Directory where CSV files will be written. Created
+                   recursively if it does not exist. Accepts str or Path.
+
+    Returns:
+        List of Path objects, one per CSV file written. Empty list if
+        the ZIP contains no CSV files.
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_files = extract_csv_from_zip(zip_bytes)
+    written_paths = []
+    columns = ['要素ID', '項目名', 'コンテキストID', '相対年度',
+               '連結・個別', '期間・時点', 'ユニットID', '単位', '値']
+
+    for csv_file in csv_files:
+        output_path = output_dir / csv_file['filename']
+        with open(output_path, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.writer(f, delimiter='\t')
+            writer.writerow(columns)
+            for row in csv_file.get('data', []):
+                writer.writerow([row.get(col, '') for col in columns])
+        written_paths.append(output_path)
+
+    return written_paths
+
+
+# ---------------------------------------------------------------------------
+# Multi-shape value coercion helpers (per spec §3.5)
+# ---------------------------------------------------------------------------
+
+# Placeholders EDINET uses for "no value" in numeric contexts.
+# After NFKC normalization, U+FF0D (－) becomes '-', and U+2212 (−) becomes '-'.
+# So the normalized set is just ('', '-').
+_NUMERIC_NULL_PLACEHOLDERS = frozenset({'－', '−', '', '-'})
+
+
+def coerce_numeric_value(value) -> str | None:
+    """Coerce a CSV value to a canonical numeric-string form, or None.
+
+    Per spec §3.5: handles EDINET's varied null-placeholder shapes:
+    '－' (U+FF0D full-width minus), '-' (bare ASCII hyphen alone),
+    '−' (U+2212 minus sign), '' (empty), whitespace-only. All coerce
+    to None.
+
+    Full-width digits ('１', '２', ...) and full-width comma ('，') are
+    normalized to half-width equivalents via NFKC.
+
+    Negative numbers ('-1000') pass through correctly — they are NOT
+    placeholders because they have digits attached.
+
+    Args:
+        value: The raw string value from a CSV cell (may be None).
+
+    Returns:
+        Normalized numeric string, or None if value is a null-placeholder.
+    """
+    if value is None:
+        return None
+
+    s = str(value).strip()
+    if not s:
+        return None
+
+    # NFKC normalizes full-width digits/punctuation to half-width.
+    # e.g. '１０００' -> '1000', '１，０００' -> '1,000', '－' (U+FF0D) -> '-'
+    # Note: U+2212 (−, mathematical minus) is NOT changed by NFKC, so handle it
+    # explicitly alongside the bare ASCII '-' placeholder check below.
+    s = unicodedata.normalize('NFKC', s)
+
+    # After normalization, bare '-' (and its full-width forms, and U+2212 alone)
+    # is a null placeholder.  '-1000' is a real negative number and passes through.
+    if s in ('-', '−'):
+        return None
+
+    # Empty string after normalization (shouldn't happen after strip, but be safe)
+    if not s:
+        return None
+
+    return s
+
+
+def coerce_int(value) -> int | None:
+    """Coerce a CSV value to int, or None for placeholders.
+
+    Wraps coerce_numeric_value() and adds int() conversion (with comma stripping).
+
+    Args:
+        value: The raw string value from a CSV cell (may be None).
+
+    Returns:
+        Integer, or None if value is a null-placeholder or non-numeric.
+    """
+    normalized = coerce_numeric_value(value)
+    if normalized is None:
+        return None
+    # Strip comma separators (e.g. '1,000,000' -> '1000000')
+    cleaned = normalized.replace(',', '')
+    try:
+        return int(cleaned)
+    except ValueError:
+        return None

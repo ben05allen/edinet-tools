@@ -3,6 +3,8 @@ Tests for EntityClassifier.
 
 Uses real FSA data files to validate classification logic.
 """
+import warnings
+
 import pytest
 from edinet_tools.entity_classifier import (
     EntityClassifier,
@@ -125,7 +127,9 @@ class TestListedCompanyClassification:
     def test_toyota_is_listed_company(self, classifier):
         """Toyota (E02144) should be a listed company."""
         assert classifier.get_entity_type('E02144') == EntityType.LISTED_COMPANY
-        assert classifier.is_listed('E02144')
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            assert classifier.is_listed('E02144')
         assert not classifier.is_fund('E02144')
         assert classifier.is_known('E02144')
 
@@ -142,7 +146,9 @@ class TestListedCompanyClassification:
     def test_sony_is_listed_company(self, classifier):
         """Sony (E01777) should be a listed company."""
         assert classifier.get_entity_type('E01777') == EntityType.LISTED_COMPANY
-        assert classifier.is_listed('E01777')
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            assert classifier.is_listed('E01777')
 
     def test_softbank_group_is_listed(self, classifier):
         """SoftBank Group (E02778) should be listed."""
@@ -194,7 +200,9 @@ class TestUnknownEntities:
         """Unknown EDINET codes should return UNKNOWN."""
         assert classifier.get_entity_type('E99999') == EntityType.UNKNOWN
         assert not classifier.is_known('E99999')
-        assert not classifier.is_listed('E99999')
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            assert not classifier.is_listed('E99999')
         assert not classifier.is_fund('E99999')
 
     def test_empty_code_returns_unknown(self, classifier):
@@ -309,9 +317,13 @@ class TestReverseIndexes:
         must accept either form."""
         # Toyota is canonically a listed company. Whichever language the
         # bundled CSV currently uses, this assertion must hold.
-        assert classifier.is_listed("E02144"), \
-            "Toyota (E02144) must be classified as listed regardless of " \
-            "whether the catalog uses 'Listed company' or '上場'"
+        # is_listed() is deprecated (v0.6.1); the canonical check is get_entity_type() == LISTED_COMPANY.
+        # This test verifies the deprecated path still returns the correct value.
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            assert classifier.is_listed("E02144"), \
+                "Toyota (E02144) must be classified as listed regardless of " \
+                "whether the catalog uses 'Listed company' or '上場'"
         stats = classifier.stats
         assert stats['listed_companies'] > 1000, \
             f"Expected >1000 listed companies, got {stats['listed_companies']}"

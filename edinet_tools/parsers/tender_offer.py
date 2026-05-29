@@ -229,7 +229,7 @@ def parse_tender_offer(document=None, *, csv_files=None, doc_id=None, doc_type_c
     settlement_date_text = get('settlement_date_text')
 
     # Categorize all elements
-    raw_fields, text_blocks, unmapped_fields = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
 
     return TenderOfferReport(
         doc_id=doc_id,
@@ -238,6 +238,7 @@ def parse_tender_offer(document=None, *, csv_files=None, doc_id=None, doc_type_c
         raw_fields=raw_fields,
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
+        raw_facts=raw_facts,
 
         # Acquirer identification
         acquirer_name=acquirer_name or getattr(document, 'filer_name', None),

@@ -9,6 +9,8 @@ PROCESSING PHILOSOPHY: Store raw XBRL values faithfully. No interpretation.
 - Text fields stored as-is
 - Downstream consumers determine meaning
 """
+import html
+import re
 from dataclasses import dataclass, field
 from decimal import Decimal
 from datetime import date
@@ -73,6 +75,38 @@ ELEMENT_MAP = {
 }
 
 
+@dataclass(frozen=True)
+class JointHolder:
+    """One co-reporter from a Large Holding Report (Doc 350).
+
+    Derived from XBRL FilerLargeVolumeHolder<N>Member axis rows.
+    The primary filer is index 1; co-reporters are 2, 3, ..., K.
+    Present on both single-filer and joint filings — for single-filer
+    reports, joint_holders contains a 1-element list.
+    """
+    # Stable ordering key — the N in FilerLargeVolumeHolder<N>Member
+    holder_number: int
+
+    # Identity
+    edinet_code: str | None = None
+    name_jp: str | None = None
+    name_en: str | None = None
+    address: str | None = None
+
+    # Corporate-filer metadata (NULL for individuals)
+    representative_name: str | None = None
+    representative_title: str | None = None
+
+    # Individual-filer metadata (NULL for corporates)
+    workplace_name: str | None = None
+    workplace_address: str | None = None
+
+    # Ownership counts (primary clause of §27-23 Para 3)
+    shares_held: int | None = None
+    warrants_held: int | None = None
+    convertible_bonds_held: int | None = None
+
+
 @dataclass
 class LargeHoldingReport(ParsedReport):
     """Parsed Large Shareholding Report (Doc 350)."""
@@ -116,6 +150,18 @@ class LargeHoldingReport(ParsedReport):
     acquisition_fund_other: int | None = None
     acquisition_fund_total: int | None = None
 
+    # Joint-filing flag derived from XBRL FilerLargeVolumeHolder<N>Member axis
+    # presence in context_ids (v0.7.0+). True when the filing has multiple
+    # co-reporters (joint Large Holding Report).
+    is_joint_filing: bool = False
+
+    # Joint-holder enumeration (v0.7.1+). Always populated as a list of
+    # length >= 1 for valid filings (primary filer = index 1).
+    # joint_holder_count mirrors len(joint_holders).
+    # is_joint_filing is True when joint_holder_count >= 2.
+    joint_holders: list[JointHolder] = field(default_factory=list)
+    joint_holder_count: int = 0
+
     @property
     def filer(self):
         """Resolve filer to Entity if possible."""
@@ -153,6 +199,108 @@ class LargeHoldingReport(ParsedReport):
         else:
             pct = '?%'
         return f"LargeHoldingReport(filer='{filer}', target='{target}', ownership={pct})"
+
+
+_JOINT_HOLDER_RE = re.compile(r'FilerLargeVolumeHolder([2-9]|\d{2,})Member')
+
+
+def _detect_joint_filing(csv_files: list) -> bool:
+    """Return True when context_ids carry a 2nd-or-higher co-reporter axis.
+
+    Real EDINET Doc 350 filings carry per-co-reporter axis members like
+    `FilingDateInstant_jplvh030000-lvh_E23615-000FilerLargeVolumeHolder1Member`
+    for the primary filer and `...FilerLargeVolumeHolder2Member`,
+    `...3Member`, etc. for additional co-reporters in joint filings.
+    Presence of FilerLargeVolumeHolder<N>Member where N >= 2 = joint filing;
+    only 1Member present = single filer.
+
+    (Note: the form-schema extension namespace prefix `jplvh030000-lvh_E#####-000`
+    varies per filer; the load-bearing discriminator is the `FilerLargeVolumeHolder`
+    member-name pattern, not the axis-namespace prefix.)
+    """
+    for csv_file in csv_files or []:
+        for row in csv_file.get('data', []) or []:
+            ctx = row.get('コンテキストID', '') or ''
+            if _JOINT_HOLDER_RE.search(ctx):
+                return True
+    return False
+
+
+# Field label (項目名) → (attribute, type)
+_HOLDER_FIELD_MAP: dict[str, tuple[str, type]] = {
+    'EDINETコード、大量保有DEI': ('edinet_code', str),
+    '氏名又は名称（日本語表記）、大量保有DEI': ('name_jp', str),
+    '氏名又は名称': ('name_jp', str),  # fallback for older filings
+    '氏名又は名称（英語表記）、大量保有DEI': ('name_en', str),
+    '住所又は本店所在地': ('address', str),
+    '代表者氏名': ('representative_name', str),
+    '代表者役職': ('representative_title', str),
+    '勤務先名称': ('workplace_name', str),
+    '勤務先住所': ('workplace_address', str),
+    '株券又は投資証券等、法第27条の23第3項本文': ('shares_held', int),
+    '新株予約権証券又は新投資口予約権証券等、法第27条の23第3項本文': ('warrants_held', int),
+    '新株予約権付社債券、法第27条の23第3項本文': ('convertible_bonds_held', int),
+}
+
+# Japanese null markers used in Doc 350 holder rows.
+# Superset of extraction.py's `_NUMERIC_NULL_PLACEHOLDERS` for the dash family;
+# adds 'ー' (katakana prolonged sound), 'なし', '該当なし' which appear in
+# narrative fields like 代表者氏名 when the filer is an individual.
+# Kept local rather than imported to avoid coupling Doc 350 holder semantics
+# to the broader numeric-null path.
+_NULL_VALUES = {'－', '-', '', 'ー', 'なし', '―', '該当なし'}
+
+
+def _normalize_holder_value(raw: str, typ: type):
+    """Normalize a raw XBRL value to typed Python or None."""
+    if raw is None or str(raw).strip() in _NULL_VALUES:
+        return None
+    if typ is int:
+        try:
+            return int(float(str(raw).replace(',', '').strip()))
+        except (ValueError, TypeError):
+            return None
+    # EDINET emits raw HTML entity references in some filer names (&amp; etc.).
+    return html.unescape(str(raw).strip())
+
+
+def _extract_joint_holders(csv_files: list) -> list[JointHolder]:
+    """Extract per-holder rows from XBRL substrate.
+
+    Buckets rows by `FilerLargeVolumeHolder<N>Member` axis, extracts
+    typed fields by `項目名` label, returns list sorted by N ascending.
+
+    For single-filer reports, returns a 1-element list (the primary filer
+    at N=1). For joint reports (K>=2 co-reporters), returns K elements.
+    For corrupt or partial XBRL, returns what's parseable; missing fields
+    are None.
+    """
+    by_holder: dict[int, dict] = {}
+    for csv_file in csv_files or []:
+        for row in csv_file.get('data', []) or []:
+            ctx = row.get('コンテキストID', '') or ''
+            n = None
+            if 'FilerLargeVolumeHolder1Member' in ctx:
+                n = 1
+            else:
+                m = _JOINT_HOLDER_RE.search(ctx)
+                if m:
+                    n = int(m.group(1))
+            if n is None:
+                continue
+            field_label = row.get('項目名', '') or ''
+            if field_label not in _HOLDER_FIELD_MAP:
+                continue
+            attr, typ = _HOLDER_FIELD_MAP[field_label]
+            value = _normalize_holder_value(row.get('値', ''), typ)
+            holder_dict = by_holder.setdefault(n, {'holder_number': n})
+            # First-wins per (holder_number, attr) to avoid the fallback
+            # '氏名又は名称' label overwriting '氏名又は名称（日本語表記）、大量保有DEI'
+            # when both appear in a transitional filing. In practice these labels
+            # are mutually exclusive by filing vintage; the guard is defensive.
+            if attr not in holder_dict or holder_dict[attr] is None:
+                holder_dict[attr] = value
+    return [JointHolder(**by_holder[n]) for n in sorted(by_holder.keys())]
 
 
 def parse_large_holding(document=None, *, csv_files=None, doc_id=None, doc_type_code=None) -> LargeHoldingReport:
@@ -220,7 +368,12 @@ def parse_large_holding(document=None, *, csv_files=None, doc_id=None, doc_type_
         filing_date = filing_datetime.date()
 
     # Categorize all elements
-    raw_fields, text_blocks, unmapped_fields = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
+
+    # Detect joint filing via FilerLargeVolumeHolder<N>Member axis presence
+    # in context_ids (N >= 2; primary filer is always Holder1Member).
+    is_joint_filing = _detect_joint_filing(csv_files)
+    joint_holders_list = _extract_joint_holders(csv_files)
 
     return LargeHoldingReport(
         doc_id=doc_id,
@@ -229,6 +382,7 @@ def parse_large_holding(document=None, *, csv_files=None, doc_id=None, doc_type_
         raw_fields=raw_fields,
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
+        raw_facts=raw_facts,
 
         # Report context
         report_indication=get('report_indication'),
@@ -268,4 +422,9 @@ def parse_large_holding(document=None, *, csv_files=None, doc_id=None, doc_type_
         acquisition_fund_borrowing=parse_int(get('acquisition_fund_borrowing')),
         acquisition_fund_other=parse_int(get('acquisition_fund_other')),
         acquisition_fund_total=parse_int(get('acquisition_fund_total')),
+
+        # Joint-filing flag (FilerLargeVolumeHolder<N>Member axis presence, N >= 2)
+        is_joint_filing=is_joint_filing,
+        joint_holders=joint_holders_list,
+        joint_holder_count=len(joint_holders_list),
     )

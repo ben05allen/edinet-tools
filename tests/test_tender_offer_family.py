@@ -58,6 +58,30 @@ def _make_mock_doc(doc_type_code: str, doc_id: str = 'TEST_DOC') -> Mock:
     return doc
 
 
+def _make_minimal_routing_zip() -> bytes:
+    """Build a minimal valid EDINET-shaped ZIP containing a single CSV row.
+
+    Used by the routing test to make parsers walk the real parse body
+    (extract_csv_from_zip → field extraction → categorize_elements) rather
+    than short-circuiting on the empty-csv_files branch.
+    """
+    row = 'jpdei_cor:EDINETCodeDEI\tlabel\tFilingDateInstant\t0\t連結\t期間\t\t\tE12345'
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w') as zf:
+        zf.writestr('XBRL_TO_CSV/test.csv', row.encode('utf-16le'))
+    return buf.getvalue()
+
+
+def _make_routing_doc(code: str) -> MagicMock:
+    doc = MagicMock()
+    doc.doc_type_code = code
+    doc.doc_id = f"TEST_{code}"
+    doc.filer_name = ''
+    doc.filer_edinet_code = ''
+    doc.fetch.return_value = _make_minimal_routing_zip()
+    return doc
+
+
 # ---------------------------------------------------------------------------
 # Routing tests — parse() must NOT fall through to RawReport
 # ---------------------------------------------------------------------------
@@ -68,17 +92,16 @@ DOC_TYPES = ['260', '270', '280', '290', '300', '310', '320', '330', '340']
 @pytest.mark.parametrize("code", DOC_TYPES)
 def test_tender_offer_family_does_not_fall_through(code):
     """parse() must route to a typed parser, never RawReport, for all new codes."""
-    doc = MagicMock()
-    doc.doc_type_code = code
-    doc.doc_id = f"TEST_{code}"
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert not isinstance(result, RawReport), (
-            f"Doc type {code} fell through to RawReport — add it to the router"
-        )
-    except Exception:
-        pass  # Parser errored, but it was routed — that's acceptable
+    doc = _make_routing_doc(code)
+    result = parse(doc)
+    assert not isinstance(result, RawReport), (
+        f"Doc type {code} fell through to RawReport — add it to the router"
+    )
+    # The CSV row we fed in has the DEI EDINET code 'E12345' — proves
+    # the parse body actually ran rather than short-circuiting on empty input.
+    assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345', (
+        f"Doc type {code}: parse body did not consume the input CSV row"
+    )
 
 
 @pytest.mark.parametrize("code", ['260'])

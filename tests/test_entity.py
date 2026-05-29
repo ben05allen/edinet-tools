@@ -1,4 +1,6 @@
 """Tests for Entity and Fund classes."""
+import warnings
+
 import pytest
 from unittest.mock import Mock, patch
 from edinet_tools.entity import (
@@ -27,7 +29,9 @@ class TestEntityBasics:
         assert entity.name_jp == 'トヨタ自動車株式会社'
         assert entity.name_en == 'TOYOTA MOTOR CORPORATION'
         assert entity.ticker == '7203'
-        assert entity.is_listed is True
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            assert entity.is_listed is True
 
     def test_entity_name_property_prefers_english(self):
         """Entity.name should return English name if available."""
@@ -179,14 +183,18 @@ class TestEntityFundIssuer:
         """Regular companies are not fund issuers."""
         toyota = entity("7203")
         assert toyota is not None
-        assert toyota.is_fund_issuer is False
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            assert toyota.is_fund_issuer is False
 
     def test_is_fund_issuer_true_for_fund_issuer(self):
         """Fund issuers are correctly identified."""
         # E12422 is しんきんアセットマネジメント投信 - a known fund issuer
         issuer = entity_by_edinet_code("E12422")
         assert issuer is not None
-        assert issuer.is_fund_issuer is True
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            assert issuer.is_fund_issuer is True
 
     def test_entity_funds_property_returns_list(self):
         """Entity.funds returns a list."""

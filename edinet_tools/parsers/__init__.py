@@ -5,7 +5,7 @@ Provides typed parsers for known document types and a raw fallback.
 """
 from .base import ParsedReport
 from .generic import RawReport, parse_raw, GenericReport, parse_generic
-from .large_holding import LargeHoldingReport, parse_large_holding
+from .large_holding import LargeHoldingReport, JointHolder, parse_large_holding
 from .securities import SecuritiesReport, parse_securities_report
 from .quarterly import QuarterlyReport, parse_quarterly_report
 from .semi_annual import SemiAnnualReport, parse_semi_annual_report
@@ -146,6 +146,7 @@ __all__ = [
     'ParsedReport',
     'RawReport',
     'LargeHoldingReport',
+    'JointHolder',
     'SecuritiesReport',
     'QuarterlyReport',
     'SemiAnnualReport',

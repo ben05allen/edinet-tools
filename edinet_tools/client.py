@@ -7,6 +7,7 @@ edinet.documents(), doc.parse()) instead of EdinetClient methods directly.
 
 import os
 import datetime
+import functools
 import json
 import warnings
 from typing import List, Dict, Any, Optional, Union
@@ -23,6 +24,26 @@ from .exceptions import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _deprecated(replacement: str):
+    """Decorator: emit DeprecationWarning naming the replacement.
+
+    The wrapper sets stacklevel=2 so the warning points to the caller,
+    not to the wrapper itself.
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            warnings.warn(
+                f"{func.__name__}() is deprecated and will be removed in a future release. "
+                f"Use {replacement} instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 class EdinetClient:
@@ -74,7 +95,8 @@ class EdinetClient:
         
         # Company lookup functionality is available via data module
         
-    def get_documents_by_date(self, 
+    @_deprecated(replacement="documents(date) (from edinet_tools._client)")
+    def get_documents_by_date(self,
                              date: Union[str, datetime.date],
                              doc_type: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -105,6 +127,7 @@ class EdinetClient:
             else:
                 raise APIError(f"Failed to fetch documents for {date}: {e}")
     
+    @_deprecated(replacement="documents(date) (from edinet_tools._client)")
     def get_recent_filings(self,
                           days_back: int = 7,
                           doc_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
@@ -148,6 +171,7 @@ class EdinetClient:
         all_filings.sort(key=lambda x: x.get('submitDateTime') or '', reverse=True)
         return all_filings
     
+    @_deprecated(replacement="Entity.documents(doc_type=..., days=...)")
     def get_company_filings(self,
                            company_identifier: str,
                            days_back: int = 30,
@@ -185,6 +209,7 @@ class EdinetClient:
         
         return company_filings
     
+    @_deprecated(replacement="search_entities(query, limit=...) from edinet_tools.entity")
     def search_companies(self, query: str) -> List[Dict[str, Any]]:
         """
         Search for companies by name or ticker.
@@ -209,6 +234,7 @@ class EdinetClient:
             logger.error(f"Error searching companies: {e}")
             return []
     
+    @_deprecated(replacement="Document.fetch() (from edinet_tools._client)")
     def download_filing_raw(self, doc_id: str, raise_on_error: bool = True) -> Optional[bytes]:
         """
         Download a filing and return raw ZIP bytes without processing or saving to disk.
@@ -287,6 +313,7 @@ class EdinetClient:
             else:
                 raise APIError(f"Failed to download filing {doc_id}: {e}")
 
+    @_deprecated(replacement="Document.parse() (typed) or Document.fetch() (bytes)")
     def download_filing(self,
                        doc_id: str,
                        extract_data: bool = True,
@@ -395,6 +422,7 @@ class EdinetClient:
             else:
                 raise APIError(f"Failed to download filing {doc_id}: {e}")
     
+    @_deprecated(replacement="[Document.fetch() in a loop or async batch]")
     def download_filings_batch(self,
                               doc_ids: List[str],
                               extract_data: bool = True,
@@ -475,6 +503,7 @@ class EdinetClient:
         # ZIP files start with 'PK' (0x504b)
         return len(response_bytes) > 2 and response_bytes[:2] == b'PK'
     
+    @_deprecated(replacement="parsers.parse(document) for typed extraction, or extract_csv_from_zip for raw CSV")
     def extract_filing_data(self, zip_path: str, doc_type_code: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Extract structured data from a downloaded filing ZIP file.

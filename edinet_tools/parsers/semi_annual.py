@@ -15,6 +15,7 @@ from .extraction import (
     categorize_elements,
     parse_int,
     parse_date,
+    coerce_numeric_value,
 )
 
 
@@ -83,13 +84,18 @@ class SemiAnnualReport(ParsedReport):
     profit_loss: int | None = None
 
     @property
-    def is_fund(self) -> bool:
-        """Check if this is a fund report (vs corporate)."""
-        return bool(self.fund_code or self.fund_name)
-
-    @property
     def filer(self):
-        """Resolve filer to Entity if possible."""
+        """Resolve filer to Entity via the FSA registry.
+
+        The Entity exposes `entity_type` (an `EntityType` enum: FUND,
+        LISTED_COMPANY, UNLISTED_COMPANY, INDIVIDUAL, UNKNOWN), which is
+        the authoritative answer to "is this filer a fund or corporation?"
+        Use `report.filer.entity_type == EntityType.FUND` instead of any
+        XBRL-derived inference — the FSA registry is the source of truth.
+
+        Returns None when filer_edinet_code is not set, or when the entity
+        is not in the registry (honest unknown).
+        """
         if self.filer_edinet_code:
             from edinet_tools.entity import entity_by_edinet_code
             return entity_by_edinet_code(self.filer_edinet_code)
@@ -104,14 +110,20 @@ class SemiAnnualReport(ParsedReport):
 
 
 def _extract_financial(csv_files: list, element_id: str) -> Optional[int]:
-    """Extract financial value with IFRS fallback."""
-    value_str = extract_value(csv_files, element_id)
+    """Extract financial value with IFRS fallback.
+
+    Normalizes EDINET null markers ('－' / '-' / '−' / '') to None before
+    the truthy check — without this, IFRS reporters that emit J-GAAP
+    elements with '－' would truthy-pass the primary-element check and
+    the IFRS fallback would never fire.
+    """
+    value_str = coerce_numeric_value(extract_value(csv_files, element_id))
     if value_str:
         return parse_int(value_str)
 
     ifrs_element = IFRS_FALLBACK_MAP.get(element_id)
     if ifrs_element:
-        value_str = extract_value(csv_files, ifrs_element)
+        value_str = coerce_numeric_value(extract_value(csv_files, ifrs_element))
         if value_str:
             return parse_int(value_str)
 
@@ -175,7 +187,7 @@ def parse_semi_annual_report(document=None, *, csv_files=None, doc_id=None, doc_
     profit_loss = _extract_financial(csv_files, ELEMENT_MAP['profit_loss'])
 
     # Categorize all elements
-    raw_fields, text_blocks, unmapped_fields = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
 
     return SemiAnnualReport(
         doc_id=doc_id,
@@ -184,6 +196,7 @@ def parse_semi_annual_report(document=None, *, csv_files=None, doc_id=None, doc_
         raw_fields=raw_fields,
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
+        raw_facts=raw_facts,
 
         # Identification
         filer_name=filer_name or getattr(document, 'filer_name', None),

@@ -1,5 +1,53 @@
 # Changelog
 
+## v0.7.0 — 2026-05-29
+
+Segment-information parsing, a consolidated-revenue data-quality fix for IFRS/US-GAAP filers, registry-based filer classification, and the fact-shaped API transition (`Entity.entity_type`).
+
+### Added
+
+- **`SegmentRow` + `parse_segments_from_csv()`** — per-segment metrics from annual securities reports. Anchored-union discriminator (anchor on segment-name suffixes; admit aggregation rows only when they carry a segment-exclusive element), plus a no-anchor path that recovers industry/sector-named segments by seeding from segment-specific aggregation rows. Zero over-extraction across the broad-sample harness.
+- **`SecuritiesReport` fields**: `segments`, `segments_text_only` (segment data in HTML text-blocks, not CSV), `segments_extraction_incomplete` (aggregation rows present but no segments extracted — honest miss flag).
+- **US-GAAP summary income-statement elements** mapped (revenue, profit-before-tax, net income, EPS, ROE) — US-GAAP filers previously extracted as `None`. No operating-income line in the US-GAAP summary, so `operating_income` is honestly `None`.
+- **`LargeHoldingReport.is_joint_filing`** — derived from `FilerLargeVolumeHolder<N>Member` axis presence (N ≥ 2), not hardcoded `False`.
+- **`Fact` + `ParsedReport.raw_facts`** — typed access to the full XBRL fact set, alongside `raw_fields` / `text_blocks` / `unmapped_fields`.
+- **`extract_dimensional()`** — axis-context primitive with member-name cleaning; substrate for segments and future schedule-table parsers.
+- **`Entity.entity_type`** (`EntityType` enum) — fact-shaped FSA-registry classification; replaces the deprecated `is_listed` / `is_fund_issuer` booleans.
+- **`extract_csv_to_disk()` + `Document.save_extracted_csvs()`** — disk-output helpers complementing in-memory `extract_csv_from_zip()`.
+
+### Fixed
+
+- **Consolidated revenue for IFRS / US-GAAP filers** — `net_sales` (and other income-statement metrics) returned the non-consolidated **parent** figure (e.g. ¥18T parent vs ¥48T consolidated). Now a consolidated filer never substitutes the parent value: a missing consolidated value falls through to the next element/tier or to honest `None` (parent stays in the fact-bag). With IFRS/US-GAAP/custom-namespace revenue elements mapped, the full cohort reads consolidated. Pinned by real-filing golden fixtures.
+- **Holder names HTML-unescaped** — `_normalize_holder_value` applies `html.unescape`, so Doc 350 filer names with `&amp;` etc. are clean text.
+- **`ExtraordinaryReport` / `SemiAnnualReport` filer classification** — `is_fund` returned `True` for ~all recent corporate filings (EDINET `'－'` placeholders broke the DEI heuristic). Now classified via the FSA registry (`report.filer.entity_type`); parsers expose `filer_edinet_code` as a fact.
+- **`TreasuryStockReport` authorization flags** — `has_board_authorization` / `has_shareholder_authorization` no longer return `True` for empty/whitespace text blocks.
+- **`QuarterlyReport.is_consolidated` and `SecuritiesReport.is_consolidated`** now return `None` when the `WhetherConsolidatedFinancialStatementsArePreparedDEI` element is missing, rather than silently defaulting to `True`. Honest unknowns over silent-failure-as-default.
+- **`extract_dimensional()` member names** are stripped of per-filer extension namespace prefixes (e.g., `E03847-000DomesticLifeInsuranceReportableSegments` → `DomesticLifeInsuranceReportableSegments`), matching `segments.py`'s `_clean_member_name()`. Avoids requiring every consumer to re-implement the cleaning.
+
+### Deprecated
+
+The deprecations below all emit `DeprecationWarning`. They will be removed in a future major release; consumers should migrate to the fact-shaped equivalents.
+
+- **`Entity.is_listed`** — use `entity.entity_type == EntityType.LISTED_COMPANY`.
+- **`Entity.is_fund_issuer`** — use `entity.entity_type == EntityType.FUND`.
+- **`EntityClassifier.is_listed(edinet_code)`** — use `classifier.get_entity_type(code) == EntityType.LISTED_COMPANY`.
+- **`TreasuryStockReport.has_board_authorization`** — use `bool(parsed.by_board_meeting and parsed.by_board_meeting.strip())` directly.
+- **`TreasuryStockReport.has_shareholder_authorization`** — use `bool(parsed.by_shareholders_meeting and parsed.by_shareholders_meeting.strip())` directly.
+- **`utils.process_zip_directory()`** — use `extract_csv_from_zip()` for in-memory CSV extraction or `extract_csv_to_disk()` for disk output (both in `edinet_tools.parsers.extraction`).
+- **All public methods on `EdinetClient`** (`get_documents_by_date`, `get_recent_filings`, `get_company_filings`, `search_companies`, `download_filing_raw`, `download_filing`, `download_filings_batch`, `extract_filing_data`) — use the module-level functions and `Document` / `Entity` classes instead. Migration paths are named in each method's `DeprecationWarning` message.
+
+### Removed
+
+- **`ExtraordinaryReport.is_fund` / `SemiAnnualReport.is_fund`** and the intermediate `filer_namespace` field — replaced by registry-based classification via `report.filer.entity_type`.
+- **`parsers.namespace_helpers`** (`infer_filer_type()`) — namespace inference conflated the shared `jppfs_cor:` taxonomy with corporate-only signal; parsers now expose facts, consumers classify via the FSA registry.
+- **`parser.extract_mtp_targets()`** — dead code, zero callers.
+
+### Tests
+
+- Audit-closure remediation across routing / processor / API test families (real-ZIP body-execution assertions, dead-fixture removal).
+- Real-EDINET golden fixtures per failure class (segments incl. no-anchor, consolidated-revenue, blast-radius characterization).
+- Test count: 612 → 798.
+
 ## v0.6.0 — 2026-05-12
 
 ### Added

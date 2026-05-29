@@ -112,13 +112,18 @@ class ExtraordinaryReport(ParsedReport):
     event_type: str | None = None  # Derived from reason text
 
     @property
-    def is_fund(self) -> bool:
-        """Check if this is a fund report (vs corporate)."""
-        return bool(self.fund_code or self.fund_name)
-
-    @property
     def filer(self):
-        """Resolve filer to Entity if possible."""
+        """Resolve filer to Entity via the FSA registry.
+
+        The Entity exposes `entity_type` (an `EntityType` enum: FUND,
+        LISTED_COMPANY, UNLISTED_COMPANY, INDIVIDUAL, UNKNOWN), which is
+        the authoritative answer to "is this filer a fund or corporation?"
+        Use `report.filer.entity_type == EntityType.FUND` instead of any
+        XBRL-derived inference — the FSA registry is the source of truth.
+
+        Returns None when filer_edinet_code is not set, or when the entity
+        is not in the registry (honest unknown).
+        """
         if self.filer_edinet_code:
             from edinet_tools.entity import entity_by_edinet_code
             return entity_by_edinet_code(self.filer_edinet_code)
@@ -227,7 +232,7 @@ def parse_extraordinary_report(document=None, *, csv_files=None, doc_id=None, do
     event_type = _classify_event_type(reason_for_filing)
 
     # Categorize all elements
-    raw_fields, text_blocks, unmapped_fields = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
 
     return ExtraordinaryReport(
         doc_id=doc_id,
@@ -236,6 +241,7 @@ def parse_extraordinary_report(document=None, *, csv_files=None, doc_id=None, do
         raw_fields=raw_fields,
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
+        raw_facts=raw_facts,
 
         # Identification
         filer_name=filer_name or getattr(document, 'filer_name', None),

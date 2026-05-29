@@ -27,81 +27,74 @@ from edinet_tools.parsers.securities_withdrawal import (
 DOC_TYPES = ['010', '020', '030', '040', '050']
 
 
-@pytest.mark.parametrize("code", DOC_TYPES)
-def test_registration_type_does_not_fall_through(code):
-    """Registration/notification doc types must not fall through to RawReport."""
+def _make_routing_zip() -> bytes:
+    """Build a minimal valid EDINET-shaped ZIP containing a single CSV row.
+
+    A real (non-empty) ZIP makes parsers walk the real parse body
+    (extract_csv_from_zip → field extraction → categorize_elements) rather
+    than short-circuiting on the empty-csv_files branch.
+    """
+    row = 'jpdei_cor:EDINETCodeDEI\tlabel\tFilingDateInstant\t0\t連結\t期間\t\t\tE12345'
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w') as zf:
+        zf.writestr('XBRL_TO_CSV/test.csv', row.encode('utf-16le'))
+    return buf.getvalue()
+
+
+def _make_routing_doc(code: str) -> MagicMock:
     doc = MagicMock()
     doc.doc_type_code = code
     doc.doc_id = f"TEST_{code}"
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert not isinstance(result, RawReport), \
-            f"Doc type {code} fell through to RawReport instead of a typed parser"
-    except Exception:
-        pass  # Parser attempted but failed on mock data = correct routing
+    doc.filer_name = ''
+    doc.filer_edinet_code = ''
+    doc.fetch.return_value = _make_routing_zip()
+    return doc
+
+
+@pytest.mark.parametrize("code", DOC_TYPES)
+def test_registration_type_does_not_fall_through(code):
+    """Registration/notification doc types must not fall through to RawReport."""
+    doc = _make_routing_doc(code)
+    result = parse(doc)
+    assert not isinstance(result, RawReport), (
+        f"Doc type {code} fell through to RawReport instead of a typed parser"
+    )
+    # Prove the parse body actually ran rather than short-circuiting on empty input.
+    assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345', (
+        f"Doc type {code}: parse body did not consume the input CSV row"
+    )
 
 
 def test_doc_010_routes_to_securities_notification():
-    doc = MagicMock()
-    doc.doc_type_code = '010'
-    doc.doc_id = 'TEST_010'
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert isinstance(result, SecuritiesNotificationReport)
-    except Exception:
-        pass
+    result = parse(_make_routing_doc('010'))
+    assert isinstance(result, SecuritiesNotificationReport)
+    assert result.filer_edinet_code == 'E12345'
 
 
 def test_doc_020_routes_to_securities_notification():
     """Doc 020 (amendment) routes to same parser as 010."""
-    doc = MagicMock()
-    doc.doc_type_code = '020'
-    doc.doc_id = 'TEST_020'
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert isinstance(result, SecuritiesNotificationReport)
-    except Exception:
-        pass
+    result = parse(_make_routing_doc('020'))
+    assert isinstance(result, SecuritiesNotificationReport)
+    assert result.filer_edinet_code == 'E12345'
 
 
 def test_doc_030_routes_to_securities_registration():
-    doc = MagicMock()
-    doc.doc_type_code = '030'
-    doc.doc_id = 'TEST_030'
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert isinstance(result, SecuritiesRegistrationReport)
-    except Exception:
-        pass
+    result = parse(_make_routing_doc('030'))
+    assert isinstance(result, SecuritiesRegistrationReport)
+    assert result.filer_edinet_code == 'E12345'
 
 
 def test_doc_040_routes_to_securities_registration():
     """Doc 040 (amendment) routes to same parser as 030."""
-    doc = MagicMock()
-    doc.doc_type_code = '040'
-    doc.doc_id = 'TEST_040'
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert isinstance(result, SecuritiesRegistrationReport)
-    except Exception:
-        pass
+    result = parse(_make_routing_doc('040'))
+    assert isinstance(result, SecuritiesRegistrationReport)
+    assert result.filer_edinet_code == 'E12345'
 
 
 def test_doc_050_routes_to_securities_withdrawal():
-    doc = MagicMock()
-    doc.doc_type_code = '050'
-    doc.doc_id = 'TEST_050'
-    doc.fetch.return_value = None
-    try:
-        result = parse(doc)
-        assert isinstance(result, SecuritiesWithdrawalReport)
-    except Exception:
-        pass
+    result = parse(_make_routing_doc('050'))
+    assert isinstance(result, SecuritiesWithdrawalReport)
+    assert result.filer_edinet_code == 'E12345'
 
 
 # --- SecuritiesRegistrationReport structure tests ---

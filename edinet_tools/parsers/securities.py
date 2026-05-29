@@ -9,7 +9,7 @@ PROCESSING PHILOSOPHY: Store raw XBRL values faithfully. No interpretation.
 - Ratios as decimals (0.086 = 8.6%)
 - Downstream consumers determine meaning
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from datetime import date
 from typing import Any, Optional
@@ -24,6 +24,8 @@ from .extraction import (
     parse_percentage,
     parse_int,
     parse_date,
+    coerce_numeric_value,
+    match_element_by_suffix,
 )
 
 
@@ -86,6 +88,16 @@ ELEMENT_MAP = {
     'earnings_per_share_ifrs': 'jpcrp_cor:BasicEarningsLossPerShareIFRSSummaryOfBusinessResults',
     'equity_ratio_ifrs': 'jpcrp_cor:EquityToAssetRatioIFRSSummaryOfBusinessResults',
     'roe_ifrs': 'jpcrp_cor:RateOfReturnOnEquityIFRSSummaryOfBusinessResults',
+
+    # === US-GAAP Summary Elements (~18 listed filers; e.g. Sony FY20, pre-IFRS) ===
+    # The US-GAAP summary section carries revenue, profit-before-tax, net income,
+    # EPS and ROE — but NO operating-income line, so operating_income is honestly
+    # None for US-GAAP filers (mirrors IFRS filers that report no operating profit).
+    'net_sales_usgaap_summary': 'jpcrp_cor:RevenuesUSGAAPSummaryOfBusinessResults',
+    'ordinary_income_usgaap_summary': 'jpcrp_cor:ProfitLossBeforeTaxUSGAAPSummaryOfBusinessResults',
+    'net_income_usgaap_summary': 'jpcrp_cor:NetIncomeLossAttributableToOwnersOfParentUSGAAPSummaryOfBusinessResults',
+    'earnings_per_share_usgaap': 'jpcrp_cor:BasicEarningsLossPerShareUSGAAPSummaryOfBusinessResults',
+    'roe_usgaap': 'jpcrp_cor:RateOfReturnOnEquityUSGAAPSummaryOfBusinessResults',
 
     # === IFRS Cash Flow Elements ===
     'operating_cf_ifrs_summary': 'jpcrp_cor:CashFlowsFromUsedInOperatingActivitiesIFRSSummaryOfBusinessResults',
@@ -210,6 +222,14 @@ class SecuritiesReport(ParsedReport):
     equity_ratio: Decimal | None = None
     roe: Decimal | None = None
 
+    # IFRS summary metrics (v0.7.2+). Populated from
+    # jpcrp_cor:*IFRSSummaryOfBusinessResults XBRL elements at
+    # CurrentYearDuration / CurrentYearInstant context. None when
+    # the filing is not IFRS or the field is absent / null-marker.
+    ifrs_summary_basic_eps: Decimal | None = None
+    ifrs_summary_roe: Decimal | None = None
+    ifrs_summary_bps: Decimal | None = None
+
     # Employment
     num_employees: int | None = None
 
@@ -231,6 +251,20 @@ class SecuritiesReport(ParsedReport):
 
     # Cash Flow Detail
     depreciation_amortization: int | None = None
+
+    # Operating segments (v0.7.0+). Empty list when filer is US-GAAP-shape
+    # or Toyota-IFRS-shape — those use TextBlock fallback signaled by
+    # segments_text_only=True. Per spec §5.1.
+    segments: list = field(default_factory=list)
+    # True when segment data lives in monolithic TextBlock rather than
+    # axis-discrete CSV rows (US-GAAP Komatsu-shape, Toyota IFRS-shape).
+    # Downstream consumers can extract from text_blocks or defer typed
+    # parsing to 0.8.0+ iXBRL HTML path.
+    segments_text_only: bool = False
+    # True when segment-specific aggregation rows are present (a segment table
+    # exists) but no individual segments could be extracted — an honest flag for a
+    # residual miss, so an empty `segments` is not silently read as single-segment.
+    segments_extraction_incomplete: bool = False
 
     @property
     def filer(self):
@@ -298,7 +332,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     security_code = get_dei('security_code')
     accounting_standard = get_dei('accounting_standard')
     is_consolidated_raw = get_dei('is_consolidated')
-    is_consolidated = is_consolidated_raw == 'true' if is_consolidated_raw else True
+    is_consolidated = (is_consolidated_raw == 'true') if is_consolidated_raw else None
 
     # Format ticker
     ticker = None
@@ -316,11 +350,28 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
             return None
         return extract_financial(csv_files, element_id, period, is_consolidated, IFRS_FALLBACK_MAP)
 
+    def get_revenue_by_suffix(period: str) -> int | None:
+        """Consolidated IFRS revenue for custom-namespace filers (e.g. Toyota's
+        jpcrp030000-asr_E02144-000:SalesRevenuesIFRS, which no fixed element id
+        matches). Matched at the bare (consolidated) context only — the
+        *_NonConsolidatedMember rows are deliberately excluded so the parent figure
+        can never win here."""
+        for canonical in ('SalesRevenuesIFRS', 'TotalNetRevenuesIFRS',
+                          'RevenueIFRSSummaryOfBusinessResults'):
+            for row in match_element_by_suffix(csv_files, canonical):
+                if (row.get('コンテキストID', '') or '') == period:
+                    v = coerce_numeric_value(row.get('値', ''))
+                    if v:
+                        return parse_int(v)
+        return None
+
     # Try summary elements first (J-GAAP then IFRS), then fall back to FS elements
     # FS elements have their own IFRS fallback via IFRS_FALLBACK_MAP in extract_financial()
     net_sales = _coalesce(
         get_fin('net_sales_summary', 'CurrentYearDuration'),
         get_fin('net_sales_ifrs_summary', 'CurrentYearDuration'),
+        get_fin('net_sales_usgaap_summary', 'CurrentYearDuration'),
+        get_revenue_by_suffix('CurrentYearDuration'),
         get_fin('net_sales_fs', 'CurrentYearDuration'),
     )
     operating_income = _coalesce(
@@ -329,11 +380,13 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     )
     ordinary_income = _coalesce(
         get_fin('ordinary_income_summary', 'CurrentYearDuration'),
+        get_fin('ordinary_income_usgaap_summary', 'CurrentYearDuration'),
         get_fin('ordinary_income_fs', 'CurrentYearDuration'),
     )
     net_income = _coalesce(
         get_fin('net_income_summary', 'CurrentYearDuration'),
         get_fin('net_income_ifrs_summary', 'CurrentYearDuration'),
+        get_fin('net_income_usgaap_summary', 'CurrentYearDuration'),
         get_fin('net_income_fs', 'CurrentYearDuration'),
     )
 
@@ -341,6 +394,8 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     prior_net_sales = _coalesce(
         get_fin('net_sales_summary', 'Prior1YearDuration'),
         get_fin('net_sales_ifrs_summary', 'Prior1YearDuration'),
+        get_fin('net_sales_usgaap_summary', 'Prior1YearDuration'),
+        get_revenue_by_suffix('Prior1YearDuration'),
         get_fin('net_sales_fs', 'Prior1YearDuration'),
     )
     prior_operating_income = _coalesce(
@@ -349,11 +404,13 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     )
     prior_ordinary_income = _coalesce(
         get_fin('ordinary_income_summary', 'Prior1YearDuration'),
+        get_fin('ordinary_income_usgaap_summary', 'Prior1YearDuration'),
         get_fin('ordinary_income_fs', 'Prior1YearDuration'),
     )
     prior_net_income = _coalesce(
         get_fin('net_income_summary', 'Prior1YearDuration'),
         get_fin('net_income_ifrs_summary', 'Prior1YearDuration'),
+        get_fin('net_income_usgaap_summary', 'Prior1YearDuration'),
         get_fin('net_income_fs', 'Prior1YearDuration'),
     )
 
@@ -405,15 +462,29 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         get_fin('financing_cf_ifrs', 'CurrentYearDuration'),
     )
 
-    # Per-share metrics (try J-GAAP then IFRS summary)
+    # Per-share metrics (try J-GAAP then IFRS summary).
+    # coerce_numeric_value() normalizes EDINET null markers ('－' U+FF0D, '−',
+    # '-', '') to None — a truthy check alone would let '－' through to
+    # Decimal() and crash. Required for both extract_value() calls in the
+    # eps waterfall so the `if not eps_str` gate works correctly.
     patterns = get_context_patterns(is_consolidated, 'CurrentYearInstant')
-    nav_str = extract_value(csv_files, ELEMENT_MAP['net_assets_per_share'], context_patterns=patterns)
+    nav_str = coerce_numeric_value(extract_value(
+        csv_files, ELEMENT_MAP['net_assets_per_share'], context_patterns=patterns
+    ))
     net_assets_per_share = Decimal(nav_str) if nav_str else None
 
     patterns = get_context_patterns(is_consolidated, 'CurrentYearDuration')
-    eps_str = extract_value(csv_files, ELEMENT_MAP['earnings_per_share'], context_patterns=patterns)
+    eps_str = coerce_numeric_value(extract_value(
+        csv_files, ELEMENT_MAP['earnings_per_share'], context_patterns=patterns
+    ))
     if not eps_str:
-        eps_str = extract_value(csv_files, ELEMENT_MAP['earnings_per_share_ifrs'], context_patterns=patterns)
+        eps_str = coerce_numeric_value(extract_value(
+            csv_files, ELEMENT_MAP['earnings_per_share_ifrs'], context_patterns=patterns
+        ))
+    if not eps_str:
+        eps_str = coerce_numeric_value(extract_value(
+            csv_files, ELEMENT_MAP['earnings_per_share_usgaap'], context_patterns=patterns
+        ))
     earnings_per_share = Decimal(eps_str) if eps_str else None
 
     # Ratios (try J-GAAP then IFRS summary)
@@ -427,7 +498,33 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     roe_str = extract_value(csv_files, ELEMENT_MAP['roe'], context_patterns=patterns)
     if not roe_str:
         roe_str = extract_value(csv_files, ELEMENT_MAP['roe_ifrs'], context_patterns=patterns)
+    if not roe_str:
+        roe_str = extract_value(csv_files, ELEMENT_MAP['roe_usgaap'], context_patterns=patterns)
     roe = parse_percentage(roe_str)
+
+    # IFRS summary CurrentYear metrics (v0.7.2+).
+    # Always extracted; None on non-IFRS rows where the element IDs aren't present.
+    # Note: extracted independently of the J-GAAP-first waterfall above, so
+    # consumers can distinguish IFRS-summary truth from waterfall-picked values.
+    # coerce_numeric_value() handles EDINET null markers ('－' U+FF0D, '−', '-', '')
+    # — a truthy check alone would let '－' through to Decimal() and crash.
+    ifrs_eps_str = coerce_numeric_value(extract_value(
+        csv_files, ELEMENT_MAP['earnings_per_share_ifrs'],
+        context_patterns=['CurrentYearDuration'],
+    ))
+    ifrs_summary_basic_eps = Decimal(ifrs_eps_str) if ifrs_eps_str else None
+
+    ifrs_roe_str = coerce_numeric_value(extract_value(
+        csv_files, ELEMENT_MAP['roe_ifrs'],
+        context_patterns=['CurrentYearDuration'],
+    ))
+    ifrs_summary_roe = Decimal(ifrs_roe_str) if ifrs_roe_str else None
+
+    ifrs_bps_str = coerce_numeric_value(extract_value(
+        csv_files, ELEMENT_MAP['equity_ratio_ifrs'],
+        context_patterns=['CurrentYearInstant'],
+    ))
+    ifrs_summary_bps = Decimal(ifrs_bps_str) if ifrs_bps_str else None
 
     # Employment
     num_employees = get_fin('num_employees', 'CurrentYearInstant')
@@ -452,7 +549,11 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     depreciation_amortization = get_fin('depreciation_amortization_cfo', 'CurrentYearDuration')
 
     # Categorize all elements
-    raw_fields, text_blocks, unmapped_fields = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
+
+    # Parse segments matrix (v0.7.0+)
+    from .segments import parse_segments_from_csv
+    segments, segments_text_only, segments_extraction_incomplete = parse_segments_from_csv(csv_files)
 
     return SecuritiesReport(
         doc_id=doc_id,
@@ -461,6 +562,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         raw_fields=raw_fields,
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
+        raw_facts=raw_facts,
 
         # Identification
         filer_name=company_name or getattr(document, 'filer_name', None),
@@ -513,6 +615,11 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         equity_ratio=equity_ratio,
         roe=roe,
 
+        # IFRS summary metrics (v0.7.2+)
+        ifrs_summary_basic_eps=ifrs_summary_basic_eps,
+        ifrs_summary_roe=ifrs_summary_roe,
+        ifrs_summary_bps=ifrs_summary_bps,
+
         # Employment
         num_employees=num_employees,
 
@@ -534,4 +641,9 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
 
         # Cash Flow Detail
         depreciation_amortization=depreciation_amortization,
+
+        # Segments (v0.7.0+)
+        segments=segments,
+        segments_text_only=segments_text_only,
+        segments_extraction_incomplete=segments_extraction_incomplete,
     )

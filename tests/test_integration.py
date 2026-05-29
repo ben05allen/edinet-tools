@@ -6,6 +6,8 @@ Detailed unit tests for Entity, Fund, etc. are in their respective test files.
 """
 
 import os
+import warnings
+
 import pytest
 from unittest.mock import patch
 
@@ -136,7 +138,9 @@ class TestEndToEndWorkflows:
         toyota = edinet_tools.entity('7203')
         assert toyota is not None
         assert toyota.edinet_code == 'E02144'
-        assert toyota.is_listed is True
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            assert toyota.is_listed is True
 
     def test_document_type_workflow(self):
         """Look up document types."""

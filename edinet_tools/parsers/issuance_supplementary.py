@@ -179,7 +179,7 @@ def parse_issuance_supplementary(document=None, *, csv_files=None, doc_id=None, 
     representative = get('representative')
     place_of_filing = get('place_of_filing')
 
-    raw_fields, text_blocks, unmapped_fields = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
 
     return IssuanceSupplementaryReport(
         doc_id=doc_id,
@@ -188,6 +188,7 @@ def parse_issuance_supplementary(document=None, *, csv_files=None, doc_id=None, 
         raw_fields=raw_fields,
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
+        raw_facts=raw_facts,
 
         # Filer identification
         filer_name=filer_name,

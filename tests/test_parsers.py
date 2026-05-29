@@ -1,4 +1,6 @@
 """Tests for document parsers."""
+import warnings
+
 import pytest
 from datetime import date
 from decimal import Decimal
@@ -477,15 +479,18 @@ class TestTreasuryStockReport:
         assert 'AMENDED' in repr(amended)
 
     def test_treasury_stock_authorization_properties(self):
-        """TreasuryStockReport authorization properties work."""
+        """TreasuryStockReport authorization properties work (deprecated v0.6.1)."""
         report = TreasuryStockReport(
             doc_id='S100ABC123',
             doc_type_code='220',
             by_board_meeting='取締役会決議に基づく取得',
             by_shareholders_meeting=None,
         )
-        assert report.has_board_authorization is True
-        assert report.has_shareholder_authorization is False
+        # Deprecated API; wrap to silence warnings while preserving the behavioral assertion.
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            assert report.has_board_authorization is True
+            assert report.has_shareholder_authorization is False
 
     def test_treasury_stock_filer_property(self):
         """TreasuryStockReport.filer returns Entity if resolvable."""
@@ -667,11 +672,18 @@ class TestExtractionUtilities:
         assert extract_value(csv_files, 'elem1', get_last=True) == 'last'
 
     def test_get_context_patterns_consolidated(self):
-        """get_context_patterns: bare context = consolidated (EDINET convention)."""
+        """get_context_patterns: consolidated filers use ONLY the bare context.
+
+        Strict invariant: a consolidated filer must never silently fall back to the
+        non-consolidated (parent) context for a missing value — borrowing the parent
+        is the root cause of IFRS/US-GAAP revenue reading the parent figure. A missing
+        consolidated value falls through to the next element/tier (or honest None),
+        never to the parent. (Previously this returned a `_NonConsolidatedMember`
+        fallback as patterns[1]; that fallback was the bug.)
+        """
         from edinet_tools.parsers.extraction import get_context_patterns
         patterns = get_context_patterns(is_consolidated=True, period='CurrentYearDuration')
-        assert patterns[0] == 'CurrentYearDuration'  # Bare context = consolidated
-        assert patterns[1] == 'CurrentYearDuration_NonConsolidatedMember'  # Fallback
+        assert patterns == ['CurrentYearDuration']  # bare only — no parent fallback
 
     def test_get_context_patterns_non_consolidated(self):
         """get_context_patterns: _NonConsolidatedMember preferred for non-consolidated."""
@@ -706,7 +718,7 @@ class TestExtractionUtilities:
             ]
         }]
         element_map = {'assets': 'jppfs_cor:Assets'}
-        raw, text_blocks, unmapped = categorize_elements(csv_files, element_map)
+        raw, text_blocks, unmapped, raw_facts = categorize_elements(csv_files, element_map)
 
         # Raw contains everything
         assert 'jpcrp_cor:BusinessDescriptionTextBlock' in raw

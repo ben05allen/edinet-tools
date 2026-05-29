@@ -24,7 +24,7 @@ edinet-tools has three layers:
 
 1. **API client** — fetch document listings and download filings in any format (XBRL, PDF, HTML)
 2. **Typed parsers** — every EDINET document type routes to a named Python dataclass with structured fields
-3. **Full capture** — elements not yet mapped to typed fields are preserved in `raw_fields`, `unmapped_fields`, and `text_blocks`, so you can explore what's available and nothing is silently dropped
+3. **Full capture** — elements not yet mapped to typed fields are preserved in `raw_fields`, `unmapped_fields`, `text_blocks`, and `raw_facts` (the full XBRL fact set), so you can explore what's available and nothing is silently dropped
 
 Each parser maps known XBRL elements to typed Python fields (dates, decimals, strings). As EDINET evolves or new elements become useful, adding a field is one line in the element map and one line on the dataclass. The architecture is designed to grow incrementally without breaking existing code.
 
@@ -106,11 +106,12 @@ earnings = toyota.documents(doc_type="120", days=365)
 ```python
 report = doc.parse()
 
-# Securities Report — financials with J-GAAP and IFRS support
+# Securities Report — consolidated financials (J-GAAP, IFRS, US-GAAP)
 report.net_sales
 report.operating_cash_flow
 report.roe
-report.accounting_standard  # "Japan GAAP" or "IFRS"
+report.accounting_standard  # "Japan GAAP", "IFRS", or "US GAAP"
+report.segments             # list[SegmentRow] — per-segment metrics
 
 # Large Shareholding Report
 report.filer_name
@@ -152,7 +153,7 @@ Or use a `.env` file. Entity lookup and parsing work without an API key — only
 ## Testing
 
 ```bash
-pytest tests/ -v  # 660+ tests
+pytest tests/ -v  # 790+ tests
 ```
 
 ## Links

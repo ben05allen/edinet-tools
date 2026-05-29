@@ -6,6 +6,8 @@ ParsedReport is the base class for all parsed documents.
 from dataclasses import dataclass, field, fields as dataclass_fields
 from typing import Any
 
+from ._facts import Fact
+
 
 @dataclass
 class ParsedReport:
@@ -29,6 +31,7 @@ class ParsedReport:
     raw_fields: dict[str, Any] = field(default_factory=dict)
     unmapped_fields: dict[str, Any] = field(default_factory=dict)
     text_blocks: dict[str, Any] = field(default_factory=dict)
+    raw_facts: list[Fact] = field(default_factory=list)
 
     def fields(self) -> list[str]:
         """List all field names for this report type."""

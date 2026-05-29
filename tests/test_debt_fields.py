@@ -53,6 +53,43 @@ class TestDebtFieldExtraction:
         assert report.lease_obligations_noncurrent is None
         assert report.commercial_paper is None
 
+    def test_parse_securities_report_extracts_debt_fields_end_to_end(self):
+        """Sister of the mocked test below — runs through the REAL UTF-16 ZIP
+        decode path so a divergence in extract_csv_from_zip's output shape
+        (column keys, encoding handling) would surface here. Closes the gap
+        called out in the 2026-05-22 false-confidence audit (Category C, LOW)."""
+        import io, zipfile
+        cols = ['要素ID', '項目名', 'コンテキストID', '相対年度',
+                '連結・個別', '期間・時点', 'ユニットID', '単位', '値']
+        rows = [
+            ('jppfs_cor:ShortTermLoansPayable', '短期借入金', 'CurrentYearInstant',
+             '', '', '', '', 'JPY', '1000000000'),
+            ('jppfs_cor:LongTermLoansPayable', '長期借入金', 'CurrentYearInstant',
+             '', '', '', '', 'JPY', '5000000000'),
+            ('jppfs_cor:BondsPayable', '社債', 'CurrentYearInstant',
+             '', '', '', '', 'JPY', '2000000000'),
+            ('jpdei_cor:EDINETCodeDEI', 'EDINETコード', 'FilingDateInstant',
+             '', '', '', '', '', 'E12345'),
+        ]
+        csv_body = '\t'.join(cols) + '\n' + '\n'.join('\t'.join(r) for r in rows) + '\n'
+        # EDINET ships CSVs as UTF-16-LE with BOM — exercise the real decode path.
+        encoded = b'\xff\xfe' + csv_body.encode('utf-16-le')
+        zip_buf = io.BytesIO()
+        with zipfile.ZipFile(zip_buf, 'w') as zf:
+            zf.writestr('XBRL_TO_CSV/jpcrp030000-asr_debt_test.csv', encoded)
+
+        mock_doc = Mock()
+        mock_doc.doc_id = 'S100REAL'
+        mock_doc.doc_type_code = '120'
+        mock_doc.fetch.return_value = zip_buf.getvalue()
+
+        # NO patch — runs through extract_csv_from_zip + decode + parser end-to-end.
+        report = parse_securities_report(mock_doc)
+        assert report.short_term_loans_payable == 1_000_000_000
+        assert report.long_term_loans_payable == 5_000_000_000
+        assert report.bonds_payable == 2_000_000_000
+        assert report.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345'
+
     def test_parse_securities_report_extracts_debt_fields(self):
         """parse_securities_report() extracts debt fields from CSV data."""
         # Mock CSV data with debt elements

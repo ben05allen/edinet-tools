@@ -109,13 +109,45 @@ class TreasuryStockReport(ParsedReport):
 
     @property
     def has_board_authorization(self) -> bool:
-        """Check if buyback was authorized by board meeting."""
-        return bool(self.by_board_meeting)
+        """DEPRECATED v0.6.1 — derive directly from by_board_meeting.
+
+        Use: `bool(parsed.by_board_meeting and parsed.by_board_meeting.strip())`
+
+        This convenience accessor is being retired as part of the v0.6.1
+        fact-shaped API transition — the substrate (by_board_meeting text
+        block content) is the fact; bool checks belong in user code.
+
+        Will be removed in a future major release.
+        """
+        import warnings
+        warnings.warn(
+            "TreasuryStockReport.has_board_authorization is deprecated and "
+            "will be removed in a future major release. Use "
+            "`bool(parsed.by_board_meeting and parsed.by_board_meeting.strip())` "
+            "directly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return bool(self.by_board_meeting and self.by_board_meeting.strip())
 
     @property
     def has_shareholder_authorization(self) -> bool:
-        """Check if buyback was authorized by shareholders meeting."""
-        return bool(self.by_shareholders_meeting)
+        """DEPRECATED v0.6.1 — derive directly from by_shareholders_meeting.
+
+        Use: `bool(parsed.by_shareholders_meeting and parsed.by_shareholders_meeting.strip())`
+
+        Will be removed in a future major release.
+        """
+        import warnings
+        warnings.warn(
+            "TreasuryStockReport.has_shareholder_authorization is deprecated "
+            "and will be removed in a future major release. Use "
+            "`bool(parsed.by_shareholders_meeting and parsed.by_shareholders_meeting.strip())` "
+            "directly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return bool(self.by_shareholders_meeting and self.by_shareholders_meeting.strip())
 
     def __repr__(self) -> str:
         filer = self.filer_name or 'Unknown'
@@ -200,7 +232,7 @@ def parse_treasury_stock_report(document=None, *, csv_files=None, doc_id=None, d
     disposal_holding_text = '\n'.join(filter(None, [disposals_text, holding_text])) or None
 
     # Categorize all elements
-    raw_fields, text_blocks, unmapped_fields = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
 
     return TreasuryStockReport(
         doc_id=doc_id,
@@ -209,6 +241,7 @@ def parse_treasury_stock_report(document=None, *, csv_files=None, doc_id=None, d
         raw_fields=raw_fields,
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
+        raw_facts=raw_facts,
 
         # Identification
         filer_name=filer_name or getattr(document, 'filer_name', None),

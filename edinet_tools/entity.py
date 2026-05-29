@@ -62,7 +62,46 @@ class Entity:
 
     @property
     def is_listed(self) -> bool:
+        """DEPRECATED v0.6.1 — use entity_type instead.
+
+        Collapses the 5-valued FSA registry classification (LISTED_COMPANY,
+        UNLISTED_COMPANY, FUND, INDIVIDUAL, UNKNOWN) into a bool, silently
+        masking the honest-unknown case as False. Use
+        `entity.entity_type == EntityType.LISTED_COMPANY` for an equivalent
+        check that preserves the unknown case.
+
+        Will be removed in a future major release.
+        """
+        import warnings
+        warnings.warn(
+            "Entity.is_listed is deprecated and will be removed in a future "
+            "major release. Use Entity.entity_type (an EntityType enum) "
+            "instead. For an equivalent bool check: "
+            "`entity.entity_type == EntityType.LISTED_COMPANY`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._data.get('is_listed', False)
+
+    @property
+    def entity_type(self):
+        """Fact-shaped entity classification from FSA registry data.
+
+        Returns:
+            EntityType enum value: LISTED_COMPANY, UNLISTED_COMPANY, FUND,
+            INDIVIDUAL, or UNKNOWN.
+
+        Replaces the deprecated is_listed and is_fund_issuer booleans, which
+        collapsed the 5-valued FSA registry classification into 2-valued bools
+        and silently coerced unknown cases to False.
+
+        Examples:
+            >>> from edinet_tools import EntityType
+            >>> entity.entity_type == EntityType.LISTED_COMPANY  # was: entity.is_listed
+            >>> entity.entity_type == EntityType.FUND            # was: entity.is_fund_issuer
+        """
+        classifier = _get_classifier()
+        return classifier.get_entity_type(self.edinet_code)
 
     @property
     def submitter_type(self) -> str | None:
@@ -95,7 +134,22 @@ class Entity:
 
     @property
     def is_fund_issuer(self) -> bool:
-        """True if this entity issues investment funds."""
+        """DEPRECATED v0.6.1 — use entity_type instead.
+
+        Collapses the FSA registry classification into a bool. Use
+        `entity.entity_type == EntityType.FUND` instead.
+
+        Will be removed in a future major release.
+        """
+        import warnings
+        warnings.warn(
+            "Entity.is_fund_issuer is deprecated and will be removed in a "
+            "future major release. Use Entity.entity_type (an EntityType enum) "
+            "instead. For an equivalent bool check: "
+            "`entity.entity_type == EntityType.FUND`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         classifier = _get_classifier()
         return self.edinet_code in classifier._fund_edinet_codes
 
@@ -104,7 +158,9 @@ class Entity:
         """Funds issued by this entity (empty if not a fund issuer)."""
         # Import here to avoid circular reference at module level
         # funds_by_issuer is defined later in this module
-        if not self.is_fund_issuer:
+        # Use the underlying check directly to avoid triggering the is_fund_issuer deprecation warning
+        classifier = _get_classifier()
+        if self.edinet_code not in classifier._fund_edinet_codes:
             return []
         return funds_by_issuer(self.edinet_code)
 

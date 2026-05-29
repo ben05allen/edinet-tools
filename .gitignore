@@ -12,6 +12,7 @@ venv
 *.csv
 !edinet_tools/data/*.csv
 !tests/data/*.csv
+!tests/fixtures/**/*.csv
 *.zip
 
 # Build artifacts

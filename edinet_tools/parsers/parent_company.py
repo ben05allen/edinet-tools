@@ -104,7 +104,7 @@ def parse_parent_company(document=None, *, csv_files=None, doc_id=None, doc_type
     amendment_flag = get('amendment_flag', ['FilingDateInstant'])
     is_amendment = amendment_flag == 'true' if amendment_flag else False
 
-    raw_fields, text_blocks, unmapped_fields = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
 
     return ParentCompanyReport(
         doc_id=doc_id,
@@ -113,6 +113,7 @@ def parse_parent_company(document=None, *, csv_files=None, doc_id=None, doc_type
         raw_fields=raw_fields,
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
+        raw_facts=raw_facts,
         filer_name=filer_name,
         filer_name_en=filer_name_en,
         filer_edinet_code=filer_edinet_code or getattr(document, 'filer_edinet_code', None) if document else filer_edinet_code,

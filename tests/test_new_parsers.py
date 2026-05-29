@@ -7,6 +7,8 @@ Tests for the three new parser families:
 Covers routing (no fallthrough to RawReport), empty-document behaviour,
 dataclass defaults, repr, and supported_doc_types() count.
 """
+import io
+import zipfile
 import pytest
 from unittest.mock import MagicMock
 
@@ -39,6 +41,29 @@ def _make_doc(code: str) -> MagicMock:
     return doc
 
 
+def _make_minimal_zip() -> bytes:
+    """Build a minimal valid EDINET-shaped ZIP containing a single CSV row.
+
+    A real (non-empty) ZIP makes parsers walk the real parse body
+    (extract_csv_from_zip → field extraction → categorize_elements) rather
+    than short-circuiting on the empty-csv_files branch.
+    """
+    row = 'jpdei_cor:EDINETCodeDEI\tlabel\tFilingDateInstant\t0\t連結\t期間\t\t\tE12345'
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w') as zf:
+        zf.writestr('XBRL_TO_CSV/test.csv', row.encode('utf-16le'))
+    return buf.getvalue()
+
+
+def _make_doc_with_csv(code: str) -> MagicMock:
+    doc = MagicMock()
+    doc.doc_type_code = code
+    doc.doc_id = f'TEST_{code}'
+    doc.filer_edinet_code = ''
+    doc.fetch.return_value = _make_minimal_zip()
+    return doc
+
+
 # ---------------------------------------------------------------------------
 # Routing — no fallthrough to RawReport
 # ---------------------------------------------------------------------------
@@ -49,13 +74,16 @@ NEW_DOC_TYPES = ['135', '136', '200', '210', '370', '380']
 @pytest.mark.parametrize("code", NEW_DOC_TYPES)
 def test_new_doc_type_does_not_fall_through_to_raw(code):
     """All 6 new doc type codes must route to a typed parser, not RawReport."""
-    doc = _make_doc(code)
-    try:
-        result = parse(doc)
-        assert not isinstance(result, RawReport), \
-            f"Doc type {code} fell through to RawReport instead of a typed parser"
-    except Exception:
-        pass  # Parser attempted but failed on empty mock data = correct routing
+    doc = _make_doc_with_csv(code)
+    result = parse(doc)
+    assert not isinstance(result, RawReport), (
+        f"Doc type {code} fell through to RawReport instead of a typed parser"
+    )
+    # The CSV row we fed in has the DEI EDINET code 'E12345' — proves
+    # the parse body actually ran rather than short-circuiting on empty input.
+    assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345', (
+        f"Doc type {code}: parse body did not consume the input CSV row"
+    )
 
 
 def test_doc_135_routes_to_confirmation():

@@ -78,6 +78,25 @@ class TestCsvFilesParameter(unittest.TestCase):
 class TestDocumentPathStillWorks(unittest.TestCase):
     """Existing document-based call path must not regress."""
 
+    @staticmethod
+    def _minimal_valid_zip():
+        """ZIP with one CSV row carrying jpdei_cor:EDINETCodeDEI=E99999.
+        Lets the parser body actually execute past the empty-input short-circuit."""
+        import io, zipfile
+        buf = io.BytesIO()
+        csv_body = (
+            '\t'.join(['要素ID', '項目名', 'コンテキストID', '相対年度',
+                       '連結・個別', '期間・時点', 'ユニットID', '単位', '値']) + '\n'
+            + '\t'.join(['jpdei_cor:EDINETCodeDEI', 'EDINETコード', 'FilingDateInstant',
+                         '', '', '', '', '', 'E99999']) + '\n'
+        )
+        # Use UTF-16-LE BOM-prefixed encoding — what EDINET ships and what
+        # extract_csv_from_zip auto-detects.
+        encoded = b'\xff\xfe' + csv_body.encode('utf-16-le')
+        with zipfile.ZipFile(buf, 'w') as zf:
+            zf.writestr('XBRL_TO_CSV/jpcrp030000-asr_test.csv', encoded)
+        return buf.getvalue()
+
     def _mock_doc(self, doc_type='350'):
         mock = MagicMock()
         mock.doc_id = 'S100TEST'
@@ -85,18 +104,22 @@ class TestDocumentPathStillWorks(unittest.TestCase):
         mock.filer_name = 'Test Corp'
         mock.filer_edinet_code = 'E99999'
         mock.filing_datetime = None
-        mock.fetch.return_value = b''
+        mock.fetch.return_value = self._minimal_valid_zip()
         return mock
 
     def test_large_holding_with_document(self):
-        """Verify function still accepts a document positionally."""
-        try:
-            parse_large_holding(self._mock_doc('350'))
-        except Exception:
-            pass  # Expected — empty ZIP bytes
+        """parse_large_holding accepts a document positionally AND the parse body
+        runs (proven by an extracted field landing on the result)."""
+        result = parse_large_holding(self._mock_doc('350'))
+        self.assertIsInstance(result, LargeHoldingReport)
+        self.assertEqual(result.doc_id, 'S100TEST')
+        # raw_fields populated proves the CSV reached the parser body, not just
+        # signature acceptance (the prior try/except: pass only guaranteed signature).
+        self.assertEqual(result.raw_fields.get('jpdei_cor:EDINETCodeDEI'), 'E99999')
 
     def test_securities_with_document(self):
-        try:
-            parse_securities_report(self._mock_doc('120'))
-        except Exception:
-            pass
+        """parse_securities_report accepts a document positionally + parse body runs."""
+        result = parse_securities_report(self._mock_doc('120'))
+        self.assertIsInstance(result, SecuritiesReport)
+        self.assertEqual(result.doc_id, 'S100TEST')
+        self.assertEqual(result.raw_fields.get('jpdei_cor:EDINETCodeDEI'), 'E99999')
