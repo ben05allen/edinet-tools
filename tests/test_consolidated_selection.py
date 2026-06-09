@@ -74,8 +74,9 @@ def test_jgaap_control_unaffected():
 def test_usgaap_income_statement_mapped_sony():
     """US-GAAP filers (Sony FY20) carry consolidated revenue/net-income/EPS/ROE.
 
-    The US-GAAP summary section has no operating-income line, so operating_income
-    is honestly None (mirrors IFRS filers with no operating-profit element)."""
+    Sony FY20 tags OperatingIncomeLossUSGAAPSummaryOfBusinessResults, so operating_income
+    is populated with the correct value (not None). US-GAAP filers that use only a
+    TextBlock for operating income will get honest None; Sony is not that case."""
     r = parse_securities_report(csv_files=_load('sony_fy20_usgaap_revenue'),
                                 doc_id='TEST', doc_type_code='120')
     assert r.net_sales == 8_259_885_000_000
@@ -83,7 +84,7 @@ def test_usgaap_income_statement_mapped_sony():
     assert r.net_income == 582_191_000_000
     assert r.earnings_per_share is not None and abs(float(r.earnings_per_share) - 471.64) < 0.01
     assert r.roe is not None and abs(float(r.roe) - 0.148) < 0.001
-    assert r.operating_income is None  # no US-GAAP operating-income line — honest None
+    assert r.operating_income == 845_459_000_000  # OperatingIncomeLossUSGAAPSummaryOfBusinessResults
 
 
 def test_strict_consolidated_nulls_are_honest_mhi():

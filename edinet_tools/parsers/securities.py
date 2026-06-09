@@ -82,6 +82,7 @@ ELEMENT_MAP = {
     # === IFRS Summary Elements (for ~6% of listed companies) ===
     'net_sales_ifrs_summary': 'jpcrp_cor:RevenueIFRSSummaryOfBusinessResults',
     'operating_income_ifrs_summary': 'jpcrp_cor:OperatingProfitLossIFRSSummaryOfBusinessResults',
+    'operating_income_ifrs_fs': 'jpigp_cor:OperatingProfitLossIFRS',
     'net_income_ifrs_summary': 'jpcrp_cor:ProfitLossAttributableToOwnersOfParentIFRSSummaryOfBusinessResults',
     'total_assets_ifrs_summary': 'jpcrp_cor:TotalAssetsIFRSSummaryOfBusinessResults',
     'net_assets_ifrs_summary': 'jpcrp_cor:EquityAttributableToOwnersOfParentIFRSSummaryOfBusinessResults',
@@ -90,10 +91,12 @@ ELEMENT_MAP = {
     'roe_ifrs': 'jpcrp_cor:RateOfReturnOnEquityIFRSSummaryOfBusinessResults',
 
     # === US-GAAP Summary Elements (~18 listed filers; e.g. Sony FY20, pre-IFRS) ===
-    # The US-GAAP summary section carries revenue, profit-before-tax, net income,
-    # EPS and ROE — but NO operating-income line, so operating_income is honestly
-    # None for US-GAAP filers (mirrors IFRS filers that report no operating profit).
+    # Some US-GAAP filers DO tag operating income via
+    # OperatingIncomeLossUSGAAPSummaryOfBusinessResults; others report it only in
+    # a TextBlock (-> honest None). Never fall back to the parent J-GAAP
+    # jppfs_cor:OperatingIncome for IFRS/US-GAAP filers (it is the leak this gate closes).
     'net_sales_usgaap_summary': 'jpcrp_cor:RevenuesUSGAAPSummaryOfBusinessResults',
+    'operating_income_usgaap_summary': 'jpcrp_cor:OperatingIncomeLossUSGAAPSummaryOfBusinessResults',
     'ordinary_income_usgaap_summary': 'jpcrp_cor:ProfitLossBeforeTaxUSGAAPSummaryOfBusinessResults',
     'net_income_usgaap_summary': 'jpcrp_cor:NetIncomeLossAttributableToOwnersOfParentUSGAAPSummaryOfBusinessResults',
     'earnings_per_share_usgaap': 'jpcrp_cor:BasicEarningsLossPerShareUSGAAPSummaryOfBusinessResults',
@@ -374,9 +377,16 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         get_revenue_by_suffix('CurrentYearDuration'),
         get_fin('net_sales_fs', 'CurrentYearDuration'),
     )
+    # IFRS/US-GAAP: try their own operating-profit elements; NEVER fall back to
+    # the parent J-GAAP jppfs_cor:OperatingIncome (filed at the bare consolidated
+    # context, it would otherwise win and leak the parent figure). Filers with no
+    # operating-profit concept (trading houses, US-GAAP TextBlock-only) -> honest None.
     operating_income = _coalesce(
-        get_fin('operating_income_fs', 'CurrentYearDuration'),
         get_fin('operating_income_ifrs_summary', 'CurrentYearDuration'),
+        get_fin('operating_income_ifrs_fs', 'CurrentYearDuration'),
+        get_fin('operating_income_usgaap_summary', 'CurrentYearDuration'),
+        None if accounting_standard in ('IFRS', 'US GAAP')
+        else get_fin('operating_income_fs', 'CurrentYearDuration'),
     )
     ordinary_income = _coalesce(
         get_fin('ordinary_income_summary', 'CurrentYearDuration'),
@@ -399,8 +409,11 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         get_fin('net_sales_fs', 'Prior1YearDuration'),
     )
     prior_operating_income = _coalesce(
-        get_fin('operating_income_fs', 'Prior1YearDuration'),
         get_fin('operating_income_ifrs_summary', 'Prior1YearDuration'),
+        get_fin('operating_income_ifrs_fs', 'Prior1YearDuration'),
+        get_fin('operating_income_usgaap_summary', 'Prior1YearDuration'),
+        None if accounting_standard in ('IFRS', 'US GAAP')
+        else get_fin('operating_income_fs', 'Prior1YearDuration'),
     )
     prior_ordinary_income = _coalesce(
         get_fin('ordinary_income_summary', 'Prior1YearDuration'),
