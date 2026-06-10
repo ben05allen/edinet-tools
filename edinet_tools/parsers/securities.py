@@ -385,10 +385,10 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     )
     # IFRS/US-GAAP: try their own operating-profit elements; NEVER fall back to
     # the parent J-GAAP jppfs_cor:OperatingIncome. No current filing is known to
-    # tag the parent figure at the bare consolidated context (full-corpus scan,
-    # 2026-06), but a filing that did would win the old coalesce — this gate is
-    # the defense. Filers with no operating-profit concept (trading houses,
-    # US-GAAP TextBlock-only) -> honest None.
+    # tag the parent figure at the bare consolidated context (scan of 2,229
+    # IFRS/US-GAAP securities reports, 2026-06), but a filing that did would win
+    # the old coalesce — this gate is the defense. Filers with no operating-profit
+    # concept (trading houses, US-GAAP TextBlock-only) -> honest None.
     operating_income = _coalesce(
         get_fin('operating_income_ifrs_summary', 'CurrentYearDuration'),
         get_fin('operating_income_ifrs_fs', 'CurrentYearDuration'),

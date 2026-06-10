@@ -55,10 +55,10 @@ def test_jgaap_operating_income_unchanged():
 
 
 def _synthetic_filing(accounting_standard):
-    """Minimal SYNTHETIC csv_files for gate-pinning. Not a real filing: a full
-    scan of all 2,229 IFRS/US-GAAP filings in EDINET (2026-06-09) found ZERO
-    with a bare-context jppfs_cor:OperatingIncome row — so the gate below can
-    only be pinned synthetically. It defends against future filings/refactors.
+    """Minimal SYNTHETIC csv_files for gate-pinning. Not a real filing: a scan
+    of 2,229 IFRS/US-GAAP securities reports (2026-06-09) found ZERO with a
+    bare-context jppfs_cor:OperatingIncome row — so the gate below can only be
+    pinned synthetically. It defends against future filings/refactors.
     """
     rows = [
         {'要素ID': 'jpdei_cor:AccountingStandardsDEI', '項目名': '会計基準',

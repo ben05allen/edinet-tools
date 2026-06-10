@@ -16,7 +16,9 @@ Confirmed golden values (consolidated, yen) and the element each lives under:
   7466 FY25        68,720,867,000  J-GAAP NetSalesSummaryOfBusinessResults @ bare context
                (control: J-GAAP is unaffected; must stay correct after the fix)
 
-As of the current parser, Toyota/Takeda/Sony FAIL (return parent); 7466 PASSES.
+Written TDD-first: at authoring time Toyota/Takeda/Sony returned the parent
+figure; the v0.7.0 strict-consolidated selection fixed that, and these tests
+now pin the corrected behavior.
 """
 import csv as _csv
 from pathlib import Path

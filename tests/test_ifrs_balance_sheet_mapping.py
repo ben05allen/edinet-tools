@@ -3,7 +3,7 @@ taxonomy. The old map pointed current_liabilities at a non-existent
 CurrentLiabilitiesIFRS (the real element is TotalCurrentLiabilitiesIFRS) and
 had no DeferredTaxAssets / depreciation fallbacks at all.
 
-Pinned values (from verified prod-fixture data, 2026-06-09):
+Pinned values (verified against the real MHI / Toyota filings, 2026-06-09):
   current_liabilities    = 3_146_299_000_000  (jpigp_cor:TotalCurrentLiabilitiesIFRS,
                                                 CurrentYearInstant, MHI)
   deferred_tax_assets    =   259_942_000_000  (jpigp_cor:DeferredTaxAssetsIFRS,
