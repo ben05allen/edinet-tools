@@ -143,7 +143,7 @@ IFRS_FALLBACK_MAP = {
         'jpigp_cor:Revenue2IFRS',
         'jpigp_cor:NetSalesIFRS',
     ],
-    'jppfs_cor:OperatingIncome': 'jpigp_cor:OperatingProfitLossIFRS',
+    'jppfs_cor:OperatingIncome': 'jpigp_cor:OperatingProfitLossIFRS',  # safety net for DEI-missing filers; gated filers reach jpigp via ELEMENT_MAP's operating_income_ifrs_fs
     # IFRS has no "ordinary income" — profit before tax is the closest analogue
     'jppfs_cor:OrdinaryIncome': 'jpigp_cor:ProfitLossBeforeTaxIFRS',
     'jppfs_cor:ProfitLoss': 'jpigp_cor:ProfitLossIFRS',
@@ -378,9 +378,11 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         get_fin('net_sales_fs', 'CurrentYearDuration'),
     )
     # IFRS/US-GAAP: try their own operating-profit elements; NEVER fall back to
-    # the parent J-GAAP jppfs_cor:OperatingIncome (filed at the bare consolidated
-    # context, it would otherwise win and leak the parent figure). Filers with no
-    # operating-profit concept (trading houses, US-GAAP TextBlock-only) -> honest None.
+    # the parent J-GAAP jppfs_cor:OperatingIncome. No current filing is known to
+    # tag the parent figure at the bare consolidated context (full-corpus scan,
+    # 2026-06), but a filing that did would win the old coalesce — this gate is
+    # the defense. Filers with no operating-profit concept (trading houses,
+    # US-GAAP TextBlock-only) -> honest None.
     operating_income = _coalesce(
         get_fin('operating_income_ifrs_summary', 'CurrentYearDuration'),
         get_fin('operating_income_ifrs_fs', 'CurrentYearDuration'),

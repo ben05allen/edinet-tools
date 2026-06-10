@@ -47,4 +47,38 @@ def test_jgaap_operating_income_unchanged():
     # Control: J-GAAP path must keep working (jppfs_cor:OperatingIncome).
     r = _parse('jgaap_control_revenue')
     assert r.accounting_standard == 'Japan GAAP'
-    assert r.operating_income is not None
+    # EXACT pins: the fixture also carries parent values at _NonConsolidatedMember
+    # (2,023,920,000 current / 1,677,158,000 prior) — a context regression that
+    # picks the parent would still be "not None", so only exact values protect.
+    assert r.operating_income == 3_311_340_000
+    assert r.prior_operating_income == 3_145_292_000
+
+
+def _synthetic_filing(accounting_standard):
+    """Minimal SYNTHETIC csv_files for gate-pinning. Not a real filing: a full
+    scan of all 2,229 IFRS/US-GAAP filings in EDINET (2026-06-09) found ZERO
+    with a bare-context jppfs_cor:OperatingIncome row — so the gate below can
+    only be pinned synthetically. It defends against future filings/refactors.
+    """
+    rows = [
+        {'要素ID': 'jpdei_cor:AccountingStandardsDEI', '項目名': '会計基準',
+         'コンテキストID': 'FilingDateInstant', '値': accounting_standard},
+        {'要素ID': 'jpdei_cor:WhetherConsolidatedFinancialStatementsArePreparedDEI',
+         '項目名': '連結決算の有無', 'コンテキストID': 'FilingDateInstant', '値': 'true'},
+        # The leak shape: parent J-GAAP operating income AT THE BARE context.
+        {'要素ID': 'jppfs_cor:OperatingIncome', '項目名': '営業利益',
+         'コンテキストID': 'CurrentYearDuration', 'ユニットID': 'JPY', '値': '999000000'},
+        {'要素ID': 'jppfs_cor:OperatingIncome', '項目名': '営業利益',
+         'コンテキストID': 'Prior1YearDuration', 'ユニットID': 'JPY', '値': '888000000'},
+    ]
+    return [{'filename': 'synthetic.csv', 'data': rows}]
+
+@pytest.mark.parametrize('standard', ['IFRS', 'US GAAP'])
+def test_gate_blocks_bare_context_parent_op_income(standard):
+    # Without the per-standard gate, the bare-context jppfs_cor:OperatingIncome
+    # above would win the coalesce and leak 999000000 into operating_income.
+    r = parse_securities_report(csv_files=_synthetic_filing(standard),
+                                doc_id='SYNTH', doc_type_code='120')
+    assert r.accounting_standard == standard
+    assert r.operating_income is None
+    assert r.prior_operating_income is None
