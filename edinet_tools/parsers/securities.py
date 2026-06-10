@@ -57,6 +57,7 @@ ELEMENT_MAP = {
     'financing_cf_summary': 'jpcrp_cor:NetCashProvidedByUsedInFinancingActivitiesSummaryOfBusinessResults',
 
     # === Financial Statement Elements (Fallback) ===
+    'operating_revenue_fs': 'jppfs_cor:OperatingRevenue1',
     'net_sales_fs': 'jppfs_cor:NetSales',
     'operating_income_fs': 'jppfs_cor:OperatingIncome',
     'ordinary_income_fs': 'jppfs_cor:OrdinaryIncome',
@@ -379,6 +380,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         get_fin('net_sales_ifrs_summary', 'CurrentYearDuration'),
         get_fin('net_sales_usgaap_summary', 'CurrentYearDuration'),
         get_revenue_by_suffix('CurrentYearDuration'),
+        get_fin('operating_revenue_fs', 'CurrentYearDuration'),
         get_fin('net_sales_fs', 'CurrentYearDuration'),
     )
     # IFRS/US-GAAP: try their own operating-profit elements; NEVER fall back to
@@ -412,6 +414,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         get_fin('net_sales_ifrs_summary', 'Prior1YearDuration'),
         get_fin('net_sales_usgaap_summary', 'Prior1YearDuration'),
         get_revenue_by_suffix('Prior1YearDuration'),
+        get_fin('operating_revenue_fs', 'Prior1YearDuration'),
         get_fin('net_sales_fs', 'Prior1YearDuration'),
     )
     prior_operating_income = _coalesce(
