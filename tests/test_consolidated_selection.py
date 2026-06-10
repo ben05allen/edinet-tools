@@ -110,10 +110,12 @@ def test_strict_consolidated_nulls_are_honest_mhi():
     # operating_income: MHI reports a custom "business profit", no standard consolidated
     # operating-profit element — Task 3 income-statement mapping may revisit; honest None for now.
     assert r.operating_income is None
-    # Balance-sheet detail (deferred to a future-release followup) — honest None, NOT parent:
+    # Balance-sheet detail recovered via IFRS fallback map (jpigp_cor namespace):
+    assert r.current_liabilities == 3_146_299_000_000   # jpigp_cor:TotalCurrentLiabilitiesIFRS
+    assert r.deferred_tax_assets == 259_942_000_000     # jpigp_cor:DeferredTaxAssetsIFRS
+    # Remaining balance-sheet detail — honest None (no jpigp_cor fallback yet):
     for field in ('short_term_loans_payable', 'long_term_loans_payable', 'bonds_payable',
-                  'current_portion_long_term_loans_payable', 'deferred_tax_assets',
-                  'current_liabilities', 'accounts_payable_other',
+                  'current_portion_long_term_loans_payable', 'accounts_payable_other',
                   'non_operating_income', 'non_operating_expenses'):
         assert getattr(r, field) is None, f'{field} should be honest None under strict, not parent'
 

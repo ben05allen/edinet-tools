@@ -156,7 +156,8 @@ IFRS_FALLBACK_MAP = {
     'jppfs_cor:CurrentAssets': 'jpigp_cor:CurrentAssetsIFRS',
     'jppfs_cor:NoncurrentAssets': 'jpigp_cor:NonCurrentAssetsIFRS',
     'jppfs_cor:PropertyPlantAndEquipment': 'jpigp_cor:PropertyPlantAndEquipmentIFRS',
-    'jppfs_cor:CurrentLiabilities': 'jpigp_cor:CurrentLiabilitiesIFRS',
+    'jppfs_cor:CurrentLiabilities': 'jpigp_cor:TotalCurrentLiabilitiesIFRS',
+    'jppfs_cor:DeferredTaxAssets': 'jpigp_cor:DeferredTaxAssetsIFRS',
     'jppfs_cor:RetainedEarnings': 'jpigp_cor:RetainedEarningsIFRS',
 
     # === Income Detail ===
@@ -167,6 +168,9 @@ IFRS_FALLBACK_MAP = {
     'jppfs_cor:ShortTermLoansPayable': 'jpigp_cor:ShortTermBorrowingsIFRS',
     'jppfs_cor:LongTermLoansPayable': 'jpigp_cor:LongTermBorrowingsIFRS',
     'jppfs_cor:BondsPayable': 'jpigp_cor:BondsPayableIFRS',
+
+    # === Cash Flow Detail ===
+    'jppfs_cor:DepreciationAndAmortizationOpeCF': 'jpigp_cor:DepreciationAndAmortizationOpeCFIFRS',
 }
 
 
