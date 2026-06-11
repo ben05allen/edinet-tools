@@ -112,6 +112,18 @@ ELEMENT_MAP = {
     'net_income_usgaap_summary': 'jpcrp_cor:NetIncomeLossAttributableToOwnersOfParentUSGAAPSummaryOfBusinessResults',
     'earnings_per_share_usgaap': 'jpcrp_cor:BasicEarningsLossPerShareUSGAAPSummaryOfBusinessResults',
     'roe_usgaap': 'jpcrp_cor:RateOfReturnOnEquityUSGAAPSummaryOfBusinessResults',
+    # Balance-sheet + per-share + CF elements for US-GAAP summary filers (R3, 2026-06-10).
+    # Prod scan (10 filings): TotalAssets 10/10, EquityToAssetRatio 10/10,
+    # EquityAttributableToOwners 8/10, EquityPerShare 9/10, CF trio 10/10.
+    'total_assets_usgaap_summary': 'jpcrp_cor:TotalAssetsUSGAAPSummaryOfBusinessResults',
+    'net_assets_usgaap_summary': 'jpcrp_cor:EquityAttributableToOwnersOfParentUSGAAPSummaryOfBusinessResults',
+    # EquityToAssetRatio (US-GAAP) is a GENUINE self-equity/total-assets ratio —
+    # unlike its IFRS taxonomy namesake which is actually a BPS misnomer.
+    'equity_ratio_usgaap': 'jpcrp_cor:EquityToAssetRatioUSGAAPSummaryOfBusinessResults',
+    'net_assets_per_share_usgaap': 'jpcrp_cor:EquityAttributableToOwnersOfParentPerShareUSGAAPSummaryOfBusinessResults',
+    'operating_cf_usgaap_summary': 'jpcrp_cor:CashFlowsFromUsedInOperatingActivitiesUSGAAPSummaryOfBusinessResults',
+    'investing_cf_usgaap_summary': 'jpcrp_cor:CashFlowsFromUsedInInvestingActivitiesUSGAAPSummaryOfBusinessResults',
+    'financing_cf_usgaap_summary': 'jpcrp_cor:CashFlowsFromUsedInFinancingActivitiesUSGAAPSummaryOfBusinessResults',
 
     # === IFRS Cash Flow Elements ===
     'operating_cf_ifrs_summary': 'jpcrp_cor:CashFlowsFromUsedInOperatingActivitiesIFRSSummaryOfBusinessResults',
@@ -452,11 +464,13 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     total_assets = _coalesce(
         get_fin('total_assets_summary', 'CurrentYearInstant'),
         get_fin('total_assets_ifrs_summary', 'CurrentYearInstant'),
+        get_fin('total_assets_usgaap_summary', 'CurrentYearInstant'),
         get_fin('total_assets_fs', 'CurrentYearInstant'),
     )
     net_assets = _coalesce(
         get_fin('net_assets_summary', 'CurrentYearInstant'),
         get_fin('net_assets_ifrs_summary', 'CurrentYearInstant'),
+        get_fin('net_assets_usgaap_summary', 'CurrentYearInstant'),
         get_fin('net_assets_fs', 'CurrentYearInstant'),
     )
     total_liabilities = get_fin('total_liabilities_fs', 'CurrentYearInstant')
@@ -478,6 +492,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     operating_cf = _coalesce(
         get_fin('operating_cf_summary', 'CurrentYearDuration'),
         get_fin('operating_cf_ifrs_summary', 'CurrentYearDuration'),
+        get_fin('operating_cf_usgaap_summary', 'CurrentYearDuration'),
         get_fin('operating_cf_cfs', 'CurrentYearDuration'),
         get_fin('operating_cf_ifrs', 'CurrentYearDuration'),
     )
@@ -485,6 +500,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     investing_cf = _coalesce(
         get_fin('investing_cf_summary', 'CurrentYearDuration'),
         get_fin('investing_cf_ifrs_summary', 'CurrentYearDuration'),
+        get_fin('investing_cf_usgaap_summary', 'CurrentYearDuration'),
         get_fin('investing_cf_cfs', 'CurrentYearDuration'),
         get_fin('investing_cf_ifrs', 'CurrentYearDuration'),
     )
@@ -492,6 +508,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     financing_cf = _coalesce(
         get_fin('financing_cf_summary', 'CurrentYearDuration'),
         get_fin('financing_cf_ifrs_summary', 'CurrentYearDuration'),
+        get_fin('financing_cf_usgaap_summary', 'CurrentYearDuration'),
         get_fin('financing_cf_cfs', 'CurrentYearDuration'),
         get_fin('financing_cf_ifrs', 'CurrentYearDuration'),
     )
@@ -505,6 +522,10 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     nav_str = coerce_numeric_value(extract_value(
         csv_files, ELEMENT_MAP['net_assets_per_share'], context_patterns=patterns
     ))
+    if not nav_str:
+        nav_str = coerce_numeric_value(extract_value(
+            csv_files, ELEMENT_MAP['net_assets_per_share_usgaap'], context_patterns=patterns
+        ))
     net_assets_per_share = Decimal(nav_str) if nav_str else None
 
     patterns = get_context_patterns(is_consolidated, 'CurrentYearDuration')
@@ -521,11 +542,15 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         ))
     earnings_per_share = Decimal(eps_str) if eps_str else None
 
-    # Ratios (try J-GAAP then IFRS summary)
+    # Ratios (try J-GAAP, then IFRS summary, then US-GAAP summary)
+    # Note: EquityToAssetRatioUSGAAPSummaryOfBusinessResults IS a genuine ratio
+    # (unlike its IFRS taxonomy namesake which is a BPS misnomer).
     patterns = get_context_patterns(is_consolidated, 'CurrentYearInstant')
     equity_str = extract_value(csv_files, ELEMENT_MAP['equity_ratio'], context_patterns=patterns)
     if not equity_str:
         equity_str = extract_value(csv_files, ELEMENT_MAP['equity_ratio_ifrs'], context_patterns=patterns)
+    if not equity_str:
+        equity_str = extract_value(csv_files, ELEMENT_MAP['equity_ratio_usgaap'], context_patterns=patterns)
     equity_ratio = parse_percentage(equity_str)
 
     patterns = get_context_patterns(is_consolidated, 'CurrentYearDuration')
