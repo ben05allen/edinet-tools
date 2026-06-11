@@ -88,7 +88,12 @@ ELEMENT_MAP = {
     'total_assets_ifrs_summary': 'jpcrp_cor:TotalAssetsIFRSSummaryOfBusinessResults',
     'net_assets_ifrs_summary': 'jpcrp_cor:EquityAttributableToOwnersOfParentIFRSSummaryOfBusinessResults',
     'earnings_per_share_ifrs': 'jpcrp_cor:BasicEarningsLossPerShareIFRSSummaryOfBusinessResults',
-    'equity_ratio_ifrs': 'jpcrp_cor:EquityToAssetRatioIFRSSummaryOfBusinessResults',
+    # Real equity-ratio element (親会社所有者帰属持分比率（IFRS）; pure decimal, e.g. 0.3803).
+    'equity_ratio_ifrs': 'jpcrp_cor:RatioOfOwnersEquityToGrossAssetsIFRSSummaryOfBusinessResults',
+    # Taxonomy misnomer: element name says "EquityToAssetRatio" but its label is
+    # 1株当たり親会社所有者帰属持分（IFRS）— equity attributable to owners of parent
+    # PER SHARE, in JPY. Used only by ifrs_summary_bps; never as a ratio.
+    'bps_ifrs': 'jpcrp_cor:EquityToAssetRatioIFRSSummaryOfBusinessResults',
     'roe_ifrs': 'jpcrp_cor:RateOfReturnOnEquityIFRSSummaryOfBusinessResults',
 
     # === US-GAAP Summary Elements (~18 listed filers; e.g. Sony FY20, pre-IFRS) ===
@@ -543,7 +548,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     ifrs_summary_roe = Decimal(ifrs_roe_str) if ifrs_roe_str else None
 
     ifrs_bps_str = coerce_numeric_value(extract_value(
-        csv_files, ELEMENT_MAP['equity_ratio_ifrs'],
+        csv_files, ELEMENT_MAP['bps_ifrs'],
         context_patterns=['CurrentYearInstant'],
     ))
     ifrs_summary_bps = Decimal(ifrs_bps_str) if ifrs_bps_str else None
