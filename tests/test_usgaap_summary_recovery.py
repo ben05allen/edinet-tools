@@ -23,6 +23,20 @@ Pinned exact values from Sony fixture for present elements:
 All other fields remain None for the Sony fixture (elements not present), but the
 waterfall extension is verified to work correctly once elements exist — confirmed via
 the prod scan of 10 real US-GAAP filings.
+
+Canon FY24 fixture element-presence audit (filing S100XTLJ, 2026-06-10):
+  Element                                                             Present?  Context / Value
+  -------                                                             --------  ---------------
+  TotalAssetsUSGAAPSummaryOfBusinessResults                           PRESENT   CurrentYearInstant / 6135044000000
+  EquityAttributableToOwnersOfParentUSGAAPSummaryOfBusinessResults    PRESENT   CurrentYearInstant / 3491808000000
+  EquityToAssetRatioUSGAAPSummaryOfBusinessResults                    PRESENT   CurrentYearInstant / 0.569
+  EquityAttributableToOwnersOfParentPerShareUSGAAPSummaryOfBR         PRESENT   CurrentYearInstant / 3974.81
+  CashFlowsFromUsedInOperatingActivitiesUSGAAPSummaryOfBR             PRESENT   CurrentYearDuration / 475903000000
+  CashFlowsFromUsedInInvestingActivitiesUSGAAPSummaryOfBR             PRESENT   CurrentYearDuration / -237450000000
+  CashFlowsFromUsedInFinancingActivitiesUSGAAPSummaryOfBR             PRESENT   CurrentYearDuration / -179221000000
+  RevenuesUSGAAPSummaryOfBusinessResults                              PRESENT   CurrentYearDuration / 4624727000000
+  NetIncomeLossAttributableToOwnersOfParentUSGAAPSummaryOfBR          MISSING   — Canon omits; net_income is None
+  OperatingIncomeLossUSGAAPSummaryOfBusinessResults                   MISSING   — Canon omits; operating_income is None
 """
 import csv as _csv
 from decimal import Decimal
@@ -119,3 +133,99 @@ def test_usgaap_financing_cf_prior_year_only_is_honest_none():
     """
     r = _parse('sony_fy20_usgaap_revenue')
     assert r.financing_cash_flow is None
+
+
+# ---------------------------------------------------------------------------
+# Canon FY24 (S100XTLJ) — second US-GAAP filer with the full summary set
+# Pins every R3-mapped element that is present in this filing.
+# ---------------------------------------------------------------------------
+
+def test_canon_usgaap_accounting_standard():
+    """Canon FY24 is filed under US GAAP — accounting_standard must reflect that."""
+    r = _parse('canon_fy_usgaap')
+    assert r.accounting_standard == 'US GAAP'
+
+
+def test_canon_usgaap_total_assets():
+    """TotalAssetsUSGAAPSummaryOfBusinessResults @ CurrentYearInstant: 6,135,044,000,000 JPY."""
+    r = _parse('canon_fy_usgaap')
+    assert r.total_assets == 6_135_044_000_000
+
+
+def test_canon_usgaap_net_assets():
+    """EquityAttributableToOwnersOfParentUSGAAPSummaryOfBusinessResults @ CurrentYearInstant:
+    3,491,808,000,000 JPY.
+    """
+    r = _parse('canon_fy_usgaap')
+    assert r.net_assets == 3_491_808_000_000
+
+
+def test_canon_usgaap_equity_ratio():
+    """EquityToAssetRatioUSGAAPSummaryOfBusinessResults @ CurrentYearInstant: 0.569."""
+    r = _parse('canon_fy_usgaap')
+    assert r.equity_ratio == Decimal('0.569')
+
+
+def test_canon_usgaap_equity_ratio_is_ratio_not_bps():
+    """Sanity check: Canon equity_ratio must be a fraction (< 1), not a yen-per-share figure."""
+    r = _parse('canon_fy_usgaap')
+    assert r.equity_ratio is not None
+    assert r.equity_ratio < 1, (
+        f"equity_ratio={r.equity_ratio!r} looks like a BPS figure, not a ratio"
+    )
+
+
+def test_canon_usgaap_net_assets_per_share():
+    """EquityAttributableToOwnersOfParentPerShareUSGAAPSummaryOfBusinessResults
+    @ CurrentYearInstant: 3974.81 JPY/share.
+    """
+    r = _parse('canon_fy_usgaap')
+    assert r.net_assets_per_share == Decimal('3974.81')
+
+
+def test_canon_usgaap_operating_cash_flow():
+    """CashFlowsFromUsedInOperatingActivitiesUSGAAPSummaryOfBusinessResults
+    @ CurrentYearDuration: 475,903,000,000 JPY.
+    """
+    r = _parse('canon_fy_usgaap')
+    assert r.operating_cash_flow == 475_903_000_000
+
+
+def test_canon_usgaap_investing_cash_flow():
+    """CashFlowsFromUsedInInvestingActivitiesUSGAAPSummaryOfBusinessResults
+    @ CurrentYearDuration: -237,450,000,000 JPY.
+    """
+    r = _parse('canon_fy_usgaap')
+    assert r.investing_cash_flow == -237_450_000_000
+
+
+def test_canon_usgaap_financing_cash_flow():
+    """CashFlowsFromUsedInFinancingActivitiesUSGAAPSummaryOfBusinessResults
+    @ CurrentYearDuration: -179,221,000,000 JPY.
+    """
+    r = _parse('canon_fy_usgaap')
+    assert r.financing_cash_flow == -179_221_000_000
+
+
+def test_canon_usgaap_net_sales():
+    """RevenuesUSGAAPSummaryOfBusinessResults @ CurrentYearDuration: 4,624,727,000,000 JPY."""
+    r = _parse('canon_fy_usgaap')
+    assert r.net_sales == 4_624_727_000_000
+
+
+def test_canon_usgaap_net_income_absent_is_honest_none():
+    """NetIncomeLossAttributableToOwnersOfParentUSGAAPSummaryOfBusinessResults is not
+    tagged in the Canon filing. net_income must be None — no fallback to non-consolidated
+    jppfs_cor:ProfitLoss or ProfitLossBeforeTax.
+    """
+    r = _parse('canon_fy_usgaap')
+    assert r.net_income is None
+
+
+def test_canon_usgaap_operating_income_absent_is_honest_none():
+    """OperatingIncomeLossUSGAAPSummaryOfBusinessResults is not tagged in the Canon
+    filing (Canon uses ProfitLossBeforeTax instead). operating_income must be None —
+    no fallback to non-consolidated jppfs_cor:OperatingIncome.
+    """
+    r = _parse('canon_fy_usgaap')
+    assert r.operating_income is None
