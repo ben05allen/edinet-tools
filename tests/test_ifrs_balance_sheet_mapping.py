@@ -12,6 +12,7 @@ Pinned values (verified against the real MHI / Toyota filings, 2026-06-09):
                                                   CurrentYearDuration, Toyota)
 """
 import csv as _csv
+from decimal import Decimal
 from pathlib import Path
 from edinet_tools.parsers.securities import parse_securities_report
 
@@ -47,3 +48,22 @@ def test_ifrs_depreciation_recovered():
     r = _parse('toyota_fy25_revenue')
     assert r.accounting_standard == 'IFRS'
     assert r.depreciation_amortization == 2_251_233_000_000
+
+
+def test_ifrs_equity_ratio_is_a_ratio_not_bps():
+    # jpcrp_cor:EquityToAssetRatioIFRSSummaryOfBusinessResults is a taxonomy
+    # misnomer: its label is 1株当たり親会社所有者帰属持分 (BPS, yen). The real
+    # ratio element is RatioOfOwnersEquityToGrossAssetsIFRSSummaryOfBusinessResults.
+    # Before this fix, IFRS filers got BPS-in-yen stored as equity_ratio.
+    # Itochu fixture: RatioOfOwnersEquityToGrossAssets... = 0.3803 at CurrentYearInstant.
+    r = _parse('itochu_fy25_op_income')
+    assert r.accounting_standard == 'IFRS'
+    assert r.equity_ratio == Decimal('0.3803')
+
+
+def test_ifrs_summary_bps_still_reads_per_share_element():
+    # The misnomer element (EquityToAssetRatioIFRS...) genuinely IS per-share equity
+    # (1株当たり親会社所有者帰属持分, JPYPerShares). ifrs_summary_bps keeps reading it.
+    # Itochu fixture: EquityToAssetRatioIFRS... = 4059.19 at CurrentYearInstant.
+    r = _parse('itochu_fy25_op_income')
+    assert r.ifrs_summary_bps == Decimal('4059.19')
