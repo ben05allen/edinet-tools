@@ -1,5 +1,10 @@
 # edinet-tools
 
+[![PyPI](https://img.shields.io/pypi/v/edinet-tools)](https://pypi.org/project/edinet-tools/)
+[![Downloads](https://static.pepy.tech/badge/edinet-tools)](https://pepy.tech/project/edinet-tools)
+[![Tests](https://github.com/matthelmer/edinet-tools/actions/workflows/test.yml/badge.svg)](https://github.com/matthelmer/edinet-tools/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Python library for Japan's [EDINET](https://disclosure2.edinet-fsa.go.jp/) disclosure system — the official source for securities reports, shareholding notices, tender offers, and other regulatory filings from listed Japanese companies.
 
 ```python
@@ -27,6 +32,8 @@ edinet-tools has three layers:
 3. **Full capture** — elements not yet mapped to typed fields are preserved in `raw_fields`, `unmapped_fields`, `text_blocks`, and `raw_facts` (the full XBRL fact set), so you can explore what's available and nothing is silently dropped
 
 Each parser maps known XBRL elements to typed Python fields (dates, decimals, strings). As EDINET evolves or new elements become useful, adding a field is one line in the element map and one line on the dataclass. The architecture is designed to grow incrementally without breaking existing code.
+
+Typed fields favor honest `None` over plausible-but-wrong values: financial figures are selected per accounting standard (J-GAAP, IFRS, US-GAAP), a consolidated filer never silently inherits parent-company figures, and element mappings are pinned by tests against real, unedited filings. When a filing doesn't contain a concept, the field is `None` — the raw data is still in the fact-bag.
 
 ## EDINET Document Types
 
@@ -153,7 +160,7 @@ Or use a `.env` file. Entity lookup and parsing work without an API key — only
 ## Testing
 
 ```bash
-pytest tests/ -v  # 790+ tests
+pytest tests/ -v  # 830+ tests
 ```
 
 ## Links
