@@ -44,6 +44,7 @@ ELEMENT_MAP = {
 
     # === SummaryOfBusinessResults Elements ===
     'net_sales_summary': 'jpcrp_cor:NetSalesSummaryOfBusinessResults',
+    'ordinary_revenue_summary': 'jpcrp_cor:OrdinaryIncomeSummaryOfBusinessResults',  # 経常収益 — banks/insurers gross revenue (distinct from OrdinaryIncomeLoss... = ordinary profit)
     'ordinary_income_summary': 'jpcrp_cor:OrdinaryIncomeLossSummaryOfBusinessResults',
     'net_income_summary': 'jpcrp_cor:ProfitLossAttributableToOwnersOfParentSummaryOfBusinessResults',
     'total_assets_summary': 'jpcrp_cor:TotalAssetsSummaryOfBusinessResults',
@@ -75,10 +76,14 @@ ELEMENT_MAP = {
     'lease_obligations_noncurrent': 'jppfs_cor:LeaseObligationsNCL',
     'commercial_paper': 'jppfs_cor:CommercialPaper',
 
-    # === Cash Flow Statement Elements (Fallback for companies without Summary section) ===
-    'operating_cf_cfs': 'jpcrp_cor:CashFlowsFromOperatingActivities',
-    'investing_cf_cfs': 'jpcrp_cor:CashFlowsFromInvestmentActivities',
-    'financing_cf_cfs': 'jpcrp_cor:CashFlowsFromFinancingActivities',
+    # === Cash Flow Statement Elements (J-GAAP FS fallback for companies without Summary section) ===
+    # Note: the previous ids (jpcrp_cor:CashFlowsFrom{Operating,Investment,Financing}Activities)
+    # did not exist in any real EDINET filing (0/15 prod scan). The real J-GAAP
+    # financial-statement CF element ids are in the jppfs_cor namespace.
+    # Note spelling: "Investment" (not "Investing") in the middle element — matches the XBRL taxonomy.
+    'operating_cf_cfs': 'jppfs_cor:NetCashProvidedByUsedInOperatingActivities',
+    'investing_cf_cfs': 'jppfs_cor:NetCashProvidedByUsedInInvestmentActivities',
+    'financing_cf_cfs': 'jppfs_cor:NetCashProvidedByUsedInFinancingActivities',
 
     # === IFRS Summary Elements (for ~6% of listed companies) ===
     'net_sales_ifrs_summary': 'jpcrp_cor:RevenueIFRSSummaryOfBusinessResults',
@@ -384,6 +389,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         get_fin('net_sales_summary', 'CurrentYearDuration'),
         get_fin('net_sales_ifrs_summary', 'CurrentYearDuration'),
         get_fin('net_sales_usgaap_summary', 'CurrentYearDuration'),
+        get_fin('ordinary_revenue_summary', 'CurrentYearDuration'),
         get_revenue_by_suffix('CurrentYearDuration'),
         get_fin('operating_revenue_fs', 'CurrentYearDuration'),
         get_fin('net_sales_fs', 'CurrentYearDuration'),
@@ -418,6 +424,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         get_fin('net_sales_summary', 'Prior1YearDuration'),
         get_fin('net_sales_ifrs_summary', 'Prior1YearDuration'),
         get_fin('net_sales_usgaap_summary', 'Prior1YearDuration'),
+        get_fin('ordinary_revenue_summary', 'Prior1YearDuration'),
         get_revenue_by_suffix('Prior1YearDuration'),
         get_fin('operating_revenue_fs', 'Prior1YearDuration'),
         get_fin('net_sales_fs', 'Prior1YearDuration'),
