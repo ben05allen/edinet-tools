@@ -33,7 +33,7 @@ edinet-tools has three layers:
 
 Each parser maps known XBRL elements to typed Python fields (dates, decimals, strings). As EDINET evolves or new elements become useful, adding a field is one line in the element map and one line on the dataclass. The architecture is designed to grow incrementally without breaking existing code.
 
-Typed fields favor honest `None` over plausible-but-wrong values: financial figures are selected per accounting standard (J-GAAP, IFRS, US-GAAP), a consolidated filer never silently inherits parent-company figures, and element mappings are pinned by tests against real, unedited filings. When a filing doesn't contain a concept, the field is `None` — the raw data is still in the fact-bag.
+Typed fields favor honest `None` over plausible-but-wrong values: financial figures are selected per accounting standard (J-GAAP, IFRS, US-GAAP), a consolidated filer never silently inherits parent-company figures, and element mappings are pinned by tests against real, unedited filings and cross-checked against issuers' own earnings releases. When a filing doesn't contain a concept, the field is `None` — the raw data is still in the fact-bag.
 
 ## EDINET Document Types
 
@@ -41,7 +41,7 @@ EDINET defines 42 document types spanning corporate disclosure, capital markets 
 
 | Code | Family | Description |
 |------|--------|-------------|
-| 120, 130 | Securities Reports | Annual reports — financials, governance, business overview (J-GAAP + IFRS) |
+| 120, 130 | Securities Reports | Annual reports — financials, governance, business overview (J-GAAP / IFRS / US GAAP) |
 | 140, 150 | Quarterly Reports | Quarterly financials (abolished April 2024) |
 | 160, 170 | Semi-Annual Reports | Semi-annual reports, primarily investment funds |
 | 180, 190 | Extraordinary Reports | Material events — M&A, management changes, restructuring |
