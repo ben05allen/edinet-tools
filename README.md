@@ -1,5 +1,10 @@
 # edinet-tools
 
+[![PyPI](https://img.shields.io/pypi/v/edinet-tools)](https://pypi.org/project/edinet-tools/)
+[![Downloads](https://static.pepy.tech/badge/edinet-tools)](https://pepy.tech/project/edinet-tools)
+[![Tests](https://github.com/matthelmer/edinet-tools/actions/workflows/test.yml/badge.svg)](https://github.com/matthelmer/edinet-tools/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Python library for Japan's [EDINET](https://disclosure2.edinet-fsa.go.jp/) disclosure system — the official source for securities reports, shareholding notices, tender offers, and other regulatory filings from listed Japanese companies.
 
 ```python
@@ -26,7 +31,9 @@ edinet-tools has three layers:
 2. **Typed parsers** — every EDINET document type routes to a named Python dataclass with structured fields
 3. **Full capture** — elements not yet mapped to typed fields are preserved in `raw_fields`, `unmapped_fields`, `text_blocks`, and `raw_facts` (the full XBRL fact set), so you can explore what's available and nothing is silently dropped
 
-Each parser maps known XBRL elements to typed Python fields (dates, decimals, strings). As EDINET evolves or new elements become useful, adding a field is one line in the element map and one line on the dataclass. The architecture is designed to grow incrementally without breaking existing code.
+Each parser maps known XBRL elements to typed Python fields (dates, decimals, strings). As EDINET evolves or new elements become useful, adding a field is one line in the element map and one line on the dataclass.
+
+Typed fields favor honest `None` over plausible-but-wrong values. Financial figures are selected per accounting standard (J-GAAP, IFRS, US GAAP), and a consolidated filer never silently inherits parent-company figures. Element mappings are pinned by tests against real, unedited filings and cross-checked against issuers' own earnings releases. When a filing doesn't contain a concept, the field is `None`, and the raw data is still in the fact-bag.
 
 ## EDINET Document Types
 
@@ -34,7 +41,7 @@ EDINET defines 42 document types spanning corporate disclosure, capital markets 
 
 | Code | Family | Description |
 |------|--------|-------------|
-| 120, 130 | Securities Reports | Annual reports — financials, governance, business overview (J-GAAP + IFRS) |
+| 120, 130 | Securities Reports | Annual reports — financials, governance, business overview (J-GAAP / IFRS / US GAAP) |
 | 140, 150 | Quarterly Reports | Quarterly financials (abolished April 2024) |
 | 160, 170 | Semi-Annual Reports | Semi-annual reports, primarily investment funds |
 | 180, 190 | Extraordinary Reports | Material events — M&A, management changes, restructuring |
@@ -153,7 +160,7 @@ Or use a `.env` file. Entity lookup and parsing work without an API key — only
 ## Testing
 
 ```bash
-pytest tests/ -v  # 790+ tests
+pytest tests/ -v  # 830+ tests
 ```
 
 ## Links

@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.7.1 — 2026-06-12
+
+Correctness release for the securities report parser. Income-statement fields are now selected per accounting standard, several element mappings pointed at XBRL ids that don't exist in real filings, and banks, insurers, and securities firms now get real revenue figures.
+
+### Fixed
+
+- **`operating_income` is now selected per accounting standard.** Previously every filer was read through the J-GAAP element first, so IFRS and US-GAAP companies could pick up a parent-company figure. Each standard now reads its own operating-profit elements, including `OperatingIncomeLossUSGAAPSummaryOfBusinessResults` (v0.7.0 wrongly claimed no US-GAAP element exists; Sony and others tag it). Filers whose statements have no operating-profit subtotal, like IFRS trading houses, return `None` instead of a wrong number. Applies to current and prior year.
+- **IFRS `equity_ratio` was storing equity per share, in yen.** The element it read (`EquityToAssetRatioIFRSSummaryOfBusinessResults`) is named misleadingly; its real meaning is per-share equity. `equity_ratio` now reads the actual ratio element. The per-share value still feeds `ifrs_summary_bps`.
+- **IFRS `current_liabilities` was always `None`.** It was mapped to an element that doesn't exist in real filings; the real one is `TotalCurrentLiabilitiesIFRS`. Also added the missing deferred-tax-assets and depreciation fallbacks.
+- **The J-GAAP cash-flow fallback tier never fired.** All three element ids were wrong. Replaced with the real `jppfs_cor:NetCashProvidedByUsedIn*Activities` elements.
+
+### Added
+
+- **Revenue for financial-sector filers.** Banks and insurers report 経常収益 and securities firms 営業収益 rather than net sales. `net_sales` now reads those elements when the standard ones are absent. Previously these filers returned `None` or picked up a small sub-business line. Known gap: securities firms that tag only `OperatingRevenueSEC`-style variants still return `None`; mapping planned.
+- **US-GAAP balance sheet and cash flows.** Total assets, equity, equity ratio, book value per share, and the three cash-flow figures now populate for US-GAAP filers, via the `...USGAAPSummaryOfBusinessResults` elements.
+
+### Tests
+
+- Five new golden fixtures from real, unedited filings (Itochu, Toyota Tsusho, HS Holdings, MUFG, Canon), pinned to exact values. Test count: 798 → 832.
+- Output cross-checked against the issuers' own earnings releases for 20 filings across J-GAAP, IFRS, and US GAAP. Every populated figure matched to the yen.
+
+### Note for existing databases
+
+Parser fixes apply on re-parse. Rows extracted with earlier versions keep their old values. Re-extract IFRS, US-GAAP, and financial-sector filings — and make sure your update path writes `None` over old values rather than skipping them, since some fields are now correctly `None`.
+
 ## v0.7.0 — 2026-05-29
 
 Segment-information parsing, a consolidated-revenue data-quality fix for IFRS/US-GAAP filers, registry-based filer classification, and the fact-shaped API transition (`Entity.entity_type`).

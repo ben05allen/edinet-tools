@@ -16,7 +16,9 @@ Confirmed golden values (consolidated, yen) and the element each lives under:
   7466 FY25        68,720,867,000  J-GAAP NetSalesSummaryOfBusinessResults @ bare context
                (control: J-GAAP is unaffected; must stay correct after the fix)
 
-As of the current parser, Toyota/Takeda/Sony FAIL (return parent); 7466 PASSES.
+Written TDD-first: at authoring time Toyota/Takeda/Sony returned the parent
+figure; the v0.7.0 strict-consolidated selection fixed that, and these tests
+now pin the corrected behavior.
 """
 import csv as _csv
 from pathlib import Path
@@ -74,8 +76,9 @@ def test_jgaap_control_unaffected():
 def test_usgaap_income_statement_mapped_sony():
     """US-GAAP filers (Sony FY20) carry consolidated revenue/net-income/EPS/ROE.
 
-    The US-GAAP summary section has no operating-income line, so operating_income
-    is honestly None (mirrors IFRS filers with no operating-profit element)."""
+    Sony FY20 tags OperatingIncomeLossUSGAAPSummaryOfBusinessResults, so operating_income
+    is populated with the correct value (not None). US-GAAP filers that use only a
+    TextBlock for operating income will get honest None; Sony is not that case."""
     r = parse_securities_report(csv_files=_load('sony_fy20_usgaap_revenue'),
                                 doc_id='TEST', doc_type_code='120')
     assert r.net_sales == 8_259_885_000_000
@@ -83,7 +86,7 @@ def test_usgaap_income_statement_mapped_sony():
     assert r.net_income == 582_191_000_000
     assert r.earnings_per_share is not None and abs(float(r.earnings_per_share) - 471.64) < 0.01
     assert r.roe is not None and abs(float(r.roe) - 0.148) < 0.001
-    assert r.operating_income is None  # no US-GAAP operating-income line — honest None
+    assert r.operating_income == 845_459_000_000  # OperatingIncomeLossUSGAAPSummaryOfBusinessResults
 
 
 def test_strict_consolidated_nulls_are_honest_mhi():
@@ -109,10 +112,12 @@ def test_strict_consolidated_nulls_are_honest_mhi():
     # operating_income: MHI reports a custom "business profit", no standard consolidated
     # operating-profit element — Task 3 income-statement mapping may revisit; honest None for now.
     assert r.operating_income is None
-    # Balance-sheet detail (deferred to a future-release followup) — honest None, NOT parent:
+    # Balance-sheet detail recovered via IFRS fallback map (jpigp_cor namespace):
+    assert r.current_liabilities == 3_146_299_000_000   # jpigp_cor:TotalCurrentLiabilitiesIFRS
+    assert r.deferred_tax_assets == 259_942_000_000     # jpigp_cor:DeferredTaxAssetsIFRS
+    # Remaining balance-sheet detail — honest None (no jpigp_cor fallback yet):
     for field in ('short_term_loans_payable', 'long_term_loans_payable', 'bonds_payable',
-                  'current_portion_long_term_loans_payable', 'deferred_tax_assets',
-                  'current_liabilities', 'accounts_payable_other',
+                  'current_portion_long_term_loans_payable', 'accounts_payable_other',
                   'non_operating_income', 'non_operating_expenses'):
         assert getattr(r, field) is None, f'{field} should be honest None under strict, not parent'
 

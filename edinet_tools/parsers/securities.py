@@ -44,6 +44,7 @@ ELEMENT_MAP = {
 
     # === SummaryOfBusinessResults Elements ===
     'net_sales_summary': 'jpcrp_cor:NetSalesSummaryOfBusinessResults',
+    'ordinary_revenue_summary': 'jpcrp_cor:OrdinaryIncomeSummaryOfBusinessResults',  # 経常収益 — banks/insurers gross revenue (distinct from OrdinaryIncomeLoss... = ordinary profit)
     'ordinary_income_summary': 'jpcrp_cor:OrdinaryIncomeLossSummaryOfBusinessResults',
     'net_income_summary': 'jpcrp_cor:ProfitLossAttributableToOwnersOfParentSummaryOfBusinessResults',
     'total_assets_summary': 'jpcrp_cor:TotalAssetsSummaryOfBusinessResults',
@@ -57,6 +58,7 @@ ELEMENT_MAP = {
     'financing_cf_summary': 'jpcrp_cor:NetCashProvidedByUsedInFinancingActivitiesSummaryOfBusinessResults',
 
     # === Financial Statement Elements (Fallback) ===
+    'operating_revenue_fs': 'jppfs_cor:OperatingRevenue1',
     'net_sales_fs': 'jppfs_cor:NetSales',
     'operating_income_fs': 'jppfs_cor:OperatingIncome',
     'ordinary_income_fs': 'jppfs_cor:OrdinaryIncome',
@@ -74,30 +76,54 @@ ELEMENT_MAP = {
     'lease_obligations_noncurrent': 'jppfs_cor:LeaseObligationsNCL',
     'commercial_paper': 'jppfs_cor:CommercialPaper',
 
-    # === Cash Flow Statement Elements (Fallback for companies without Summary section) ===
-    'operating_cf_cfs': 'jpcrp_cor:CashFlowsFromOperatingActivities',
-    'investing_cf_cfs': 'jpcrp_cor:CashFlowsFromInvestmentActivities',
-    'financing_cf_cfs': 'jpcrp_cor:CashFlowsFromFinancingActivities',
+    # === Cash Flow Statement Elements (J-GAAP FS fallback for companies without Summary section) ===
+    # Note: the previous ids (jpcrp_cor:CashFlowsFrom{Operating,Investment,Financing}Activities)
+    # did not exist in any real EDINET filing (0/15 prod scan). The real J-GAAP
+    # financial-statement CF element ids are in the jppfs_cor namespace.
+    # Note spelling: "Investment" (not "Investing") in the middle element — matches the XBRL taxonomy.
+    'operating_cf_cfs': 'jppfs_cor:NetCashProvidedByUsedInOperatingActivities',
+    'investing_cf_cfs': 'jppfs_cor:NetCashProvidedByUsedInInvestmentActivities',
+    'financing_cf_cfs': 'jppfs_cor:NetCashProvidedByUsedInFinancingActivities',
 
     # === IFRS Summary Elements (for ~6% of listed companies) ===
     'net_sales_ifrs_summary': 'jpcrp_cor:RevenueIFRSSummaryOfBusinessResults',
     'operating_income_ifrs_summary': 'jpcrp_cor:OperatingProfitLossIFRSSummaryOfBusinessResults',
+    'operating_income_ifrs_fs': 'jpigp_cor:OperatingProfitLossIFRS',
     'net_income_ifrs_summary': 'jpcrp_cor:ProfitLossAttributableToOwnersOfParentIFRSSummaryOfBusinessResults',
     'total_assets_ifrs_summary': 'jpcrp_cor:TotalAssetsIFRSSummaryOfBusinessResults',
     'net_assets_ifrs_summary': 'jpcrp_cor:EquityAttributableToOwnersOfParentIFRSSummaryOfBusinessResults',
     'earnings_per_share_ifrs': 'jpcrp_cor:BasicEarningsLossPerShareIFRSSummaryOfBusinessResults',
-    'equity_ratio_ifrs': 'jpcrp_cor:EquityToAssetRatioIFRSSummaryOfBusinessResults',
+    # Real equity-ratio element (親会社所有者帰属持分比率（IFRS）; pure decimal, e.g. 0.3803).
+    'equity_ratio_ifrs': 'jpcrp_cor:RatioOfOwnersEquityToGrossAssetsIFRSSummaryOfBusinessResults',
+    # Taxonomy misnomer: element name says "EquityToAssetRatio" but its label is
+    # 1株当たり親会社所有者帰属持分（IFRS）— equity attributable to owners of parent
+    # PER SHARE, in JPY. Used only by ifrs_summary_bps; never as a ratio.
+    'bps_ifrs': 'jpcrp_cor:EquityToAssetRatioIFRSSummaryOfBusinessResults',
     'roe_ifrs': 'jpcrp_cor:RateOfReturnOnEquityIFRSSummaryOfBusinessResults',
 
     # === US-GAAP Summary Elements (~18 listed filers; e.g. Sony FY20, pre-IFRS) ===
-    # The US-GAAP summary section carries revenue, profit-before-tax, net income,
-    # EPS and ROE — but NO operating-income line, so operating_income is honestly
-    # None for US-GAAP filers (mirrors IFRS filers that report no operating profit).
+    # Some US-GAAP filers DO tag operating income via
+    # OperatingIncomeLossUSGAAPSummaryOfBusinessResults; others report it only in
+    # a TextBlock (-> honest None). Never fall back to the parent J-GAAP
+    # jppfs_cor:OperatingIncome for IFRS/US-GAAP filers (it is the leak this gate closes).
     'net_sales_usgaap_summary': 'jpcrp_cor:RevenuesUSGAAPSummaryOfBusinessResults',
+    'operating_income_usgaap_summary': 'jpcrp_cor:OperatingIncomeLossUSGAAPSummaryOfBusinessResults',
     'ordinary_income_usgaap_summary': 'jpcrp_cor:ProfitLossBeforeTaxUSGAAPSummaryOfBusinessResults',
     'net_income_usgaap_summary': 'jpcrp_cor:NetIncomeLossAttributableToOwnersOfParentUSGAAPSummaryOfBusinessResults',
     'earnings_per_share_usgaap': 'jpcrp_cor:BasicEarningsLossPerShareUSGAAPSummaryOfBusinessResults',
     'roe_usgaap': 'jpcrp_cor:RateOfReturnOnEquityUSGAAPSummaryOfBusinessResults',
+    # Balance-sheet + per-share + CF elements for US-GAAP summary filers (R3, 2026-06-10).
+    # Prod scan (10 filings): TotalAssets 10/10, EquityToAssetRatio 10/10,
+    # EquityAttributableToOwners 8/10, EquityPerShare 9/10, CF trio 10/10.
+    'total_assets_usgaap_summary': 'jpcrp_cor:TotalAssetsUSGAAPSummaryOfBusinessResults',
+    'net_assets_usgaap_summary': 'jpcrp_cor:EquityAttributableToOwnersOfParentUSGAAPSummaryOfBusinessResults',
+    # EquityToAssetRatio (US-GAAP) is a GENUINE self-equity/total-assets ratio —
+    # unlike its IFRS taxonomy namesake which is actually a BPS misnomer.
+    'equity_ratio_usgaap': 'jpcrp_cor:EquityToAssetRatioUSGAAPSummaryOfBusinessResults',
+    'net_assets_per_share_usgaap': 'jpcrp_cor:EquityAttributableToOwnersOfParentPerShareUSGAAPSummaryOfBusinessResults',
+    'operating_cf_usgaap_summary': 'jpcrp_cor:CashFlowsFromUsedInOperatingActivitiesUSGAAPSummaryOfBusinessResults',
+    'investing_cf_usgaap_summary': 'jpcrp_cor:CashFlowsFromUsedInInvestingActivitiesUSGAAPSummaryOfBusinessResults',
+    'financing_cf_usgaap_summary': 'jpcrp_cor:CashFlowsFromUsedInFinancingActivitiesUSGAAPSummaryOfBusinessResults',
 
     # === IFRS Cash Flow Elements ===
     'operating_cf_ifrs_summary': 'jpcrp_cor:CashFlowsFromUsedInOperatingActivitiesIFRSSummaryOfBusinessResults',
@@ -140,7 +166,7 @@ IFRS_FALLBACK_MAP = {
         'jpigp_cor:Revenue2IFRS',
         'jpigp_cor:NetSalesIFRS',
     ],
-    'jppfs_cor:OperatingIncome': 'jpigp_cor:OperatingProfitLossIFRS',
+    'jppfs_cor:OperatingIncome': 'jpigp_cor:OperatingProfitLossIFRS',  # safety net for DEI-missing filers; gated filers reach jpigp via ELEMENT_MAP's operating_income_ifrs_fs
     # IFRS has no "ordinary income" — profit before tax is the closest analogue
     'jppfs_cor:OrdinaryIncome': 'jpigp_cor:ProfitLossBeforeTaxIFRS',
     'jppfs_cor:ProfitLoss': 'jpigp_cor:ProfitLossIFRS',
@@ -153,7 +179,8 @@ IFRS_FALLBACK_MAP = {
     'jppfs_cor:CurrentAssets': 'jpigp_cor:CurrentAssetsIFRS',
     'jppfs_cor:NoncurrentAssets': 'jpigp_cor:NonCurrentAssetsIFRS',
     'jppfs_cor:PropertyPlantAndEquipment': 'jpigp_cor:PropertyPlantAndEquipmentIFRS',
-    'jppfs_cor:CurrentLiabilities': 'jpigp_cor:CurrentLiabilitiesIFRS',
+    'jppfs_cor:CurrentLiabilities': 'jpigp_cor:TotalCurrentLiabilitiesIFRS',
+    'jppfs_cor:DeferredTaxAssets': 'jpigp_cor:DeferredTaxAssetsIFRS',
     'jppfs_cor:RetainedEarnings': 'jpigp_cor:RetainedEarningsIFRS',
 
     # === Income Detail ===
@@ -164,6 +191,9 @@ IFRS_FALLBACK_MAP = {
     'jppfs_cor:ShortTermLoansPayable': 'jpigp_cor:ShortTermBorrowingsIFRS',
     'jppfs_cor:LongTermLoansPayable': 'jpigp_cor:LongTermBorrowingsIFRS',
     'jppfs_cor:BondsPayable': 'jpigp_cor:BondsPayableIFRS',
+
+    # === Cash Flow Detail ===
+    'jppfs_cor:DepreciationAndAmortizationOpeCF': 'jpigp_cor:DepreciationAndAmortizationOpeCFIFRS',
 }
 
 
@@ -371,12 +401,23 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         get_fin('net_sales_summary', 'CurrentYearDuration'),
         get_fin('net_sales_ifrs_summary', 'CurrentYearDuration'),
         get_fin('net_sales_usgaap_summary', 'CurrentYearDuration'),
+        get_fin('ordinary_revenue_summary', 'CurrentYearDuration'),
         get_revenue_by_suffix('CurrentYearDuration'),
+        get_fin('operating_revenue_fs', 'CurrentYearDuration'),
         get_fin('net_sales_fs', 'CurrentYearDuration'),
     )
+    # IFRS/US-GAAP: try their own operating-profit elements; NEVER fall back to
+    # the parent J-GAAP jppfs_cor:OperatingIncome. No current filing is known to
+    # tag the parent figure at the bare consolidated context (scan of 2,229
+    # IFRS/US-GAAP securities reports, 2026-06), but a filing that did would win
+    # the old coalesce — this gate is the defense. Filers with no operating-profit
+    # concept (trading houses, US-GAAP TextBlock-only) -> honest None.
     operating_income = _coalesce(
-        get_fin('operating_income_fs', 'CurrentYearDuration'),
         get_fin('operating_income_ifrs_summary', 'CurrentYearDuration'),
+        get_fin('operating_income_ifrs_fs', 'CurrentYearDuration'),
+        get_fin('operating_income_usgaap_summary', 'CurrentYearDuration'),
+        None if accounting_standard in ('IFRS', 'US GAAP')
+        else get_fin('operating_income_fs', 'CurrentYearDuration'),
     )
     ordinary_income = _coalesce(
         get_fin('ordinary_income_summary', 'CurrentYearDuration'),
@@ -395,12 +436,17 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         get_fin('net_sales_summary', 'Prior1YearDuration'),
         get_fin('net_sales_ifrs_summary', 'Prior1YearDuration'),
         get_fin('net_sales_usgaap_summary', 'Prior1YearDuration'),
+        get_fin('ordinary_revenue_summary', 'Prior1YearDuration'),
         get_revenue_by_suffix('Prior1YearDuration'),
+        get_fin('operating_revenue_fs', 'Prior1YearDuration'),
         get_fin('net_sales_fs', 'Prior1YearDuration'),
     )
     prior_operating_income = _coalesce(
-        get_fin('operating_income_fs', 'Prior1YearDuration'),
         get_fin('operating_income_ifrs_summary', 'Prior1YearDuration'),
+        get_fin('operating_income_ifrs_fs', 'Prior1YearDuration'),
+        get_fin('operating_income_usgaap_summary', 'Prior1YearDuration'),
+        None if accounting_standard in ('IFRS', 'US GAAP')
+        else get_fin('operating_income_fs', 'Prior1YearDuration'),
     )
     prior_ordinary_income = _coalesce(
         get_fin('ordinary_income_summary', 'Prior1YearDuration'),
@@ -418,11 +464,13 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     total_assets = _coalesce(
         get_fin('total_assets_summary', 'CurrentYearInstant'),
         get_fin('total_assets_ifrs_summary', 'CurrentYearInstant'),
+        get_fin('total_assets_usgaap_summary', 'CurrentYearInstant'),
         get_fin('total_assets_fs', 'CurrentYearInstant'),
     )
     net_assets = _coalesce(
         get_fin('net_assets_summary', 'CurrentYearInstant'),
         get_fin('net_assets_ifrs_summary', 'CurrentYearInstant'),
+        get_fin('net_assets_usgaap_summary', 'CurrentYearInstant'),
         get_fin('net_assets_fs', 'CurrentYearInstant'),
     )
     total_liabilities = get_fin('total_liabilities_fs', 'CurrentYearInstant')
@@ -444,6 +492,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     operating_cf = _coalesce(
         get_fin('operating_cf_summary', 'CurrentYearDuration'),
         get_fin('operating_cf_ifrs_summary', 'CurrentYearDuration'),
+        get_fin('operating_cf_usgaap_summary', 'CurrentYearDuration'),
         get_fin('operating_cf_cfs', 'CurrentYearDuration'),
         get_fin('operating_cf_ifrs', 'CurrentYearDuration'),
     )
@@ -451,6 +500,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     investing_cf = _coalesce(
         get_fin('investing_cf_summary', 'CurrentYearDuration'),
         get_fin('investing_cf_ifrs_summary', 'CurrentYearDuration'),
+        get_fin('investing_cf_usgaap_summary', 'CurrentYearDuration'),
         get_fin('investing_cf_cfs', 'CurrentYearDuration'),
         get_fin('investing_cf_ifrs', 'CurrentYearDuration'),
     )
@@ -458,6 +508,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     financing_cf = _coalesce(
         get_fin('financing_cf_summary', 'CurrentYearDuration'),
         get_fin('financing_cf_ifrs_summary', 'CurrentYearDuration'),
+        get_fin('financing_cf_usgaap_summary', 'CurrentYearDuration'),
         get_fin('financing_cf_cfs', 'CurrentYearDuration'),
         get_fin('financing_cf_ifrs', 'CurrentYearDuration'),
     )
@@ -471,6 +522,10 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     nav_str = coerce_numeric_value(extract_value(
         csv_files, ELEMENT_MAP['net_assets_per_share'], context_patterns=patterns
     ))
+    if not nav_str:
+        nav_str = coerce_numeric_value(extract_value(
+            csv_files, ELEMENT_MAP['net_assets_per_share_usgaap'], context_patterns=patterns
+        ))
     net_assets_per_share = Decimal(nav_str) if nav_str else None
 
     patterns = get_context_patterns(is_consolidated, 'CurrentYearDuration')
@@ -487,11 +542,15 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
         ))
     earnings_per_share = Decimal(eps_str) if eps_str else None
 
-    # Ratios (try J-GAAP then IFRS summary)
+    # Ratios (try J-GAAP, then IFRS summary, then US-GAAP summary)
+    # Note: EquityToAssetRatioUSGAAPSummaryOfBusinessResults IS a genuine ratio
+    # (unlike its IFRS taxonomy namesake which is a BPS misnomer).
     patterns = get_context_patterns(is_consolidated, 'CurrentYearInstant')
     equity_str = extract_value(csv_files, ELEMENT_MAP['equity_ratio'], context_patterns=patterns)
     if not equity_str:
         equity_str = extract_value(csv_files, ELEMENT_MAP['equity_ratio_ifrs'], context_patterns=patterns)
+    if not equity_str:
+        equity_str = extract_value(csv_files, ELEMENT_MAP['equity_ratio_usgaap'], context_patterns=patterns)
     equity_ratio = parse_percentage(equity_str)
 
     patterns = get_context_patterns(is_consolidated, 'CurrentYearDuration')
@@ -521,7 +580,7 @@ def parse_securities_report(document=None, *, csv_files=None, doc_id=None, doc_t
     ifrs_summary_roe = Decimal(ifrs_roe_str) if ifrs_roe_str else None
 
     ifrs_bps_str = coerce_numeric_value(extract_value(
-        csv_files, ELEMENT_MAP['equity_ratio_ifrs'],
+        csv_files, ELEMENT_MAP['bps_ifrs'],
         context_patterns=['CurrentYearInstant'],
     ))
     ifrs_summary_bps = Decimal(ifrs_bps_str) if ifrs_bps_str else None

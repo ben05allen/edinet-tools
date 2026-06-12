@@ -208,7 +208,10 @@ class TestSecuritiesExtraction:
             make_csv_row('jpcrp_cor:CashFlowsFromUsedInFinancingActivitiesIFRSSummaryOfBusinessResults', 'CurrentYearDuration', '-400000000000'),
             # IFRS Summary ratios/per-share
             make_csv_row('jpcrp_cor:BasicEarningsLossPerShareIFRSSummaryOfBusinessResults', 'CurrentYearDuration', '289.45'),
-            make_csv_row('jpcrp_cor:EquityToAssetRatioIFRSSummaryOfBusinessResults', 'CurrentYearInstant', '36.4'),
+            # Real equity-ratio element (親会社所有者帰属持分比率（IFRS）; pure decimal)
+            make_csv_row('jpcrp_cor:RatioOfOwnersEquityToGrossAssetsIFRSSummaryOfBusinessResults', 'CurrentYearInstant', '36.4'),
+            # Misnomer element: label is 1株当たり親会社所有者帰属持分 (BPS, yen)
+            make_csv_row('jpcrp_cor:EquityToAssetRatioIFRSSummaryOfBusinessResults', 'CurrentYearInstant', '5150.56'),
             make_csv_row('jpcrp_cor:RateOfReturnOnEquityIFRSSummaryOfBusinessResults', 'CurrentYearDuration', '15.8'),
             # IFRS FS elements (operating income not in summary)
             make_csv_row('jpigp_cor:OperatingProfitLossIFRS', 'CurrentYearDuration', '1800000000000'),
