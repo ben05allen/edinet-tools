@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.7.1 — 2026-06-10
+## v0.7.1 — 2026-06-12
 
 Correctness release for the securities report parser: per-standard income-statement selection for IFRS and US-GAAP filers, several element mappings that pointed at XBRL ids that do not exist in real filings, and revenue coverage for financial-sector filers (banks, insurers, securities firms).
 
