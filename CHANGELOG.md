@@ -13,12 +13,13 @@ Correctness release for the securities report parser: per-standard income-statem
 
 ### Added
 
-- **Financial-sector revenue.** `net_sales` now reads `jppfs_cor:OperatingRevenue1` (営業収益 — securities firms and similar) and `jpcrp_cor:OrdinaryIncomeSummaryOfBusinessResults` (経常収益 — banks and insurers) when the standard revenue elements are absent. Previously these filers had `net_sales = None` or picked up a small sub-business line, producing impossible margins.
+- **Financial-sector revenue.** `net_sales` now reads `jppfs_cor:OperatingRevenue1` (営業収益 — securities firms and similar) and `jpcrp_cor:OrdinaryIncomeSummaryOfBusinessResults` (経常収益 — banks and insurers) when the standard revenue elements are absent. Previously these filers had `net_sales = None` or picked up a small sub-business line, producing impossible margins. Known gap: securities firms that tag only `OperatingRevenueSEC`-variant elements instead of `OperatingRevenue1` still return `None` — mapping planned for a future release.
 - **US-GAAP summary balance sheet and cash flows.** `total_assets`, `net_assets`, `equity_ratio`, `net_assets_per_share`, and the operating/investing/financing cash flows now map the corresponding `...USGAAPSummaryOfBusinessResults` elements. These were all `None` for US-GAAP filers despite being present in their filings.
 
 ### Tests
 
 - Five new real-filing golden fixtures (Itochu, Toyota Tsusho, HS Holdings, MUFG, Canon) with exact-value pins; the per-standard gate is mutation-tested. Test count: 798 → 832.
+- Parsed output cross-checked against the issuers' own earnings releases for 20 filings across J-GAAP, IFRS, and US GAAP (banks, insurers, securities firms, trading companies, US-GAAP industrials): every populated figure matched to the yen.
 
 ### Note for existing databases
 
