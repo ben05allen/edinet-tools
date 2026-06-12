@@ -31,9 +31,9 @@ edinet-tools has three layers:
 2. **Typed parsers** — every EDINET document type routes to a named Python dataclass with structured fields
 3. **Full capture** — elements not yet mapped to typed fields are preserved in `raw_fields`, `unmapped_fields`, `text_blocks`, and `raw_facts` (the full XBRL fact set), so you can explore what's available and nothing is silently dropped
 
-Each parser maps known XBRL elements to typed Python fields (dates, decimals, strings). As EDINET evolves or new elements become useful, adding a field is one line in the element map and one line on the dataclass. The architecture is designed to grow incrementally without breaking existing code.
+Each parser maps known XBRL elements to typed Python fields (dates, decimals, strings). As EDINET evolves or new elements become useful, adding a field is one line in the element map and one line on the dataclass.
 
-Typed fields favor honest `None` over plausible-but-wrong values: financial figures are selected per accounting standard (J-GAAP, IFRS, US-GAAP), a consolidated filer never silently inherits parent-company figures, and element mappings are pinned by tests against real, unedited filings and cross-checked against issuers' own earnings releases. When a filing doesn't contain a concept, the field is `None` — the raw data is still in the fact-bag.
+Typed fields favor honest `None` over plausible-but-wrong values. Financial figures are selected per accounting standard (J-GAAP, IFRS, US GAAP), and a consolidated filer never silently inherits parent-company figures. Element mappings are pinned by tests against real, unedited filings and cross-checked against issuers' own earnings releases. When a filing doesn't contain a concept, the field is `None`, and the raw data is still in the fact-bag.
 
 ## EDINET Document Types
 

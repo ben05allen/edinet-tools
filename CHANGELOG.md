@@ -2,28 +2,28 @@
 
 ## v0.7.1 — 2026-06-12
 
-Correctness release for the securities report parser: per-standard income-statement selection for IFRS and US-GAAP filers, several element mappings that pointed at XBRL ids that do not exist in real filings, and revenue coverage for financial-sector filers (banks, insurers, securities firms).
+Correctness release for the securities report parser. Income-statement fields are now selected per accounting standard, several element mappings pointed at XBRL ids that don't exist in real filings, and banks, insurers, and securities firms now get real revenue figures.
 
 ### Fixed
 
-- **`operating_income` is now selected per accounting standard.** The coalesce tried the J-GAAP `jppfs_cor:OperatingIncome` first for every filer, which for IFRS/US-GAAP companies could only ever match a parent-company figure. IFRS filers now read their own operating-profit elements (`OperatingProfitLossIFRSSummaryOfBusinessResults`, then `jpigp_cor:OperatingProfitLossIFRS`); US-GAAP filers read `OperatingIncomeLossUSGAAPSummaryOfBusinessResults` — correcting v0.7.0's claim that no such element exists (Sony and others tag it). Filers whose statements have no operating-profit subtotal (IFRS trading houses, TextBlock-only US-GAAP filers) return honest `None` instead of a wrong number. Current and prior year.
-- **IFRS `equity_ratio` stored equity-per-share in yen.** `jpcrp_cor:EquityToAssetRatioIFRSSummaryOfBusinessResults` is a taxonomy misnomer — its label is 1株当たり親会社所有者帰属持分 (equity attributable to owners of parent, per share). `equity_ratio` now reads the real ratio element `RatioOfOwnersEquityToGrossAssetsIFRSSummaryOfBusinessResults`; the per-share element continues to feed `ifrs_summary_bps`, which was already correct.
-- **IFRS balance-sheet fallbacks pointed at a non-existent element.** `current_liabilities` mapped to `jpigp_cor:CurrentLiabilitiesIFRS`, which does not exist in real filings (the real element is `TotalCurrentLiabilitiesIFRS`), so the field was always `None` for IFRS filers. Also added the missing `DeferredTaxAssetsIFRS` and `DepreciationAndAmortizationOpeCFIFRS` fallbacks.
-- **The J-GAAP cash-flow statement fallback tier was dead.** All three ids (`jpcrp_cor:CashFlowsFrom{Operating,Investment,Financing}Activities`) do not exist in real filings; replaced with the real `jppfs_cor:NetCashProvidedByUsedIn{Operating,Investment,Financing}Activities`.
+- **`operating_income` is now selected per accounting standard.** Previously every filer was read through the J-GAAP element first, so IFRS and US-GAAP companies could pick up a parent-company figure. Each standard now reads its own operating-profit elements, including `OperatingIncomeLossUSGAAPSummaryOfBusinessResults` (v0.7.0 wrongly claimed no US-GAAP element exists; Sony and others tag it). Filers whose statements have no operating-profit subtotal, like IFRS trading houses, return `None` instead of a wrong number. Applies to current and prior year.
+- **IFRS `equity_ratio` was storing equity per share, in yen.** The element it read (`EquityToAssetRatioIFRSSummaryOfBusinessResults`) is named misleadingly; its real meaning is per-share equity. `equity_ratio` now reads the actual ratio element. The per-share value still feeds `ifrs_summary_bps`.
+- **IFRS `current_liabilities` was always `None`.** It was mapped to an element that doesn't exist in real filings; the real one is `TotalCurrentLiabilitiesIFRS`. Also added the missing deferred-tax-assets and depreciation fallbacks.
+- **The J-GAAP cash-flow fallback tier never fired.** All three element ids were wrong. Replaced with the real `jppfs_cor:NetCashProvidedByUsedIn*Activities` elements.
 
 ### Added
 
-- **Financial-sector revenue.** `net_sales` now reads `jppfs_cor:OperatingRevenue1` (営業収益 — securities firms and similar) and `jpcrp_cor:OrdinaryIncomeSummaryOfBusinessResults` (経常収益 — banks and insurers) when the standard revenue elements are absent. Previously these filers had `net_sales = None` or picked up a small sub-business line, producing impossible margins. Known gap: securities firms that tag only `OperatingRevenueSEC`-variant elements instead of `OperatingRevenue1` still return `None` — mapping planned for a future release.
-- **US-GAAP summary balance sheet and cash flows.** `total_assets`, `net_assets`, `equity_ratio`, `net_assets_per_share`, and the operating/investing/financing cash flows now map the corresponding `...USGAAPSummaryOfBusinessResults` elements. These were all `None` for US-GAAP filers despite being present in their filings.
+- **Revenue for financial-sector filers.** Banks and insurers report 経常収益 and securities firms 営業収益 rather than net sales. `net_sales` now reads those elements when the standard ones are absent. Previously these filers returned `None` or picked up a small sub-business line. Known gap: securities firms that tag only `OperatingRevenueSEC`-style variants still return `None`; mapping planned.
+- **US-GAAP balance sheet and cash flows.** Total assets, equity, equity ratio, book value per share, and the three cash-flow figures now populate for US-GAAP filers, via the `...USGAAPSummaryOfBusinessResults` elements.
 
 ### Tests
 
-- Five new real-filing golden fixtures (Itochu, Toyota Tsusho, HS Holdings, MUFG, Canon) with exact-value pins; the per-standard gate is mutation-tested. Test count: 798 → 832.
-- Parsed output cross-checked against the issuers' own earnings releases for 20 filings across J-GAAP, IFRS, and US GAAP (banks, insurers, securities firms, trading companies, US-GAAP industrials): every populated figure matched to the yen.
+- Five new golden fixtures from real, unedited filings (Itochu, Toyota Tsusho, HS Holdings, MUFG, Canon), pinned to exact values. Test count: 798 → 832.
+- Output cross-checked against the issuers' own earnings releases for 20 filings across J-GAAP, IFRS, and US GAAP. Every populated figure matched to the yen.
 
 ### Note for existing databases
 
-Parser fixes apply on (re-)parse. Data extracted with earlier versions keeps its old values — re-extract IFRS/US-GAAP and financial-sector filings to replace stale figures (including values that should now be honest `None`; make sure your update path writes `None` over previous values rather than skipping it).
+Parser fixes apply on re-parse. Rows extracted with earlier versions keep their old values. Re-extract IFRS, US-GAAP, and financial-sector filings — and make sure your update path writes `None` over old values rather than skipping them, since some fields are now correctly `None`.
 
 ## v0.7.0 — 2026-05-29
 
