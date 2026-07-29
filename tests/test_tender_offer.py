@@ -1,8 +1,7 @@
 """Tests for TenderOfferReport parser (Doc 240/250)."""
-import pytest
 from datetime import date
 from decimal import Decimal
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from edinet_tools.parsers import parse
 from edinet_tools.parsers.tender_offer import (
@@ -10,7 +9,6 @@ from edinet_tools.parsers.tender_offer import (
     parse_tender_offer,
     ELEMENT_MAP,
 )
-from edinet_tools.parsers.extraction import extract_csv_from_zip
 
 
 class TestTenderOfferReportStructure:

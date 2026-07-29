@@ -1,5 +1,4 @@
 """Unit tests for debt field extraction from Securities Reports."""
-import pytest
 from unittest.mock import Mock, patch
 from edinet_tools.parsers.securities import SecuritiesReport, parse_securities_report
 
@@ -58,7 +57,8 @@ class TestDebtFieldExtraction:
         decode path so a divergence in extract_csv_from_zip's output shape
         (column keys, encoding handling) would surface here. Closes the gap
         called out in the 2026-05-22 false-confidence audit (Category C, LOW)."""
-        import io, zipfile
+        import io
+        import zipfile
         cols = ['要素ID', '項目名', 'コンテキストID', '相対年度',
                 '連結・個別', '期間・時点', 'ユニットID', '単位', '値']
         rows = [

@@ -6,6 +6,7 @@ the 4-tier fallback logic works for both accounting standards.
 
 These are integration tests that fetch real data from EDINET API.
 """
+
 import pytest
 from edinet_tools import entity_by_ticker, parse
 
@@ -13,18 +14,20 @@ from edinet_tools import entity_by_ticker, parse
 @pytest.mark.integration
 def test_ifrs_company():
     """Test IFRS company (JAL - Airlines) extracts cash flows correctly."""
-    
-    jal = entity_by_ticker('9201')
+
+    jal = entity_by_ticker("9201")
+
+    assert jal
     docs = list(jal.documents(days=730))
-    sec_reports = [d for d in docs if d.doc_type_code == '120']
+    sec_reports = [d for d in docs if d.doc_type_code == "120"]
     if not sec_reports:
         pytest.skip("No securities report found for JAL in last 730 days")
     sec_report = sec_reports[0]
-    
+
     report = parse(sec_report)
-    
+
     # Verify accounting standard
-    assert report.accounting_standard == 'IFRS', "JAL should use IFRS"
+    assert report.accounting_standard == "IFRS", "JAL should use IFRS"
 
     # Verify cash flows are extracted (not None or 0)
     assert report.operating_cash_flow, "Operating CF should be extracted"
@@ -37,22 +40,23 @@ def test_ifrs_company():
 
     # FCF should be positive for airlines in recovery
     fcf = report.operating_cash_flow + report.investing_cash_flow
-    assert fcf > 0, f"FCF should be positive, got ¥{fcf/1e9:.2f}B"
+    assert fcf > 0, f"FCF should be positive, got ¥{fcf / 1e9:.2f}B"
+
 
 @pytest.mark.integration
 def test_japan_gaap_company():
     """Test Japan GAAP company (Shizuki Electric) still works (regression test)."""
-    
-    shizuki = entity_by_ticker('6994')
-    docs = shizuki.documents(doc_type='120', days=730)
+
+    shizuki = entity_by_ticker("6994")
+    docs = shizuki.documents(doc_type="120", days=730)
     if not docs:
         pytest.skip("No securities report found for Shizuki in last 730 days")
     latest = docs[0]
-    
+
     report = parse(latest)
-    
+
     # Verify accounting standard
-    assert report.accounting_standard == 'Japan GAAP', "Shizuki should use Japan GAAP"
+    assert report.accounting_standard == "Japan GAAP", "Shizuki should use Japan GAAP"
 
     # Verify cash flows are extracted (regression test - should still work)
     assert report.operating_cash_flow, "Operating CF should be extracted"
@@ -65,5 +69,4 @@ def test_japan_gaap_company():
 
     # FCF should be positive
     fcf = report.operating_cash_flow + report.investing_cash_flow
-    assert fcf > 0, f"FCF should be positive, got ¥{fcf/1e9:.2f}B"
-
+    assert fcf > 0, f"FCF should be positive, got ¥{fcf / 1e9:.2f}B"

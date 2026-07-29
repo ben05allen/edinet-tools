@@ -6,7 +6,6 @@ text block capture, and the parse() router.
 """
 import io
 import zipfile
-import pytest
 from datetime import date
 from unittest.mock import Mock
 

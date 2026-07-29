@@ -5,13 +5,12 @@ Tests for edinet_tools.client module (EdinetClient functionality).
 import pytest
 import os
 import tempfile
-from unittest.mock import Mock, patch, MagicMock
-from datetime import date, timedelta
+from unittest.mock import patch
 
 from edinet_tools.client import EdinetClient
 from edinet_tools.exceptions import (
     ConfigurationError, CompanyNotFoundError, AuthenticationError,
-    DocumentNotFoundError, APIError
+    DocumentNotFoundError
 )
 
 # All tests in this file test deprecated EdinetClient functionality.

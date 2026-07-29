@@ -3,7 +3,6 @@ Usage: python scripts/inspect_doc_type.py --doc-type 130 --samples 5
        python scripts/inspect_doc_type.py --doc-type 120,130 --samples 5  # compare two types
 """
 import argparse
-import os
 import time
 from datetime import date, timedelta
 from dotenv import load_dotenv

@@ -187,7 +187,6 @@ class TestTenderOfferWithdrawalReport:
 class TestTenderOfferResultReport:
     def test_basic_fields(self):
         from decimal import Decimal
-        from datetime import date
         report = TenderOfferResultReport(
             doc_id='TEST',
             doc_type_code='270',

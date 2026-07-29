@@ -4,7 +4,6 @@ Per spec §3.5: handle EDINET's varied null-placeholder shapes:
 '－' (full-width minus, U+FF0D), '-' (ASCII), '−' (minus sign U+2212),
 '' (empty). All should coerce to None when expecting numeric.
 """
-import pytest
 
 from edinet_tools.parsers.extraction import coerce_numeric_value, coerce_int
 

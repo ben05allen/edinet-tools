@@ -6,17 +6,10 @@ no data loss or corruption during extraction.
 """
 
 import csv as csv_module
-import pytest
-import tempfile
-import zipfile
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 from edinet_tools.processors import (
-    process_raw_csv_data,
-    SecuritiesReportProcessor,
-    InternalControlReportProcessor,
-    ExtraordinaryReportProcessor
+    process_raw_csv_data
 )
 
 

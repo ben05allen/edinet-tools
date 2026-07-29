@@ -3,7 +3,6 @@ import io
 import zipfile
 from pathlib import Path
 
-import pytest
 
 from edinet_tools.parsers.extraction import extract_csv_to_disk
 

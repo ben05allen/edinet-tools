@@ -20,7 +20,6 @@ Fixture route:
 """
 import csv as _csv
 from pathlib import Path
-import pytest
 from edinet_tools.parsers.securities import parse_securities_report
 
 _COLS = ['要素ID', '項目名', 'コンテキストID', '相対年度',

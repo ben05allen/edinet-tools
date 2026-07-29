@@ -277,7 +277,6 @@ def show_shelf_registration_parser():
     # Show what a parsed result looks like using the parser directly with mock CSV
     from edinet_tools.parsers.shelf_registration import (
         parse_shelf_registration,
-        ShelfRegistrationReport,
         ELEMENT_MAP,
     )
     from edinet_tools.parsers.extraction import extract_csv_from_zip

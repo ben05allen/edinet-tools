@@ -10,7 +10,6 @@ from unittest.mock import Mock, patch
 from edinet_tools.processors import (
     BaseDocumentProcessor,
     ExtraordinaryReportProcessor, 
-    SemiAnnualReportProcessor,
     SecuritiesReportProcessor,
     InternalControlReportProcessor,
     GenericReportProcessor,

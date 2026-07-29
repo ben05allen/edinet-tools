@@ -1,10 +1,8 @@
 """Tests for document parsers."""
 import warnings
 
-import pytest
 from datetime import date
 from decimal import Decimal
-from pathlib import Path
 
 from edinet_tools.parsers.base import ParsedReport
 from edinet_tools.parsers.generic import RawReport

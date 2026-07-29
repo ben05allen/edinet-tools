@@ -1,5 +1,4 @@
 """Tests for DocType registry."""
-import pytest
 from edinet_tools.doc_types import DocType, doc_type, list_doc_types
 
 

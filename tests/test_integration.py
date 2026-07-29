@@ -12,7 +12,6 @@ import pytest
 from unittest.mock import patch
 
 import edinet_tools
-from edinet_tools.exceptions import ConfigurationError
 
 
 class TestPackageExports:

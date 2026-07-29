@@ -83,7 +83,7 @@ def main():
     is_amendment = getattr(report, 'is_amendment', False)
 
     print()
-    print(f"  edinet-tools v0.5.0")
+    print("  edinet-tools v0.5.0")
     print()
     if name:
         print(f"  {name}")

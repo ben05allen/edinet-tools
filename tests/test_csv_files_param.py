@@ -82,7 +82,8 @@ class TestDocumentPathStillWorks(unittest.TestCase):
     def _minimal_valid_zip():
         """ZIP with one CSV row carrying jpdei_cor:EDINETCodeDEI=E99999.
         Lets the parser body actually execute past the empty-input short-circuit."""
-        import io, zipfile
+        import io
+        import zipfile
         buf = io.BytesIO()
         csv_body = (
             '\t'.join(['要素ID', '項目名', 'コンテキストID', '相対年度',

@@ -10,7 +10,6 @@ the deprecation warnings fire correctly.
 """
 import warnings
 
-import pytest
 
 from edinet_tools.parsers.treasury_stock import TreasuryStockReport
 

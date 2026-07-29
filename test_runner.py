@@ -33,7 +33,7 @@ def run_command(cmd, description):
             
             # Check if tests were skipped
             if "skipped" in result.stdout.lower() and "passed" not in result.stdout.lower():
-                print(f"⏭️  SKIPPED - No API key configured")
+                print("⏭️  SKIPPED - No API key configured")
                 return True
             
             # Show the full pytest output for successful runs
@@ -54,9 +54,9 @@ def run_command(cmd, description):
                     result_part = match.group(1).strip()
                     print(f"\n✅ SUCCESS: {result_part}")
                 else:
-                    print(f"\n✅ SUCCESS: Tests completed")
+                    print("\n✅ SUCCESS: Tests completed")
             else:
-                print(f"\n✅ SUCCESS: Tests completed")
+                print("\n✅ SUCCESS: Tests completed")
             
             return True
         else:
@@ -102,7 +102,7 @@ def run_integration_tests():
     
     if len(api_key.strip()) < 10:
         print("\n" + "="*60)
-        print(f"⏭️  INTEGRATION TESTS SKIPPED - INVALID API KEY")
+        print("⏭️  INTEGRATION TESTS SKIPPED - INVALID API KEY")
         print("="*60)
         print(f"   EDINET_API_KEY too short: {len(api_key)} chars (expected >10)")
         print("   Please check your API key in .env file or environment variable")

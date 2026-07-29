@@ -9,9 +9,8 @@ import pytest
 import urllib.error
 import urllib.request
 import json
-from datetime import date, datetime, timedelta
-from unittest.mock import Mock, patch, MagicMock, call
-from io import BytesIO
+from datetime import date, timedelta
+from unittest.mock import Mock, patch
 
 from edinet_tools.api import (
     fetch_documents_list, 
@@ -428,7 +427,6 @@ class TestSaveDocumentContent:
     
     def test_permission_errors(self, tmp_path):
         """Test handling of file permission errors."""
-        import os
         test_content = b'test'
         
         # Create read-only directory

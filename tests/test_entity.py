@@ -220,7 +220,6 @@ class TestEntityDocuments:
 
     def test_entity_documents_uses_module_client_when_no_explicit_client(self):
         """Entity.documents() uses module-level client when _client is None."""
-        from unittest.mock import patch, MagicMock
         from edinet_tools._client import _reset_client, configure
 
         toyota = entity("7203")
@@ -238,7 +237,6 @@ class TestEntityDocuments:
 
     def test_entity_documents_returns_list(self):
         """Entity.documents() returns list of Documents."""
-        from edinet_tools.document import Document
 
         # Mock client response
         mock_filings = [
@@ -262,7 +260,6 @@ class TestEntityDocuments:
 
     def test_entity_documents_filters_by_doc_type(self):
         """Entity.documents() filters by doc type."""
-        from edinet_tools.document import Document
 
         mock_filings = [
             {'docID': 'S1', 'docTypeCode': '350', 'submitDateTime': '2026-01-15 09:30', 'edinetCode': 'E02144', 'filerName': 'トヨタ'},

@@ -1,6 +1,5 @@
 """Tests for normalize_for_matching."""
 
-import pytest
 
 from edinet_tools.normalize import normalize_for_matching
 

@@ -7,7 +7,6 @@ regressions in element IDs, context patterns, type conversions, and fallback log
 import io
 import warnings
 import zipfile
-import pytest
 from datetime import date
 from decimal import Decimal
 from unittest.mock import MagicMock

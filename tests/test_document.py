@@ -1,5 +1,4 @@
 """Tests for Document class."""
-import pytest
 from datetime import datetime
 from edinet_tools.document import Document
 
