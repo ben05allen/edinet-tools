@@ -141,6 +141,8 @@ def parse_percentage(value: Any) -> Optional[Decimal]:
         return None
     if isinstance(value, str):
         value = value.strip()
+        # Normalize U+2212 (mathematical minus) to ASCII minus
+        value = value.replace("\u2212", "-")
         if value in ("", "－", "―", "-", "—", "N/A", "n/a"):
             return None
         try:
@@ -166,10 +168,12 @@ def parse_int(value: Any) -> Optional[int]:
         return value
     if isinstance(value, str):
         value = value.strip().replace(",", "").replace("，", "")
+        # Normalize U+2212 (mathematical minus) to ASCII minus
+        value = value.replace("\u2212", "-")
         if not value or value in ("－", "―", "-", "—"):
             return None
         try:
-            return int(float(value))
+            return int(round(float(value)))
         except Exception:
             return None
     try:
@@ -193,6 +197,8 @@ def parse_date(value: Any) -> Optional[date]:
         return value
     if isinstance(value, str):
         value = value.strip()
+        # Normalize U+2212 (mathematical minus) to ASCII minus
+        value = value.replace("\u2212", "-")
         if not value or value in ("－", "―", "-", "—"):
             return None
 
@@ -546,9 +552,14 @@ def coerce_numeric_value(value) -> str | None:
     # explicitly alongside the bare ASCII '-' placeholder check below.
     s = unicodedata.normalize("NFKC", s)
 
-    # After normalization, bare '-' (and its full-width forms, and U+2212 alone)
-    # is a null placeholder.  '-1000' is a real negative number and passes through.
-    if s in ("-", "−"):
+    # Normalize U+2212 (mathematical minus) to ASCII minus so negative
+    # numbers like '−1000' parse correctly.  Must come BEFORE the null
+    # placeholder check so bare '−' is still treated as a placeholder.
+    s = s.replace("\u2212", "-")
+
+    # After normalization, bare '-' (and its full-width forms) is a null
+    # placeholder.  '-1000' is a real negative number and passes through.
+    if s == "-":
         return None
 
     # Empty string after normalization (shouldn't happen after strip, but be safe)
@@ -575,6 +586,6 @@ def coerce_int(value) -> int | None:
     # Strip comma separators (e.g. '1,000,000' -> '1000000')
     cleaned = normalized.replace(",", "")
     try:
-        return int(cleaned)
+        return int(round(float(cleaned)))
     except ValueError:
         return None

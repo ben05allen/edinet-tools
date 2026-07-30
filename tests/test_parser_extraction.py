@@ -1062,6 +1062,11 @@ class TestSemiAnnualExtraction:
             ),
             make_csv_row("jpdei_cor:CurrentPeriodEndDateDEI", "FilingDateInstant", "2024-09-30"),
             make_csv_row("jpdei_cor:DateOfSubmissionDEI", "FilingDateInstant", "2024-12-25"),
+            make_csv_row(
+                "jpdei_cor:WhetherConsolidatedFinancialStatementsArePreparedDEI",
+                "FilingDateInstant",
+                "true",
+            ),
             # Financials (no context filtering in semi_annual parser)
             make_csv_row("jppfs_cor:Assets", "CurrentQuarterInstant", "80000000000"),
             make_csv_row("jppfs_cor:CurrentAssets", "CurrentQuarterInstant", "30000000000"),
@@ -1082,6 +1087,7 @@ class TestSemiAnnualExtraction:
         assert r.period_start == date(2024, 4, 1)
         assert r.period_end == date(2024, 9, 30)
         assert r.filing_date == date(2024, 12, 25)
+        assert r.is_consolidated is True
 
         assert r.total_assets == 80000000000
         assert r.current_assets == 30000000000
@@ -1090,6 +1096,40 @@ class TestSemiAnnualExtraction:
         assert r.operating_income == 2000000000
         assert r.ordinary_income == 2100000000
         assert r.profit_loss == 1200000000
+
+    def test_consolidated_context_preferred_over_parent(self):
+        """When both consolidated and parent rows exist, parser picks consolidated.
+
+        Regression test: semi-annual parser previously had no context filtering
+        and returned the first row regardless of consolidation status.
+        """
+        rows = [
+            make_csv_row("jpdei_cor:EDINETCodeDEI", "FilingDateInstant", "E05123"),
+            make_csv_row("jpdei_cor:FilerNameInJapaneseDEI", "FilingDateInstant", "テスト"),
+            make_csv_row(
+                "jpdei_cor:WhetherConsolidatedFinancialStatementsArePreparedDEI",
+                "FilingDateInstant",
+                "true",
+            ),
+            # Parent-company (non-consolidated) assets appear FIRST in CSV
+            make_csv_row(
+                "jppfs_cor:Assets", "CurrentQuarterInstant_NonConsolidatedMember", "10000000000"
+            ),
+            # Consolidated assets appear SECOND
+            make_csv_row("jppfs_cor:Assets", "CurrentQuarterInstant", "80000000000"),
+            # Income statement — same pattern
+            make_csv_row(
+                "jppfs_cor:OperatingIncome", "CurrentYTDDuration_NonConsolidatedMember", "500000000"
+            ),
+            make_csv_row("jppfs_cor:OperatingIncome", "CurrentYTDDuration", "2000000000"),
+        ]
+        doc = make_mock_doc("S100SA", "160", rows)
+        r = parse_semi_annual_report(doc)
+
+        # Must return consolidated figures, not parent-company figures
+        assert r.total_assets == 80000000000
+        assert r.operating_income == 2000000000
+        assert r.is_consolidated is True
 
     def test_fund_report(self):
         """Fund semi-annual report extracts fund_code from DEI."""

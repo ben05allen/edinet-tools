@@ -15,6 +15,7 @@ from .extraction import (
     extract_csv_from_zip,
     extract_value,
     categorize_elements,
+    get_context_patterns,
     parse_int,
     parse_date,
     coerce_numeric_value,
@@ -31,6 +32,7 @@ ELEMENT_MAP = {
     "period_start": "jpdei_cor:CurrentFiscalYearStartDateDEI",
     "period_end": "jpdei_cor:CurrentPeriodEndDateDEI",
     "submission_date": "jpdei_cor:DateOfSubmissionDEI",
+    "is_consolidated": "jpdei_cor:WhetherConsolidatedFinancialStatementsArePreparedDEI",
     # === Balance Sheet Elements ===
     "assets": "jppfs_cor:Assets",
     "current_assets": "jppfs_cor:CurrentAssets",
@@ -70,6 +72,7 @@ class SemiAnnualReport(ParsedReport):
     period_start: date | None = None
     period_end: date | None = None
     filing_date: date | None = None
+    is_consolidated: bool | None = None
 
     # Balance Sheet
     total_assets: int | None = None
@@ -110,7 +113,9 @@ class SemiAnnualReport(ParsedReport):
         return f"SemiAnnualReport(filer='{filer}', period_end={period})"
 
 
-def _extract_financial(csv_files: list, element_id: str) -> Optional[int]:
+def _extract_financial(
+    csv_files: list, element_id: str, context_patterns: list[str] | None = None
+) -> Optional[int]:
     """Extract financial value with IFRS fallback.
 
     Normalizes EDINET null markers ('－' / '-' / '−' / '') to None before
@@ -118,13 +123,17 @@ def _extract_financial(csv_files: list, element_id: str) -> Optional[int]:
     elements with '－' would truthy-pass the primary-element check and
     the IFRS fallback would never fire.
     """
-    value_str = coerce_numeric_value(extract_value(csv_files, element_id))
+    value_str = coerce_numeric_value(
+        extract_value(csv_files, element_id, context_patterns=context_patterns)
+    )
     if value_str:
         return parse_int(value_str)
 
     ifrs_element = IFRS_FALLBACK_MAP.get(element_id)
     if ifrs_element:
-        value_str = coerce_numeric_value(extract_value(csv_files, ifrs_element))
+        value_str = coerce_numeric_value(
+            extract_value(csv_files, ifrs_element, context_patterns=context_patterns)
+        )
         if value_str:
             return parse_int(value_str)
 
@@ -180,20 +189,30 @@ def parse_semi_annual_report(
     fund_code = get_dei("fund_code")
     fund_name = get_dei("fund_name")
 
+    # Determine consolidation status
+    is_consolidated_raw = get_dei("is_consolidated")
+    is_consolidated = (is_consolidated_raw == "true") if is_consolidated_raw else None
+
+    # Build context patterns based on consolidation status
+    bs_patterns = get_context_patterns(is_consolidated, "CurrentQuarterInstant")
+    is_patterns = get_context_patterns(is_consolidated, "CurrentYTDDuration")
+
     # Extract period
     period_start = parse_date(get_dei("period_start"))
     period_end = parse_date(get_dei("period_end"))
     filing_date = parse_date(get_dei("submission_date")) or period_end
 
-    # Financial data
-    total_assets = _extract_financial(csv_files, ELEMENT_MAP["assets"])
-    current_assets = _extract_financial(csv_files, ELEMENT_MAP["current_assets"])
-    total_liabilities = _extract_financial(csv_files, ELEMENT_MAP["liabilities"])
-    current_liabilities = _extract_financial(csv_files, ELEMENT_MAP["current_liabilities"])
-    net_assets = _extract_financial(csv_files, ELEMENT_MAP["net_assets"])
-    operating_income = _extract_financial(csv_files, ELEMENT_MAP["operating_income"])
-    ordinary_income = _extract_financial(csv_files, ELEMENT_MAP["ordinary_income"])
-    profit_loss = _extract_financial(csv_files, ELEMENT_MAP["profit_loss"])
+    # Financial data — balance sheet uses instant context, income uses YTD duration
+    total_assets = _extract_financial(csv_files, ELEMENT_MAP["assets"], bs_patterns)
+    current_assets = _extract_financial(csv_files, ELEMENT_MAP["current_assets"], bs_patterns)
+    total_liabilities = _extract_financial(csv_files, ELEMENT_MAP["liabilities"], bs_patterns)
+    current_liabilities = _extract_financial(
+        csv_files, ELEMENT_MAP["current_liabilities"], bs_patterns
+    )
+    net_assets = _extract_financial(csv_files, ELEMENT_MAP["net_assets"], bs_patterns)
+    operating_income = _extract_financial(csv_files, ELEMENT_MAP["operating_income"], is_patterns)
+    ordinary_income = _extract_financial(csv_files, ELEMENT_MAP["ordinary_income"], is_patterns)
+    profit_loss = _extract_financial(csv_files, ELEMENT_MAP["profit_loss"], is_patterns)
 
     # Categorize all elements
     raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(
@@ -217,6 +236,7 @@ def parse_semi_annual_report(
         period_start=period_start,
         period_end=period_end,
         filing_date=filing_date,
+        is_consolidated=is_consolidated,
         # Balance Sheet
         total_assets=total_assets,
         current_assets=current_assets,
