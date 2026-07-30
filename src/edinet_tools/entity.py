@@ -21,6 +21,9 @@ _classifier: EntityClassifier | None = None
 _funds: dict[str, dict] | None = None
 _funds_by_issuer: dict[str, list[str]] | None = None
 
+# Date-level cache for API document lookups: (edinet_code, date_str) -> list[dict]
+_doc_date_cache: dict[tuple[str, str], list[dict]] = {}
+
 
 def _get_classifier() -> EntityClassifier:
     """Get or create the shared EntityClassifier instance."""
@@ -203,26 +206,39 @@ class Entity:
         today = today_jst()
         for i in range(days):
             check_date = today - timedelta(days=i)
-            try:
-                filings = client.get_documents_by_date(check_date)
-                all_filings.extend(filings)
-            except (AttributeError, TypeError):
-                # Programming errors should not be silently swallowed
-                raise
-            except Exception as e:
-                # Log API/network errors but continue with other dates
-                logger.debug(f"Failed to fetch documents for {check_date}: {e}")
-                continue
+            date_str = check_date.isoformat()
+            cache_key = (self.edinet_code, date_str)
 
-        # Filter by this entity's EDINET code
-        my_filings = [f for f in all_filings if f.get("edinetCode") == self.edinet_code]
+            if cache_key in _doc_date_cache:
+                my_filings_day = _doc_date_cache[cache_key]
+            else:
+                try:
+                    day_filings = client.get_documents_by_date(check_date)
+                    # Cache all filings for this date, keyed by edinet_code
+                    by_code: dict[str, list[dict]] = {}
+                    for f in day_filings:
+                        code = f.get("edinetCode", "")
+                        by_code.setdefault(code, []).append(f)
+                    # Store per-entity slices so we don't re-filter
+                    for code, filings in by_code.items():
+                        _doc_date_cache[(code, date_str)] = filings
+                    my_filings_day = by_code.get(self.edinet_code, [])
+                except (AttributeError, TypeError):
+                    # Programming errors should not be silently swallowed
+                    raise
+                except Exception as e:
+                    # Log API/network errors but continue with other dates
+                    logger.debug(f"Failed to fetch documents for {check_date}: {e}")
+                    continue
+
+            all_filings.extend(my_filings_day)
 
         # Filter by doc type if specified
         if doc_type:
-            my_filings = [f for f in my_filings if f.get("docTypeCode") == doc_type]
+            all_filings = [f for f in all_filings if f.get("docTypeCode") == doc_type]
 
         # Convert to Document objects (pass client for fetch())
-        return [Document(f, client=client) for f in my_filings]
+        return [Document(f, client=client) for f in all_filings]
 
     def __repr__(self) -> str:
         ticker_part = f", ticker='{self.ticker}'" if self.ticker else ""
@@ -252,6 +268,14 @@ def _build_entity_from_classifier(edinet_code: str, classifier: EntityClassifier
         "corporate_number": raw.get("corporate_number") or None,
     }
     return Entity(data)
+
+
+def clear_document_cache():
+    """Clear the date-level document cache.
+
+    Useful for testing or when you need fresh API data.
+    """
+    _doc_date_cache.clear()
 
 
 def entity_by_edinet_code(edinet_code: str) -> Entity | None:

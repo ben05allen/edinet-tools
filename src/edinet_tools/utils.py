@@ -2,7 +2,6 @@
 import os
 import pandas as pd
 import re
-import chardet
 import tempfile
 import warnings
 import zipfile
@@ -15,43 +14,17 @@ from .processors import process_raw_csv_data
 logger = logging.getLogger(__name__)
 
 
-# Encoding and file reading
-def detect_encoding(file_path):
-    """Detect encoding of a file."""
-    try:
-        with open(file_path, "rb") as file:
-            raw_data = file.read(1024)  # Read only first 1024 bytes for speed
-        result = chardet.detect(raw_data)
-        logger.debug(
-            f"Detected encoding {result['encoding']} with confidence {result['confidence']} for {Path(file_path).name}"
-        )
-        return result["encoding"]
-    except IOError as e:
-        logger.error(f"Error detecting encoding for {file_path}: {e}")
-        return None
+# Known EDINET encodings in priority order (matches extraction.py)
+_EDINET_ENCODINGS = ["utf-16le", "utf-16", "utf-8", "shift-jis", "cp932"]
 
 
 def read_csv_file(file_path):
-    """Read a tab-separated CSV file trying multiple encodings."""
-    detected_encoding = detect_encoding(file_path)
-
-    # Prioritize detected encoding, then common ones for EDINET, then broad set
-    encodings = [detected_encoding] if detected_encoding else []
-    encodings.extend(
-        [
-            "utf-16",
-            "utf-16le",
-            "utf-16be",
-            "utf-8",
-            "shift-jis",
-            "euc-jp",
-            "iso-8859-1",
-            "windows-1252",
-        ]
-    )
-
-    # Remove duplicates while preserving order
-    for encoding in list(dict.fromkeys(encodings)):
+    """Read a tab-separated CSV file trying known EDINET encodings."""
+    # Try known EDINET encodings in priority order.
+    # chardet on a small sample is unreliable for these files —
+    # a pure-ASCII header can be mis-detected as windows-1252,
+    # silently garbling later Japanese content.
+    for encoding in _EDINET_ENCODINGS:
         if not encoding:
             continue
         try:

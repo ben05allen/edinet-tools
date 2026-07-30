@@ -12,7 +12,6 @@ import zipfile
 from unittest.mock import patch
 
 from edinet_tools.utils import (
-    detect_encoding,
     read_csv_file,
     clean_text,
     process_zip_file,
@@ -45,11 +44,7 @@ jpcrp_cor:CompanyNameTextBlock\t会社名\tFilingDateInstant\tトヨタ自動車
         with open(utf16_file, "w", encoding="utf-16") as f:
             f.write(self.japanese_text)
 
-        # Should detect UTF-16
-        encoding = detect_encoding(utf16_file)
-        assert "utf-16" in encoding.lower()
-
-        # Should read successfully
+        # Should read successfully with encoding fallback
         records = read_csv_file(utf16_file)
         assert records is not None
         assert len(records) == 3
@@ -65,9 +60,6 @@ jpcrp_cor:CompanyNameTextBlock\t会社名\tFilingDateInstant\tトヨタ自動車
 
         with open(utf8_file, "w", encoding="utf-8") as f:
             f.write(self.japanese_text)
-
-        encoding = detect_encoding(utf8_file)
-        assert encoding in ["utf-8", "ascii"]  # ASCII detection is acceptable for simple content
 
         records = read_csv_file(utf8_file)
         assert records is not None

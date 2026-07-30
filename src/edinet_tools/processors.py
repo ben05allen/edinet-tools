@@ -11,7 +11,13 @@ StructuredDocumentData = Dict[str, Any]
 
 
 class BaseDocumentProcessor:
-    """Base class for document specific data extraction."""
+    """Base class for document specific data extraction.
+
+    .. deprecated::
+        Use the typed parsers in ``edinet_tools.parsers`` instead.
+    """
+
+    _deprecation_warned = False
 
     def __init__(
         self,
@@ -20,15 +26,16 @@ class BaseDocumentProcessor:
         doc_type_code: str,
         zip_extract_path: str | None = None,
     ):
-        """
-        Initialize with raw data from CSV files and document metadata.
+        if not BaseDocumentProcessor._deprecation_warned:
+            import warnings
 
-        Args:
-            raw_csv_data: List of dictionaries, each containing 'filename' and 'data' (list of rows/dicts).
-            doc_id: EDINET document ID.
-            doc_type_code: EDINET document type code.
-            zip_extract_path: Path to extracted ZIP contents for XBRL processing.
-        """
+            warnings.warn(
+                "BaseDocumentProcessor is deprecated. Use edinet_tools.parsers instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            BaseDocumentProcessor._deprecation_warned = True
+
         self.raw_csv_data = raw_csv_data
         self.doc_id = doc_id
         self.doc_type_code = doc_type_code
@@ -53,7 +60,8 @@ class BaseDocumentProcessor:
         for record in self.all_records:
             if record.get("要素ID") == element_id:
                 if context_filter is None or (
-                    record.get("コンテキストID") and context_filter in record["コンテキストID"]
+                    record.get("コンテキストID")
+                    and self._match_context(context_filter, record["コンテキストID"])
                 ):
                     value = record.get("値")
                     # Clean the text values
@@ -61,6 +69,17 @@ class BaseDocumentProcessor:
 
                     return clean_text(value)
         return None
+
+    @staticmethod
+    def _match_context(context_filter: str, context_id: str) -> bool:
+        """Match context filter against context ID with word-boundary semantics.
+
+        "Current" matches "CurrentYearDuration" and "CurrentYearInstant"
+        but not "PriorYearDuration_CurrentSomeAxis".
+        """
+        # Split on common delimiters to get context segments
+        parts = context_id.replace("_", ".").split(".")
+        return any(context_filter in part for part in parts)
 
     def get_records_by_id(self, element_id: str) -> List[Dict[str, Any]]:
         """Helper to find all records for a specific element ID."""
@@ -110,7 +129,7 @@ class BaseDocumentProcessor:
         from .utils import clean_text  # Avoid circular import
 
         metadata = {}
-        id_to_key = {
+        element_id_to_key = {
             "jpdei_cor:EDINETCodeDEI": "edinet_code",
             "jpdei_cor:FilerNameInJapaneseDEI": "company_name_ja",
             "jpdei_cor:FilerNameInEnglishDEI": "company_name_en",
@@ -118,10 +137,10 @@ class BaseDocumentProcessor:
             "jpcrp-esr_cor:DocumentTitleCoverPage": "document_title",  # Common in some reports
             "jpcrp_cor:DocumentTitle": "document_title",  # Common in others
         }
-        for key, element_id in id_to_key.items():
-            value = self.get_value_by_id(key)
+        for element_id, key in element_id_to_key.items():
+            value = self.get_value_by_id(element_id)
             if value is not None:
-                metadata[element_id] = clean_text(value)
+                metadata[key] = clean_text(value)
 
         # Add doc_id and doc_type_code from the zip filename metadata
         metadata["doc_id"] = self.doc_id

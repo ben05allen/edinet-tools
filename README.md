@@ -157,6 +157,10 @@ export EDINET_API_KEY=your_key_here
 
 Or use a `.env` file. Entity lookup and parsing work without an API key — only document fetching requires one.
 
+## Thread Safety
+
+edinet-tools uses module-level singletons for entity lookup, client configuration, and API response caching. These are initialized lazily without synchronization. **The library is not thread-safe** — do not share a single `Entity` or `EdinetClient` across threads without external locking. In multi-threaded applications, create separate client instances per thread or serialize access with a `threading.Lock`.
+
 ## Testing
 
 Tests are organized into four tiers using pytest markers:

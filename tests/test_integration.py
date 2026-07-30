@@ -195,8 +195,10 @@ class TestEntityAutoClient:
     def test_entity_documents_uses_module_client(self):
         """Entity.documents() works without explicit client."""
         from edinet_tools._client import _reset_client, configure
+        from edinet_tools.entity import clear_document_cache
 
         _reset_client()
+        clear_document_cache()
         with patch("edinet_tools._client.EdinetClient") as MockClient:
             mock_instance = MockClient.return_value
             mock_instance.get_documents_by_date.return_value = []
