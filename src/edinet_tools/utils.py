@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 # Known EDINET encodings in priority order (matches extraction.py)
-_EDINET_ENCODINGS = ["utf-16le", "utf-16", "utf-8", "shift-jis", "cp932"]
+_EDINET_ENCODINGS = ["utf-16", "utf-16le", "utf-8", "shift-jis", "cp932"]
 
 
 def read_csv_file(file_path):
@@ -45,7 +45,7 @@ def read_csv_file(file_path):
                     records.append(fixed)
             logger.debug(f"Successfully read {Path(file_path).name} with encoding {encoding}")
             return records
-        except UnicodeDecodeError:
+        except (UnicodeDecodeError, UnicodeError):
             logger.debug(
                 f"Failed to read {Path(file_path).name} with encoding {encoding}: decode error"
             )

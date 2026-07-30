@@ -67,7 +67,7 @@ def _read_csv_from_zip(zf: zipfile.ZipFile, name: str) -> list[dict[str, Any]]:
     raw_bytes = zf.read(name)
 
     # Try multiple encodings (EDINET uses various encodings)
-    encodings = ["utf-16le", "utf-16", "utf-8", "shift-jis", "cp932"]
+    encodings = ["utf-16", "utf-16le", "utf-8", "shift-jis", "cp932"]
     content = None
 
     for encoding in encodings:
