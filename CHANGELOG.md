@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Removed `pandas` and `chardet` dependencies.** CSV reading now uses the stdlib `csv.DictReader`, reducing install size by ~51MB. Encoding detection uses a hardcoded list of known EDINET encodings instead of chardet.
+- **Semi-annual report parser now uses consolidation context.** Previously ignored context patterns, potentially returning parent-company figures instead of consolidated.
+- **API client retries only 429/5xx.** Permanent errors (401, 403, 404) now fail immediately instead of retrying with exponential backoff.
+- **`parse_int` rounds instead of truncating.** `int(round(float(value)))` avoids silent precision loss on fractional values.
+- **`download_documents` sanitizes filenames.** Company names from the API are cleaned of filesystem-unsafe characters.
+
+### Added
+
+- **Date-level API response cache** for `Entity.documents()` avoids redundant requests when multiple entities are queried for the same date.
+- **Deprecation warning** for `processors.py` — use the typed parsers in `edinet_tools.parsers` instead.
+- **Thread Safety section** in README documenting that module-level singletons are not thread-safe.
+- **Test markers:** `smoke` (~145 tests in ~3s), `unit`, `integration`, `slow` tiers.
+- **CI workflow** with lint (ruff + ty), smoke, and unit jobs across Python 3.10–3.14.
+- **6 new edge-case tests** for CSV reading: empty files, header-only, whitespace values, mixed line endings.
+- **U+2212 normalization** — Japanese minus sign (−) in financial values is now correctly parsed as negative.
+
 ## v0.7.1 — 2026-06-12
 
 Correctness release for the securities report parser. Income-statement fields are now selected per accounting standard, several element mappings pointed at XBRL ids that don't exist in real filings, and banks, insurers, and securities firms now get real revenue figures.
