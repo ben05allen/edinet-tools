@@ -4,7 +4,7 @@ include LICENSE
 include pyproject.toml
 
 # Include data files needed by the package
-recursive-include edinet_tools/data *.csv
+recursive-include src/edinet_tools/data *.csv
 
 # Exclude all other .md files
 exclude *.md

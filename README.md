@@ -159,9 +159,17 @@ Or use a `.env` file. Entity lookup and parsing work without an API key — only
 
 ## Testing
 
-```bash
-pytest tests/ -v  # 830+ tests
-```
+Tests are organized into four tiers using pytest markers:
+
+| Marker | Command | Purpose |
+|--------|---------|---------|
+| `smoke` | `pytest -m smoke` | Quick validation — ~145 tests in ~3s |
+| `unit` | `pytest -m unit` | Full unit suite — ~680 tests in ~50s |
+| `integration` | `pytest -m integration` | Live API tests — requires `EDINET_API_KEY` |
+| `slow` | `pytest -m slow` | Performance/consistency tests |
+| | `pytest` | Everything (~830 tests) |
+
+All unmarked tests are automatically tagged as `unit` via a `conftest.py` hook — no need to manually mark individual tests.
 
 ## Links
 
