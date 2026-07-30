@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 EDINET Tools — Quick Start Demo
 
@@ -6,7 +5,7 @@ Demonstrates entity lookup, document listing, typed parsing,
 and doc type registry. Run with an EDINET API key for the full
 experience, or without one for entity-only features.
 
-  python demo.py
+  uv run demo.py
 """
 
 import os

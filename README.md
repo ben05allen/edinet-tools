@@ -84,10 +84,10 @@ print(dt.name_jp)  # "内部統制報告書"
 ```python
 import edinet_tools
 
-toyota = edinet_tools.entity("7203")      # By ticker (digit or alphanumeric)
-toyota = edinet_tools.entity("Toyota")    # By name search
-toyota = edinet_tools.entity("E02144")    # By EDINET code
-print(toyota.name, toyota.edinet_code)    # TOYOTA MOTOR CORPORATION E02144
+toyota = edinet_tools.entity("7203")  # By ticker (digit or alphanumeric)
+toyota = edinet_tools.entity("Toyota")  # By name search
+toyota = edinet_tools.entity("E02144")  # By EDINET code
+print(toyota.name, toyota.edinet_code)  # TOYOTA MOTOR CORPORATION E02144
 
 # Look up by Japan Corporate Number (法人番号)
 toyota = edinet_tools.entity_by_corporate_number("1180301018771")
@@ -118,7 +118,7 @@ report.net_sales
 report.operating_cash_flow
 report.roe
 report.accounting_standard  # "Japan GAAP", "IFRS", or "US GAAP"
-report.segments             # list[SegmentRow] — per-segment metrics
+report.segments  # list[SegmentRow] — per-segment metrics
 
 # Large Shareholding Report
 report.filer_name
@@ -131,9 +131,9 @@ report.target_name
 report.holding_ratio_after
 
 # Any report
-report.fields()     # List available typed fields
-report.to_dict()    # Export as dictionary
-report.raw_fields   # All XBRL elements by element ID
+report.fields()  # List available typed fields
+report.to_dict()  # Export as dictionary
+report.raw_fields  # All XBRL elements by element ID
 report.text_blocks  # Narrative text block content
 ```
 
@@ -142,9 +142,9 @@ report.text_blocks  # Narrative text block content
 ```python
 from edinet_tools.api import fetch_document
 
-csv_zip = fetch_document("S100ABC")            # XBRL CSV (default)
-pdf = fetch_document("S100ABC", type=2)        # PDF
-html_zip = fetch_document("S100ABC", type=1)   # HTML documents
+csv_zip = fetch_document("S100ABC")  # XBRL CSV (default)
+pdf = fetch_document("S100ABC", type=2)  # PDF
+html_zip = fetch_document("S100ABC", type=1)  # HTML documents
 ```
 
 ## Configuration

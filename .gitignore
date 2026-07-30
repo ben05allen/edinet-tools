@@ -12,7 +12,7 @@ venv
 .DS_Store
 *downloads
 *.csv
-!edinet_tools/data/*.csv
+!src/edinet_tools/data/*.csv
 !tests/data/*.csv
 !tests/fixtures/**/*.csv
 *.zip
