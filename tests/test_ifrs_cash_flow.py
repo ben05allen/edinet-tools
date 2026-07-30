@@ -8,6 +8,7 @@ These are integration tests that fetch real data from EDINET API.
 """
 
 import pytest
+
 from edinet_tools import entity_by_ticker, parse
 from edinet_tools.parsers.securities import SecuritiesReport
 

@@ -36,8 +36,8 @@ def test_method_emits_deprecation_warning_with_replacement(
         warnings.simplefilter("always")
         try:
             method()
-        except Exception:
-            pass  # ignore call failures — checking warning emission
+        except Exception:  # noqa: BLE001, S110 — test only checks warning emission, not call success
+            pass
 
         dep_warnings = [w for w in caught if issubclass(w.category, DeprecationWarning)]
         assert len(dep_warnings) >= 1, f"{method_name} did not emit DeprecationWarning"
@@ -56,7 +56,7 @@ def test_process_zip_directory_emits_deprecation_warning(tmp_path):
         warnings.simplefilter("always")
         try:
             process_zip_directory(str(tmp_path))
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 — test only checks warning emission, not call success
             pass
 
         dep_warnings = [w for w in caught if issubclass(w.category, DeprecationWarning)]
@@ -108,8 +108,8 @@ def test_entity_classifier_is_listed_emits_deprecation_warning():
         warnings.simplefilter("always")
         try:
             classifier.is_listed("E00001")
-        except Exception:
-            pass  # ignore call failures — checking warning emission only
+        except Exception:  # noqa: BLE001, S110 — test only checks warning emission, not call success
+            pass
         dep_warnings = [w for w in caught if issubclass(w.category, DeprecationWarning)]
         assert len(dep_warnings) >= 1
         msg = str(dep_warnings[0].message)

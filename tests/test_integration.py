@@ -7,9 +7,9 @@ Detailed unit tests for Entity, Fund, etc. are in their respective test files.
 
 import os
 import warnings
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 
 import edinet_tools
 
@@ -112,7 +112,7 @@ class TestModuleConfiguration:
 
     def test_configure_resets_client(self):
         """configure() resets the cached client."""
-        from edinet_tools._client import configure, _get_client, _reset_client
+        from edinet_tools._client import _get_client, _reset_client, configure
 
         _reset_client()
         with patch.dict(os.environ, {"EDINET_API_KEY": "key1"}):

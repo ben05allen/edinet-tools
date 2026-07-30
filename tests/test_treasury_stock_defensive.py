@@ -11,7 +11,6 @@ the deprecation warnings fire correctly.
 
 import warnings
 
-
 from edinet_tools.parsers.treasury_stock import TreasuryStockReport
 
 

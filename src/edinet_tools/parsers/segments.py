@@ -203,9 +203,8 @@ def _is_usgaap_textblock_filer(csv_files: list) -> bool:
                 return True
 
             # Any TextBlock containing US-GAAP keywords
-            if local_name.endswith("TextBlock"):
-                if any(kw in value for kw in _USGAAP_KEYWORDS):
-                    return True
+            if local_name.endswith("TextBlock") and any(kw in value for kw in _USGAAP_KEYWORDS):
+                return True
 
     return False
 

@@ -250,7 +250,7 @@ def test_parse_segments_from_csv_dash_null_coercion():
             ],
         }
     ]
-    segments, segments_text_only, _ = parse_segments_from_csv(csv_files)
+    segments, _segments_text_only, _ = parse_segments_from_csv(csv_files)
 
     # Both must be present (no vacuous-pass via missing member).
     by_name = {s.segment_name: s for s in segments}
@@ -396,6 +396,7 @@ _TOKIO_MARINE_NOISE_MEMBERS = {
 def test_real_full_filing_excludes_noise_members():
     """Exact segment set + zero noise from a real filing containing noise rows."""
     import re
+
     from edinet_tools.parsers.segments import parse_segments_from_csv
 
     csv_files = _load_fixture("tokio_marine_real_full")
@@ -469,7 +470,7 @@ def test_jal_no_anchor_excludes_reconciliation_artifact():
     """
     from edinet_tools.parsers.segments import parse_segments_from_csv
 
-    segments, segments_text_only, extraction_incomplete = parse_segments_from_csv(
+    segments, _segments_text_only, extraction_incomplete = parse_segments_from_csv(
         _load_fixture("jal_no_anchor")
     )
     names = {s.segment_name for s in segments}

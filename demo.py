@@ -11,6 +11,7 @@ experience, or without one for entity-only features.
 
 import os
 from datetime import timedelta
+
 import edinet_tools
 
 
@@ -289,13 +290,14 @@ def show_shelf_registration_parser():
     print()
 
     # Show what a parsed result looks like using the parser directly with mock CSV
-    from edinet_tools.parsers.shelf_registration import (
-        parse_shelf_registration,
-        ELEMENT_MAP,
-    )
-    from edinet_tools.parsers.extraction import extract_csv_from_zip
     import io
     import zipfile
+
+    from edinet_tools.parsers.extraction import extract_csv_from_zip
+    from edinet_tools.parsers.shelf_registration import (
+        ELEMENT_MAP,
+        parse_shelf_registration,
+    )
 
     # Build a minimal mock CSV (tab-separated, UTF-16LE as EDINET uses)
     rows = [
@@ -318,7 +320,7 @@ def show_shelf_registration_parser():
         doc_type_code="080",
     )
 
-    print(f"  Result: {repr(report)}")
+    print(f"  Result: {report!r}")
     print(f"    filer_name:                {report.filer_name}")
     print(f"    filer_edinet_code:         {report.filer_edinet_code}")
     print(f"    shelf_registration_number: {report.shelf_registration_number}")

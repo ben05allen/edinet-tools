@@ -8,16 +8,15 @@ Withdrawals require regulatory approval and disclosure of the reason.
 Doc 260: Tender offer withdrawal notification
 """
 
-from typing import Any
 from dataclasses import dataclass
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
 )
-
 
 # Common DEI elements available across all filing types.
 # Domain-specific elements (jptoo-twn_cor namespace) can be added once

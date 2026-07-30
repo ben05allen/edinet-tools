@@ -11,6 +11,7 @@ import re
 from typing import Any
 
 from .entity_classifier import EntityClassifier
+from .exceptions import EdinetError
 
 logger = logging.getLogger(__name__)
 
@@ -187,10 +188,11 @@ class Entity:
         Returns:
             List of Document objects
         """
-        from .document import Document
-        from ._client import _get_client
-        from .timezone import today_jst
         from datetime import timedelta
+
+        from ._client import _get_client
+        from .document import Document
+        from .timezone import today_jst
 
         # Handle deprecated parameter
         if days_back is not None and days is None:
@@ -226,7 +228,7 @@ class Entity:
                 except (AttributeError, TypeError):
                     # Programming errors should not be silently swallowed
                     raise
-                except Exception as e:
+                except (OSError, EdinetError) as e:
                     # Log API/network errors but continue with other dates
                     logger.debug(f"Failed to fetch documents for {check_date}: {e}")
                     continue
@@ -635,7 +637,7 @@ def fund(identifier: str) -> Fund | None:
 
     # Try name search
     identifier_lower = identifier.lower()
-    for fund_code, fund_data in funds.items():
+    for fund_data in funds.values():
         if identifier_lower in fund_data.get("name", "").lower():
             return Fund(fund_data)
 

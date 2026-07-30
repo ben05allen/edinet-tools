@@ -9,18 +9,17 @@ Doc 220: Original report
 Doc 230: Amendment to treasury stock report
 """
 
-from typing import Any
 from dataclasses import dataclass
 from datetime import date
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
     parse_date,
 )
-
 
 # XBRL Element ID mappings for Doc 220/230
 # Namespace: jpcrp-sbr_cor (Japanese Corporate Reporting - Standard Business Report)

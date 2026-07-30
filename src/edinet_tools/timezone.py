@@ -1,12 +1,10 @@
-"""
-Japan Standard Time utilities for EDINET.
+# Japan Standard Time utilities for EDINET.
+#
+# EDINET filings are dated in JST (UTC+9). Using today_jst() instead of
+# date.today() ensures you get the correct EDINET business day regardless
+# of your local timezone.
 
-EDINET filings are dated in JST (UTC+9). Using today_jst() instead of
-date.today() ensures you get the correct EDINET business day regardless
-of your local timezone.
-"""
-
-from datetime import datetime, date, timezone, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 JST = timezone(timedelta(hours=9))
 

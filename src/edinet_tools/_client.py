@@ -7,13 +7,12 @@ or explicit configuration.
 
 import os
 import warnings
-from typing import Optional
 
 from .client import EdinetClient
 
 # Module-level state
-_client: Optional[EdinetClient] = None
-_configured_api_key: Optional[str] = None
+_client: EdinetClient | None = None
+_configured_api_key: str | None = None
 
 
 def _get_client() -> EdinetClient:
@@ -41,7 +40,7 @@ def _reset_client() -> None:
     _client = None
 
 
-def configure(api_key: Optional[str] = None) -> None:
+def configure(api_key: str | None = None) -> None:
     """
     Configure the module-level client.
 
@@ -73,7 +72,7 @@ def fetch_and_parse(doc_id: str, doc_type_code: str):
     return doc.parse()
 
 
-def documents(date: Optional[str] = None, doc_type: Optional[str] = None) -> list:
+def documents(date: str | None = None, doc_type: str | None = None) -> list:
     """
     Get all documents filed on a specific date.
 

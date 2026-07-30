@@ -10,16 +10,15 @@ Doc 330: Original exemption application
 Doc 340: Amendment to exemption application
 """
 
-from typing import Any
 from dataclasses import dataclass
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
 )
-
 
 # Common DEI elements available across all filing types.
 # Domain-specific elements can be added once real Doc 330/340 filings

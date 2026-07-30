@@ -10,9 +10,9 @@ Also extracts narrative text blocks containing business policy, strategy, and ta
 import csv
 import logging
 import re
-from typing import Dict, Optional, Any, List, Tuple
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, ClassVar
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class FinancialMetric:
     unit_type: str
     currency: str
     scale: str
-    value: Optional[float]
+    value: float | None
 
     @property
     def is_current_period(self) -> bool:
@@ -72,16 +72,16 @@ class TextBlock:
     japanese_label: str
     text_content: str
 
-    def search(self, keywords: List[str], context_chars: int = 200) -> List[Tuple[str, str]]:
+    def search(self, keywords: list[str], context_chars: int = 200) -> list[tuple[str, str]]:
         """
         Search for keywords in this text block.
 
         Args:
-            keywords: List of keywords/patterns to search for
+            keywords: list of keywords/patterns to search for
             context_chars: Number of characters of context to return around matches
 
         Returns:
-            List of (keyword, context_snippet) tuples
+            list of (keyword, context_snippet) tuples
         """
         matches = []
         for keyword in keywords:
@@ -98,7 +98,7 @@ class EdinetXbrlCsvParser:
     """Parser for EDINET XBRL CSV files containing structured financial data and narrative text blocks."""
 
     # Narrative text blocks containing business policy, strategy, and MTP information
-    NARRATIVE_TEXT_BLOCKS = {
+    NARRATIVE_TEXT_BLOCKS: ClassVar[dict[str, str]] = {
         "business_policy": "jpcrp_cor:BusinessPolicyBusinessEnvironmentIssuesToAddressEtcTextBlock",
         "metrics_and_targets": "jpcrp_cor:MetricsAndTargetsTextBlock",
         "management_analysis": "jpcrp_cor:ManagementAnalysisOfFinancialPositionOperatingResultsAndCashFlowsTextBlock",
@@ -107,7 +107,7 @@ class EdinetXbrlCsvParser:
     }
 
     # Key financial metrics mapping - expanded to include J-GAAP variants
-    FINANCIAL_METRICS = {
+    FINANCIAL_METRICS: ClassVar[dict[str, str]] = {
         # Revenue/Sales - IFRS
         "revenue_ifrs": "jpcrp_cor:RevenueIFRSSummaryOfBusinessResults",
         "revenue_jgaap": "jpcrp_cor:NetSalesSummaryOfBusinessResults",
@@ -141,21 +141,21 @@ class EdinetXbrlCsvParser:
     }
 
     def __init__(self):
-        self.metrics: List[FinancialMetric] = []
-        self.text_blocks: List[TextBlock] = []
+        self.metrics: list[FinancialMetric] = []
+        self.text_blocks: list[TextBlock] = []
 
     def parse_xbrl_csv_files(
-        self, csv_files: List[str], extract_text_blocks: bool = True
-    ) -> Dict[str, Any]:
+        self, csv_files: list[str], extract_text_blocks: bool = True
+    ) -> dict[str, Any]:
         """
         Parse multiple XBRL CSV files and extract financial metrics and text blocks.
 
         Args:
-            csv_files: List of paths to XBRL CSV files
+            csv_files: list of paths to XBRL CSV files
             extract_text_blocks: Whether to extract narrative text blocks (default True)
 
         Returns:
-            Dictionary of structured financial data and text blocks
+            dictionary of structured financial data and text blocks
         """
         self.metrics = []
         self.text_blocks = []
@@ -186,8 +186,7 @@ class EdinetXbrlCsvParser:
                 with open(csv_file, "r", encoding=encoding, errors="ignore") as f:
                     content = f.read()
                     # Remove BOM if present
-                    if content.startswith("\ufeff"):
-                        content = content[1:]
+                    content = content.removeprefix("\ufeff")
                     if content.startswith("��"):
                         content = content[1:]
                     break
@@ -242,7 +241,7 @@ class EdinetXbrlCsvParser:
                                     logger.debug(
                                         f"Non-relevant element: '{metric.element_name[:100]}'"
                                     )
-                    except Exception as e:
+                    except (ValueError, IndexError, KeyError) as e:
                         logger.debug(f"Error parsing row {row_num} in {csv_file}: {e}")
                         continue
 
@@ -250,10 +249,10 @@ class EdinetXbrlCsvParser:
                 f"Processed {total_rows} rows, parsed {parsed_rows}, found {relevant_rows} relevant metrics"
             )
 
-        except Exception as e:
+        except (OSError, csv.Error, ValueError, IndexError, KeyError) as e:
             logger.error(f"Error reading XBRL CSV file {csv_file}: {e}")
 
-    def _parse_csv_row(self, row: List[str], total_rows: int = 0) -> Optional[FinancialMetric]:
+    def _parse_csv_row(self, row: list[str], total_rows: int = 0) -> FinancialMetric | None:
         """Parse a single CSV row into a FinancialMetric."""
         try:
             # Clean up quoted values and handle encoding issues
@@ -344,7 +343,7 @@ class EdinetXbrlCsvParser:
         """Check if this is a narrative text block we want to extract."""
         return element_name in self.NARRATIVE_TEXT_BLOCKS.values() or "TextBlock" in element_name
 
-    def _format_text_blocks(self) -> Dict[str, Any]:
+    def _format_text_blocks(self) -> dict[str, Any]:
         """Format extracted text blocks for output."""
         result = {}
         for block in self.text_blocks:
@@ -372,17 +371,17 @@ class EdinetXbrlCsvParser:
         return result
 
     def search_text_blocks(
-        self, keywords: List[str], context_chars: int = 200
-    ) -> Dict[str, List[Tuple[str, str]]]:
+        self, keywords: list[str], context_chars: int = 200
+    ) -> dict[str, list[tuple[str, str]]]:
         """
         Search all text blocks for keywords.
 
         Args:
-            keywords: List of keywords/patterns to search for
+            keywords: list of keywords/patterns to search for
             context_chars: Number of characters of context around matches
 
         Returns:
-            Dict mapping block keys to list of (keyword, context) tuples
+            dict mapping block keys to list of (keyword, context) tuples
         """
         results = {}
         for block in self.text_blocks:
@@ -405,7 +404,7 @@ class EdinetXbrlCsvParser:
 
         return results
 
-    def _extract_key_metrics(self) -> Dict[str, Any]:
+    def _extract_key_metrics(self) -> dict[str, Any]:
         """Extract and organize key financial metrics."""
         result = {
             "financial_metrics": {},
@@ -442,7 +441,7 @@ class EdinetXbrlCsvParser:
 
         # Debug: Show what elements we found
         if self.metrics:
-            unique_elements = set(m.element_name for m in self.metrics)
+            unique_elements = {m.element_name for m in self.metrics}
             logger.debug(f"Found {len(unique_elements)} unique XBRL elements:")
             for element in sorted(unique_elements)[:10]:  # Show first 10
                 logger.debug(f"  - {element}")
@@ -455,7 +454,7 @@ class EdinetXbrlCsvParser:
         return result
 
 
-def extract_xbrl_financial_data(zip_extract_path: str) -> Dict[str, Any]:
+def extract_xbrl_financial_data(zip_extract_path: str) -> dict[str, Any]:
     """
     Extract financial metrics from XBRL CSV files in a document extraction.
 
@@ -463,7 +462,7 @@ def extract_xbrl_financial_data(zip_extract_path: str) -> Dict[str, Any]:
         zip_extract_path: Path to extracted ZIP contents
 
     Returns:
-        Dictionary of financial metrics or empty dict if no XBRL data
+        dictionary of financial metrics or empty dict if no XBRL data
     """
     xbrl_csv_dir = Path(zip_extract_path) / "XBRL_TO_CSV"
 

@@ -13,20 +13,19 @@ PROCESSING PHILOSOPHY: Store raw XBRL values faithfully. No interpretation.
 import html
 import re
 from dataclasses import dataclass, field
-from decimal import Decimal
 from datetime import date
+from decimal import Decimal
 from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
-    parse_percentage,
-    parse_int,
     parse_date,
+    parse_int,
+    parse_percentage,
 )
-
 
 # XBRL Element ID mappings for Doc 350 (Large Holding Reports)
 # Validated against jplvh_cor taxonomy

@@ -15,6 +15,7 @@ Pinned values (verified against the real MHI / Toyota filings, 2026-06-09):
 import csv as _csv
 from decimal import Decimal
 from pathlib import Path
+
 from edinet_tools.parsers.securities import parse_securities_report
 
 _COLS = [

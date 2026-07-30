@@ -5,20 +5,21 @@ the full parser pipeline, and verifies extracted field values. This catches
 regressions in element IDs, context patterns, type conversions, and fallback logic.
 """
 
-from decimal import Decimal
 import io
-from datetime import date
-from unittest.mock import MagicMock
 import warnings
-import pytest
 import zipfile
+from datetime import date
+from decimal import Decimal
+from unittest.mock import MagicMock
 
-from edinet_tools.parsers.securities import parse_securities_report, SecuritiesReport
-from edinet_tools.parsers.quarterly import parse_quarterly_report, QuarterlyReport
-from edinet_tools.parsers.large_holding import parse_large_holding, LargeHoldingReport
-from edinet_tools.parsers.treasury_stock import parse_treasury_stock_report, TreasuryStockReport
-from edinet_tools.parsers.extraordinary import parse_extraordinary_report, ExtraordinaryReport
-from edinet_tools.parsers.semi_annual import parse_semi_annual_report, SemiAnnualReport
+import pytest
+
+from edinet_tools.parsers.extraordinary import ExtraordinaryReport, parse_extraordinary_report
+from edinet_tools.parsers.large_holding import LargeHoldingReport, parse_large_holding
+from edinet_tools.parsers.quarterly import QuarterlyReport, parse_quarterly_report
+from edinet_tools.parsers.securities import SecuritiesReport, parse_securities_report
+from edinet_tools.parsers.semi_annual import SemiAnnualReport, parse_semi_annual_report
+from edinet_tools.parsers.treasury_stock import TreasuryStockReport, parse_treasury_stock_report
 
 
 def make_csv_row(element_id, context_id, value, item_name=""):
@@ -1202,8 +1203,8 @@ class TestIFRSSummaryMetricsExtraction:
     def test_ifrs_reporter_populates_all_3_summary_fields(self):
         """An IFRS reporter with all 3 summary fields at CurrentYear context
         populates all 3 typed fields with correct Decimal values."""
-        from edinet_tools.parsers.securities import parse_securities_report
         from edinet_tools.parsers.extraction import extract_csv_from_zip
+        from edinet_tools.parsers.securities import parse_securities_report
 
         rows = self._base_rows() + [
             make_csv_row(
@@ -1233,8 +1234,8 @@ class TestIFRSSummaryMetricsExtraction:
     def test_jgaap_reporter_leaves_ifrs_summary_fields_null(self):
         """A J-GAAP reporter (no IFRS summary fields in csv_files) returns
         all 3 typed fields as None."""
-        from edinet_tools.parsers.securities import parse_securities_report
         from edinet_tools.parsers.extraction import extract_csv_from_zip
+        from edinet_tools.parsers.securities import parse_securities_report
 
         rows = [r for r in self._base_rows() if r["要素ID"] != "jpdei_cor:AccountingStandardsDEI"]
         rows.append(
@@ -1251,8 +1252,8 @@ class TestIFRSSummaryMetricsExtraction:
     def test_ifrs_reporter_partial_coverage_returns_partial(self):
         """An IFRS reporter with only EPS summary present (missing ROE +
         BPS) populates only ifrs_summary_basic_eps; others stay None."""
-        from edinet_tools.parsers.securities import parse_securities_report
         from edinet_tools.parsers.extraction import extract_csv_from_zip
+        from edinet_tools.parsers.securities import parse_securities_report
 
         rows = self._base_rows() + [
             make_csv_row(
@@ -1272,8 +1273,8 @@ class TestIFRSSummaryMetricsExtraction:
     def test_ifrs_reporter_ignores_prior_year_values(self):
         """When both Prior4YearDuration and CurrentYearDuration rows are
         present for the same element, only CurrentYearDuration is picked."""
-        from edinet_tools.parsers.securities import parse_securities_report
         from edinet_tools.parsers.extraction import extract_csv_from_zip
+        from edinet_tools.parsers.securities import parse_securities_report
 
         rows = self._base_rows() + [
             make_csv_row(
@@ -1300,8 +1301,8 @@ class TestIFRSSummaryMetricsExtraction:
         ifrs_summary_* extractions must normalize '－' / '-' / empty to None
         before Decimal().
         """
-        from edinet_tools.parsers.securities import parse_securities_report
         from edinet_tools.parsers.extraction import extract_csv_from_zip
+        from edinet_tools.parsers.securities import parse_securities_report
 
         rows = self._base_rows() + [
             make_csv_row(
@@ -1335,8 +1336,8 @@ class TestIFRSSummaryMetricsExtraction:
         the `if not eps_str` gate (skipping the fallback) and crashes
         Decimal(); or '－' in the IFRS fallback after a missing J-GAAP
         element similarly crashes Decimal()."""
-        from edinet_tools.parsers.securities import parse_securities_report
         from edinet_tools.parsers.extraction import extract_csv_from_zip
+        from edinet_tools.parsers.securities import parse_securities_report
 
         # Case 1: J-GAAP EPS is '－', no IFRS fallback element.
         # Without the fix: '－' truthy-passes, Decimal('－') crashes.
@@ -1374,8 +1375,8 @@ class TestIFRSSummaryMetricsExtraction:
         """The pre-existing NAVPS extraction (line 430) had the same
         truthy-vs-None pattern. Must normalize '－' / '-' / empty to
         None before Decimal()."""
-        from edinet_tools.parsers.securities import parse_securities_report
         from edinet_tools.parsers.extraction import extract_csv_from_zip
+        from edinet_tools.parsers.securities import parse_securities_report
 
         rows = self._base_rows() + [
             make_csv_row(
@@ -1400,8 +1401,8 @@ class TestIFRSSummaryMetricsExtraction:
         Fix: normalize '－' to None BEFORE the truthy check so the IFRS
         fallback fires correctly.
         """
-        from edinet_tools.parsers.securities import parse_securities_report
         from edinet_tools.parsers.extraction import extract_csv_from_zip
+        from edinet_tools.parsers.securities import parse_securities_report
 
         rows = self._base_rows() + [
             # J-GAAP NetSales with null marker

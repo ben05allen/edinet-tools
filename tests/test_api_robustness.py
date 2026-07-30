@@ -16,9 +16,9 @@ from unittest.mock import Mock, patch
 import pytest
 
 from edinet_tools.api import (
+    download_documents,
     fetch_document,
     fetch_documents_list,
-    download_documents,
 )
 
 

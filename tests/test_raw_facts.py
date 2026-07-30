@@ -99,7 +99,7 @@ def test_categorize_elements_populates_raw_facts():
         }
     ]
     result = categorize_elements(csv_files)
-    raw_fields, text_blocks, unmapped_fields, raw_facts = result
+    raw_fields, _text_blocks, _unmapped_fields, raw_facts = result
 
     assert "jpcrp_cor:NetSales" in raw_fields
     netsales_facts = [f for f in raw_facts if f.element_id == "jpcrp_cor:NetSales"]

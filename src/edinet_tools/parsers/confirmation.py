@@ -13,16 +13,15 @@ filing index). Use ``fetch_document(doc_id, type=2)`` to retrieve the PDF
 content. This parser handles any XBRL-enabled filings for completeness.
 """
 
-from typing import Any
 from dataclasses import dataclass
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
 )
-
 
 # Common DEI elements available across all filing types.
 # Enrich this map after inspecting real Doc 135 filings.

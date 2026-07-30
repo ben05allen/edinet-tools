@@ -5,14 +5,16 @@ Tests all document processors including the new specialized processors for diffe
 document types, ensuring proper data extraction and no data loss.
 """
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
+
 from edinet_tools.processors import (
     BaseDocumentProcessor,
     ExtraordinaryReportProcessor,
-    SecuritiesReportProcessor,
-    InternalControlReportProcessor,
     GenericReportProcessor,
+    InternalControlReportProcessor,
+    SecuritiesReportProcessor,
     process_raw_csv_data,
 )
 

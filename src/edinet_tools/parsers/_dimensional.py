@@ -23,7 +23,6 @@ and #5 (directors+comp) in the 0.7.0+ release family.
 import re
 from dataclasses import dataclass, field
 
-
 _MEMBER_SUFFIX = "Member"
 
 # Per-filer extension-namespace prefix that filers prepend to custom member

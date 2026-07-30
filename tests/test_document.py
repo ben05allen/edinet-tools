@@ -1,6 +1,7 @@
 """Tests for Document class."""
 
 from datetime import datetime
+
 from edinet_tools.document import Document
 
 

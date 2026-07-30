@@ -21,6 +21,7 @@ Fixture route:
 
 import csv as _csv
 from pathlib import Path
+
 from edinet_tools.parsers.securities import parse_securities_report
 
 _COLS = [
@@ -38,7 +39,8 @@ _COLS = [
 
 def _load(name):
     p = Path(__file__).parent / "fixtures" / "securities" / f"{name}.csv"
-    rows = list(_csv.reader(open(p, encoding="utf-8"), delimiter="\t"))
+    with open(p, encoding="utf-8") as f:
+        rows = list(_csv.reader(f, delimiter="\t"))
     return [{"filename": f"{name}.csv", "data": [dict(zip(_COLS, r)) for r in rows[1:]]}]
 
 

@@ -1,6 +1,7 @@
 """Unit tests for debt field extraction from Securities Reports."""
 
 from unittest.mock import Mock, patch
+
 from edinet_tools.parsers.securities import SecuritiesReport, parse_securities_report
 
 

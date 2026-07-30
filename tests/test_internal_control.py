@@ -12,11 +12,10 @@ from unittest.mock import Mock
 
 from edinet_tools.parsers import parse
 from edinet_tools.parsers.internal_control import (
+    ELEMENT_MAP,
     InternalControlReport,
     parse_internal_control,
-    ELEMENT_MAP,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

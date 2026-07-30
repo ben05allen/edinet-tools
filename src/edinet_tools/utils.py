@@ -1,11 +1,12 @@
 # utils.py
+
 import csv
+import logging
 import os
 import re
 import tempfile
 import warnings
 import zipfile
-import logging
 from pathlib import Path
 from typing import Any
 
@@ -52,7 +53,7 @@ def read_csv_file(file_path):
         except csv.Error as e:
             logger.debug(f"Failed to read {Path(file_path).name} with encoding {encoding}: {e}")
             continue
-        except Exception as e:
+        except OSError as e:
             logger.error(
                 f"An unexpected error occurred reading {Path(file_path).name} with encoding {encoding}: {e}"
             )
@@ -101,7 +102,7 @@ def process_zip_file(
             except zipfile.BadZipFile as e:
                 logger.error(f"Bad ZIP file: {path_to_zip_file}. Error: {e}")
                 return None
-            except Exception as e:
+            except OSError as e:
                 logger.error(f"Error extracting {Path(path_to_zip_file).name}: {e}")
                 return None
 
@@ -151,7 +152,7 @@ def process_zip_file(
                 )
                 return None
 
-    except Exception as e:
+    except OSError as e:
         logger.error(f"Critical error processing zip file {path_to_zip_file}: {e}")
         # traceback.print_exc() # Uncomment for detailed traceback during debugging
         return None
@@ -206,7 +207,7 @@ def process_zip_directory(
             if structured_data:
                 all_structured_data.append(structured_data)
 
-        except Exception as e:
+        except OSError as e:
             logger.error(f"Error processing zip file {filename}: {e}")
             # traceback.print_exc() # Uncomment for detailed traceback during debugging
 

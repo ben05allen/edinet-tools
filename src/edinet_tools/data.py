@@ -6,9 +6,10 @@ using official EDINET codes from the Japanese government.
 """
 
 import difflib
-from edinet_tools.data_loader import get_data_loader
 import logging
 from typing import Any
+
+from edinet_tools.data_loader import get_data_loader
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class CompanyLookup:
                 # Load companies from official EDINET data
                 _company_data_cache = self.data_loader.get_companies(force_update=force_update)
                 logger.info(f"Loaded {len(_company_data_cache)} companies from EDINET data")
-            except Exception as e:
+            except (OSError, ValueError, TypeError, KeyError) as e:
                 logger.error(f"Failed to load EDINET data: {e}")
                 # Fallback to minimal dataset
                 _company_data_cache = self._get_fallback_companies()
@@ -274,7 +275,7 @@ class CompanyLookup:
                 matches.append(match)
 
         # Sort by match score and limit results
-        matches.sort(key=lambda x: x["match_score"], reverse=True)
+        matches.sort(key=lambda x: x["match_score"], reverse=True)  # type: ignore
         return matches[:limit]
 
     def get_company_info(self, edinet_code: str) -> dict[str, Any] | None:

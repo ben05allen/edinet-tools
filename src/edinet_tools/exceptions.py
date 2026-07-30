@@ -8,8 +8,6 @@ Provides clear, user-friendly error messages for common failure cases.
 class EdinetError(Exception):
     """Base exception for EDINET Tools."""
 
-    pass
-
 
 class APIError(EdinetError):
     """EDINET API related errors."""
@@ -132,5 +130,5 @@ def suggest_companies(query: str, limit: int = 3) -> list:
 
         results = search_companies(query, limit=limit)
         return [f"{r['name_en']} ({r['ticker']})" for r in results]
-    except Exception:
+    except (OSError, ValueError, KeyError):
         return []

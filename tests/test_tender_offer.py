@@ -6,9 +6,9 @@ from unittest.mock import Mock
 
 from edinet_tools.parsers import parse
 from edinet_tools.parsers.tender_offer import (
+    ELEMENT_MAP,
     TenderOfferReport,
     parse_tender_offer,
-    ELEMENT_MAP,
 )
 
 

@@ -3,13 +3,14 @@ Tests for edinet_tools.data module (company lookup functionality).
 """
 
 import pytest
+
 from edinet_tools.data import (
-    ticker_to_edinet,
-    resolve_company,
-    search_companies,
+    CompanyLookup,
     get_company_info,
     get_supported_companies,
-    CompanyLookup,
+    resolve_company,
+    search_companies,
+    ticker_to_edinet,
 )
 
 
@@ -175,7 +176,7 @@ class TestCompanyLookupClass:
         assert len(self.lookup.name_to_edinet) > 0
 
         # Test that some variations exist
-        toyota_variations = [k for k in self.lookup.name_to_edinet.keys() if "toyota" in k.lower()]
+        toyota_variations = [k for k in self.lookup.name_to_edinet if "toyota" in k.lower()]
         assert len(toyota_variations) > 0
 
 

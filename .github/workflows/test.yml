@@ -12,8 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+      - name: Install package
+        run: uv sync
       - name: Ruff check
-        run: uvx ruff check
+        run: uv run ruff check
       - name: Ty check
         run: uvx ty check
 

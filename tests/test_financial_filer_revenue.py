@@ -5,6 +5,7 @@ NULL or a tiny sub-line and operating_income > net_sales (impossible margin).
 
 import csv as _csv
 from pathlib import Path
+
 from edinet_tools.parsers.securities import parse_securities_report
 
 _COLS = [

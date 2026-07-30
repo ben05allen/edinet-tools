@@ -3,13 +3,13 @@
 import unittest
 from unittest.mock import MagicMock
 
-from edinet_tools.parsers.large_holding import parse_large_holding, LargeHoldingReport
-from edinet_tools.parsers.securities import parse_securities_report, SecuritiesReport
-from edinet_tools.parsers.extraordinary import parse_extraordinary_report, ExtraordinaryReport
-from edinet_tools.parsers.treasury_stock import parse_treasury_stock_report, TreasuryStockReport
-from edinet_tools.parsers.semi_annual import parse_semi_annual_report, SemiAnnualReport
-from edinet_tools.parsers.tender_offer import parse_tender_offer, TenderOfferReport
-from edinet_tools.parsers.quarterly import parse_quarterly_report, QuarterlyReport
+from edinet_tools.parsers.extraordinary import ExtraordinaryReport, parse_extraordinary_report
+from edinet_tools.parsers.large_holding import LargeHoldingReport, parse_large_holding
+from edinet_tools.parsers.quarterly import QuarterlyReport, parse_quarterly_report
+from edinet_tools.parsers.securities import SecuritiesReport, parse_securities_report
+from edinet_tools.parsers.semi_annual import SemiAnnualReport, parse_semi_annual_report
+from edinet_tools.parsers.tender_offer import TenderOfferReport, parse_tender_offer
+from edinet_tools.parsers.treasury_stock import TreasuryStockReport, parse_treasury_stock_report
 
 
 class TestCsvFilesParameter(unittest.TestCase):
@@ -81,7 +81,7 @@ class TestDocumentPathStillWorks(unittest.TestCase):
 
         buf = io.BytesIO()
         csv_body = (
-            "\t".join(
+            "\t".join(  # noqa: FLY002 — list-join is clearer for TSV rows
                 [
                     "要素ID",
                     "項目名",
@@ -95,7 +95,7 @@ class TestDocumentPathStillWorks(unittest.TestCase):
                 ]
             )
             + "\n"
-            + "\t".join(
+            + "\t".join(  # noqa: FLY002 — list-join is clearer for TSV rows
                 [
                     "jpdei_cor:EDINETCodeDEI",
                     "EDINETコード",

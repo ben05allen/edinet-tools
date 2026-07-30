@@ -5,22 +5,20 @@ Extracts financial data from 半期報告書 filings.
 Supports both corporate and fund reports with IFRS fallback.
 """
 
-from typing import Any
 from dataclasses import dataclass
 from datetime import date
-from typing import Optional
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
+    coerce_numeric_value,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
     get_context_patterns,
-    parse_int,
     parse_date,
-    coerce_numeric_value,
+    parse_int,
 )
-
 
 # XBRL Element ID mappings for Doc 160 (Semi-Annual Reports)
 ELEMENT_MAP = {
@@ -115,7 +113,7 @@ class SemiAnnualReport(ParsedReport):
 
 def _extract_financial(
     csv_files: list, element_id: str, context_patterns: list[str] | None = None
-) -> Optional[int]:
+) -> int | None:
     """Extract financial value with IFRS fallback.
 
     Normalizes EDINET null markers ('－' / '-' / '−' / '') to None before

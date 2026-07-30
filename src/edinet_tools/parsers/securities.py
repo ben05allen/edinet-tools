@@ -11,24 +11,23 @@ PROCESSING PHILOSOPHY: Store raw XBRL values faithfully. No interpretation.
 """
 
 from dataclasses import dataclass, field
-from decimal import Decimal
 from datetime import date
+from decimal import Decimal
 from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
-    extract_csv_from_zip,
-    extract_value,
     categorize_elements,
-    get_context_patterns,
-    extract_financial,
-    parse_percentage,
-    parse_int,
-    parse_date,
     coerce_numeric_value,
+    extract_csv_from_zip,
+    extract_financial,
+    extract_value,
+    get_context_patterns,
     match_element_by_suffix,
+    parse_date,
+    parse_int,
+    parse_percentage,
 )
-
 
 # XBRL Element ID mappings for Doc 120 (Securities Reports)
 # Validated against jpcrp_cor, jppfs_cor, jpdei_cor taxonomies

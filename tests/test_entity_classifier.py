@@ -7,10 +7,11 @@ Uses real FSA data files to validate classification logic.
 import warnings
 
 import pytest
+
 from edinet_tools.entity_classifier import (
+    _EDINET_COLUMN_ALIASES,
     EntityClassifier,
     EntityType,
-    _EDINET_COLUMN_ALIASES,
     _resolve_columns,
     translate_industry_to_english,
 )
@@ -264,7 +265,7 @@ class TestSecuritiesCodeFormatting:
         # Find an unlisted entity
         for edinet_code, entity in classifier._edinet_entities.items():
             if not entity["is_listed"]:
-                _code = classifier.get_securities_code(edinet_code)  # noqa: F841 — result intentionally unused, verifying no crash
+                _code = classifier.get_securities_code(edinet_code)
                 # Many unlisted entities have no code
                 # (this is expected behavior, not a test failure)
                 break

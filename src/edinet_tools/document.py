@@ -58,11 +58,11 @@ class Document:
         submit_dt = self._data.get("submitDateTime", "")
         if submit_dt:
             try:
-                return datetime.strptime(submit_dt, "%Y-%m-%d %H:%M")
+                return datetime.strptime(submit_dt, "%Y-%m-%d %H:%M")  # noqa: DTZ007 — EDINET dates have no timezone
             except ValueError:
                 # Try alternative format
                 try:
-                    return datetime.strptime(submit_dt, "%Y-%m-%d")
+                    return datetime.strptime(submit_dt, "%Y-%m-%d")  # noqa: DTZ007 — EDINET dates have no timezone
                 except ValueError:
                     return None
         return None

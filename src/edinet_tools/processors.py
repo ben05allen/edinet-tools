@@ -1,13 +1,14 @@
 # document_processors.py
 import logging
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 from .parser import extract_xbrl_financial_data
 
 logger = logging.getLogger(__name__)
 
 # Define the structure of the output dictionary for document processors
 # This structured_data is what will be passed to the LLM tools
-StructuredDocumentData = Dict[str, Any]
+StructuredDocumentData = dict[str, Any]
 
 
 class BaseDocumentProcessor:
@@ -21,7 +22,7 @@ class BaseDocumentProcessor:
 
     def __init__(
         self,
-        raw_csv_data: List[Dict[str, Any]],
+        raw_csv_data: list[dict[str, Any]],
         doc_id: str,
         doc_type_code: str,
         zip_extract_path: str | None = None,
@@ -43,7 +44,7 @@ class BaseDocumentProcessor:
         # Combine all rows from all CSVs for easier querying
         self.all_records = self._combine_raw_data()
 
-    def _combine_raw_data(self) -> List[Dict[str, Any]]:
+    def _combine_raw_data(self) -> list[dict[str, Any]]:
         """Combine all rows from all CSV files into a single list."""
         combined = []
         for csv_file in self.raw_csv_data:
@@ -53,12 +54,10 @@ class BaseDocumentProcessor:
             combined.extend(csv_file.get("data", []))
         return combined
 
-    def get_value_by_id(
-        self, element_id: str, context_filter: Optional[str] = None
-    ) -> Optional[str]:
+    def get_value_by_id(self, element_id: str, context_filter: str | None = None) -> str | None:
         """Helper to find a value for a specific element ID, optionally filtered by context."""
         for record in self.all_records:
-            if record.get("要素ID") == element_id:
+            if record.get("要素ID") == element_id:  # noqa: SIM102 — readability preference for nested guard
                 if context_filter is None or (
                     record.get("コンテキストID")
                     and self._match_context(context_filter, record["コンテキストID"])
@@ -81,11 +80,11 @@ class BaseDocumentProcessor:
         parts = context_id.replace("_", ".").split(".")
         return any(context_filter in part for part in parts)
 
-    def get_records_by_id(self, element_id: str) -> List[Dict[str, Any]]:
+    def get_records_by_id(self, element_id: str) -> list[dict[str, Any]]:
         """Helper to find all records for a specific element ID."""
         return [record for record in self.all_records if record.get("要素ID") == element_id]
 
-    def get_all_text_blocks(self) -> List[Dict[str, str]]:
+    def get_all_text_blocks(self) -> list[dict[str, str]]:
         """Extract all generic TextBlock elements."""
         text_blocks = []
         for record in self.all_records:
@@ -93,19 +92,17 @@ class BaseDocumentProcessor:
             value = record.get("値")
             item_name = record.get("項目名", element_id)  # Use 項目名 (item name) as title
 
-            if element_id and "TextBlock" in element_id and value:
-                text_blocks.append(
-                    {
-                        "id": element_id,
-                        "title": item_name or element_id,  # Ensure title is not None
-                        "content": value,  # Keep original value before cleaning for LLM to process
-                    }
-                )
-            # Include report submission reason which may not have "TextBlock" in the ID
-            elif (
+            if (
                 element_id
+                and "TextBlock" in element_id
                 and value
-                and (("ReasonForFiling" in element_id) or (item_name and "提出理由" in item_name))
+                or (
+                    element_id
+                    and value
+                    and (
+                        ("ReasonForFiling" in element_id) or (item_name and "提出理由" in item_name)
+                    )
+                )
             ):
                 text_blocks.append(
                     {
@@ -117,14 +114,14 @@ class BaseDocumentProcessor:
 
         return text_blocks
 
-    def process(self) -> Optional[StructuredDocumentData]:
+    def process(self) -> StructuredDocumentData | None:
         """
         Process the raw CSV data into a structured dictionary.
         Must be implemented by subclasses.
         """
         raise NotImplementedError("Subclasses must implement the 'process' method")
 
-    def _get_common_metadata(self) -> Dict[str, Any]:
+    def _get_common_metadata(self) -> dict[str, Any]:
         """Extract common metadata available in many filings."""
         from .utils import clean_text  # Avoid circular import
 
@@ -152,7 +149,7 @@ class BaseDocumentProcessor:
 class ExtraordinaryReportProcessor(BaseDocumentProcessor):
     """Processor for Extraordinary Reports (doc_type_code '180')."""
 
-    def process(self) -> Optional[StructuredDocumentData]:
+    def process(self) -> StructuredDocumentData | None:
         """Extract key data points and text blocks for Extraordinary Reports."""
         logger.debug(f"Processing Extraordinary Report (doc_id: {self.doc_id})")
         structured_data = self._get_common_metadata()
@@ -199,20 +196,20 @@ class ExtraordinaryReportProcessor(BaseDocumentProcessor):
 class SemiAnnualReportProcessor(BaseDocumentProcessor):
     """Processor for Semi-Annual Reports (doc_type_code '160')."""
 
-    def process(self) -> Optional[StructuredDocumentData]:
+    def process(self) -> StructuredDocumentData | None:
         """Extract key data points, tables, and text blocks for Semi-Annual Reports."""
         logger.debug(f"Processing Semi-Annual Report (doc_id: {self.doc_id})")
         structured_data = self._get_common_metadata()
 
         # --- Extract XBRL Financial Metrics (Enhanced approach) ---
-        xbrl_data: Dict[str, Any] = {}
+        xbrl_data: dict[str, Any] = {}
         if self.zip_extract_path:
             try:
                 xbrl_data = extract_xbrl_financial_data(self.zip_extract_path)
                 logger.debug(
                     f"Extracted XBRL data with {len(xbrl_data.get('financial_metrics', {}))} metrics"
                 )
-            except Exception as e:
+            except (OSError, ValueError, KeyError) as e:
                 logger.warning(f"Error extracting XBRL data for {self.doc_id}: {e}")
                 xbrl_data = {"has_xbrl_data": False}
 
@@ -317,7 +314,7 @@ class SemiAnnualReportProcessor(BaseDocumentProcessor):
 class SecuritiesReportProcessor(BaseDocumentProcessor):
     """Processor for Securities Reports (doc_type_code '120')."""
 
-    def process(self) -> Optional[StructuredDocumentData]:
+    def process(self) -> StructuredDocumentData | None:
         """Extract key data points, tables, and text blocks for Securities Reports."""
         logger.debug(f"Processing Securities Report (doc_id: {self.doc_id})")
         structured_data = self._get_common_metadata()
@@ -342,7 +339,7 @@ class SecuritiesReportProcessor(BaseDocumentProcessor):
         )
         return structured_data if structured_data else None
 
-    def _extract_financial_metrics(self) -> Dict[str, Any]:
+    def _extract_financial_metrics(self) -> dict[str, Any]:
         """Extract common financial metrics from Securities Reports."""
         financial_metrics = {}
 
@@ -384,7 +381,7 @@ class SecuritiesReportProcessor(BaseDocumentProcessor):
 
         return financial_metrics
 
-    def _extract_business_facts(self) -> Dict[str, Any]:
+    def _extract_business_facts(self) -> dict[str, Any]:
         """Extract business and operational facts specific to Securities Reports."""
         business_facts = {}
 
@@ -404,7 +401,7 @@ class SecuritiesReportProcessor(BaseDocumentProcessor):
 
         return business_facts
 
-    def _extract_financial_tables(self) -> List[Dict[str, Any]]:
+    def _extract_financial_tables(self) -> list[dict[str, Any]]:
         """Extract structured financial statement tables."""
         financial_tables = []
 
@@ -426,7 +423,7 @@ class SecuritiesReportProcessor(BaseDocumentProcessor):
 
         return financial_tables
 
-    def _categorize_text_blocks(self) -> List[Dict[str, Any]]:
+    def _categorize_text_blocks(self) -> list[dict[str, Any]]:
         """Categorize and extract all text blocks, ensuring no data loss."""
         all_blocks = self.get_all_text_blocks()
 
@@ -476,7 +473,7 @@ class SecuritiesReportProcessor(BaseDocumentProcessor):
 class InternalControlReportProcessor(BaseDocumentProcessor):
     """Processor for Internal Control Reports (doc_type_code '235')."""
 
-    def process(self) -> Optional[StructuredDocumentData]:
+    def process(self) -> StructuredDocumentData | None:
         """Extract key data points and text blocks for Internal Control Reports."""
         logger.debug(f"Processing Internal Control Report (doc_id: {self.doc_id})")
         structured_data = self._get_common_metadata()
@@ -511,7 +508,7 @@ class InternalControlReportProcessor(BaseDocumentProcessor):
 class GenericReportProcessor(BaseDocumentProcessor):
     """Processor for other document types (default)."""
 
-    def process(self) -> Optional[StructuredDocumentData]:
+    def process(self) -> StructuredDocumentData | None:
         """Extract common metadata and all text blocks for generic reports."""
         logger.debug(
             f"Processing Generic Report (doc_id: {self.doc_id}, type: {self.doc_type_code})"
@@ -531,16 +528,16 @@ class GenericReportProcessor(BaseDocumentProcessor):
 
 # Dispatcher Function
 def process_raw_csv_data(
-    raw_csv_data: List[Dict[str, Any]],
+    raw_csv_data: list[dict[str, Any]],
     doc_id: str,
     doc_type_code: str,
     zip_extract_path: str | None = None,
-) -> Optional[StructuredDocumentData]:
+) -> StructuredDocumentData | None:
     """
     Dispatches raw CSV data to the appropriate document processor.
 
     Args:
-        raw_csv_data: List of dictionaries from reading CSV files.
+        raw_csv_data: list of dictionaries from reading CSV files.
         doc_id: EDINET document ID.
         doc_type_code: EDINET document type code.
         zip_extract_path: Path to extracted ZIP contents for XBRL processing.
@@ -565,7 +562,7 @@ def process_raw_csv_data(
     try:
         processor = processor_class(raw_csv_data, doc_id, doc_type_code, zip_extract_path)
         return processor.process()
-    except Exception as e:
+    except (OSError, ValueError, KeyError, Exception) as e:  # noqa: BLE001 — dispatcher must not crash on any processor failure
         logger.error(
             f"Error during processing with {processor_class.__name__} for document {doc_id}: {e}"
         )

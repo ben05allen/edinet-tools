@@ -10,18 +10,17 @@ Doc 080: Original shelf registration statement
 Doc 090: Amendment to shelf registration statement
 """
 
-from typing import Any
 from dataclasses import dataclass
 from datetime import date
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
     parse_date,
 )
-
 
 # XBRL Element ID mappings for Doc 080/090
 ELEMENT_MAP = {

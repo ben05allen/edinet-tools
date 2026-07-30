@@ -10,24 +10,24 @@ dataclass defaults, repr, and supported_doc_types() count.
 
 import io
 import zipfile
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
+
 from edinet_tools.parsers import parse, supported_doc_types
-from edinet_tools.parsers.generic import RawReport
 from edinet_tools.parsers.confirmation import (
     ConfirmationReport,
     parse_confirmation,
+)
+from edinet_tools.parsers.generic import RawReport
+from edinet_tools.parsers.large_holding_change import (
+    LargeHoldingChangeReport,
+    parse_large_holding_change,
 )
 from edinet_tools.parsers.parent_company import (
     ParentCompanyReport,
     parse_parent_company,
 )
-from edinet_tools.parsers.large_holding_change import (
-    LargeHoldingChangeReport,
-    parse_large_holding_change,
-)
-
 
 # ---------------------------------------------------------------------------
 # Helpers

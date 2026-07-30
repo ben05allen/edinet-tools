@@ -8,16 +8,15 @@ filings have been inspected for their XBRL element names.
 Doc 050: Securities withdrawal document
 """
 
-from typing import Any
 from dataclasses import dataclass
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
 )
-
 
 # Common DEI elements available across all filing types.
 # Enrich this map after inspecting real Doc 050 filings.

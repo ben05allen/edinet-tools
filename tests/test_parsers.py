@@ -1,18 +1,17 @@
 """Tests for document parsers."""
 
 import warnings
-
 from datetime import date
 from decimal import Decimal
 
-from edinet_tools.parsers.base import ParsedReport
-from edinet_tools.parsers.generic import RawReport
 from edinet_tools.parsers import parse
-from edinet_tools.parsers.large_holding import LargeHoldingReport, parse_large_holding
-from edinet_tools.parsers.securities import SecuritiesReport, parse_securities_report
-from edinet_tools.parsers.quarterly import QuarterlyReport, parse_quarterly_report
-from edinet_tools.parsers.semi_annual import SemiAnnualReport, parse_semi_annual_report
+from edinet_tools.parsers.base import ParsedReport
 from edinet_tools.parsers.extraordinary import ExtraordinaryReport, parse_extraordinary_report
+from edinet_tools.parsers.generic import RawReport
+from edinet_tools.parsers.large_holding import LargeHoldingReport, parse_large_holding
+from edinet_tools.parsers.quarterly import QuarterlyReport, parse_quarterly_report
+from edinet_tools.parsers.securities import SecuritiesReport, parse_securities_report
+from edinet_tools.parsers.semi_annual import SemiAnnualReport, parse_semi_annual_report
 from edinet_tools.parsers.treasury_stock import TreasuryStockReport, parse_treasury_stock_report
 
 
@@ -91,7 +90,7 @@ class TestParseDispatcher:
 
         with patch("edinet_tools.parsers.parse_large_holding") as mock_parser:
             mock_parser.return_value = Mock(spec=ParsedReport)
-            _result = parse(doc)  # noqa: F841 — verifying parse dispatches to mock
+            _result = parse(doc)
             mock_parser.assert_called_once_with(doc)
 
 
@@ -621,8 +620,9 @@ class TestExtractionUtilities:
 
     def test_parse_percentage_basic(self):
         """parse_percentage handles basic percentages."""
-        from edinet_tools.parsers.extraction import parse_percentage
         from decimal import Decimal
+
+        from edinet_tools.parsers.extraction import parse_percentage
 
         assert parse_percentage("0.0567") == Decimal("0.0567")
         assert parse_percentage("5.67%") == Decimal("5.67")
@@ -639,8 +639,9 @@ class TestExtractionUtilities:
 
     def test_parse_date_formats(self):
         """parse_date handles various formats."""
-        from edinet_tools.parsers.extraction import parse_date
         from datetime import date
+
+        from edinet_tools.parsers.extraction import parse_date
 
         assert parse_date("2025-01-15") == date(2025, 1, 15)
         assert parse_date("2025/01/15") == date(2025, 1, 15)
@@ -648,14 +649,15 @@ class TestExtractionUtilities:
 
     def test_parse_date_edge_cases(self):
         """parse_date handles edge cases."""
-        from edinet_tools.parsers.extraction import parse_date
         from datetime import date, datetime
+
+        from edinet_tools.parsers.extraction import parse_date
 
         assert parse_date(None) is None
         assert parse_date("") is None
         assert parse_date("－") is None
         assert parse_date(date(2025, 1, 15)) == date(2025, 1, 15)
-        assert parse_date(datetime(2025, 1, 15, 10, 30)) == date(2025, 1, 15)
+        assert parse_date(datetime(2025, 1, 15, 10, 30)) == date(2025, 1, 15)  # noqa: DTZ001 — test verifies naive datetime handling
 
     def test_extract_value_no_context(self):
         """extract_value finds value without context patterns."""
@@ -832,7 +834,7 @@ class TestExtractionUtilities:
             }
         ]
         element_map = {"assets": "jppfs_cor:Assets"}
-        raw, text_blocks, unmapped, raw_facts = categorize_elements(csv_files, element_map)
+        raw, text_blocks, unmapped, _raw_facts = categorize_elements(csv_files, element_map)
 
         # Raw contains everything
         assert "jpcrp_cor:BusinessDescriptionTextBlock" in raw
@@ -857,9 +859,10 @@ class TestExtractionUtilities:
 
     def test_extract_csv_from_zip_valid(self):
         """extract_csv_from_zip extracts CSV from valid ZIP."""
-        from edinet_tools.parsers.extraction import extract_csv_from_zip
         import io
         import zipfile
+
+        from edinet_tools.parsers.extraction import extract_csv_from_zip
 
         # Create a minimal ZIP with tab-separated CSV content
         zip_buffer = io.BytesIO()

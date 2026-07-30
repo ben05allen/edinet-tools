@@ -1,16 +1,16 @@
 # edinet_tools.py
 import datetime
 import json
+import logging
 import os
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import logging
-import time
-from typing import List, Dict, Union
 
 from .config import EDINET_API_KEY, SUPPORTED_DOC_TYPES
+from .exceptions import APIError
 
 # Use module-specific logger
 logger = logging.getLogger(__name__)
@@ -44,13 +44,13 @@ def _sanitize_filename(name: str, max_length: int = 100) -> str:
 
 # API interaction functions
 def fetch_documents_list(
-    date: Union[str, datetime.date],
+    date: str | datetime.date,
     type: int = 2,
     max_retries: int = 3,
     delay_seconds: int = 5,
     api_key: str | None = None,
     timeout: int = 60,
-) -> Dict:
+) -> dict:
     """
     Retrieve disclosure documents from EDINET API for a specified date with retries.
 
@@ -65,7 +65,7 @@ def fetch_documents_list(
     """
     if isinstance(date, str):
         try:
-            datetime.datetime.strptime(date, "%Y-%m-%d")
+            datetime.datetime.strptime(date, "%Y-%m-%d")  # noqa: DTZ007 — validation only, result unused
         except ValueError:
             raise ValueError("Invalid date string. Use format 'YYYY-MM-DD'")
         date_str = date
@@ -92,7 +92,7 @@ def fetch_documents_list(
                 # EDINET may return HTTP 200 with a JSON error body
                 error_msg = _is_json_error_response(data)
                 if error_msg:
-                    raise Exception(f"EDINET API error for {date_str}: {error_msg}")
+                    raise APIError(f"EDINET API error for {date_str}: {error_msg}")
 
                 logger.info(f"Successfully fetched documents for {date_str}.")
                 return json.loads(data)
@@ -100,12 +100,11 @@ def fetch_documents_list(
         except urllib.error.HTTPError as e:
             logger.error(f"HTTP {e.code} fetching documents for {date_str}: {e.reason}")
             # 429 (rate limit) and 5xx (server errors) are retryable
-            if e.code == 429 or e.code >= 500:
-                if attempt < max_retries - 1:
-                    backoff = min(2 ** (attempt + 1), 30)
-                    logger.warning(f"Retrying in {backoff}s...")
-                    time.sleep(backoff)
-                    continue
+            if (e.code == 429 or e.code >= 500) and attempt < max_retries - 1:
+                backoff = min(2 ** (attempt + 1), 30)
+                logger.warning(f"Retrying in {backoff}s...")
+                time.sleep(backoff)
+                continue
             # 4xx client errors (except 429) are deterministic — fail immediately
             raise
         except urllib.error.URLError as e:
@@ -126,7 +125,7 @@ def fetch_documents_list(
             else:
                 raise
 
-    raise Exception("Failed to fetch documents after multiple retries.")
+    raise APIError("Failed to fetch documents after multiple retries.")
 
 
 def fetch_document(
@@ -171,19 +170,18 @@ def fetch_document(
                 # EDINET may return HTTP 200 with a JSON error body
                 error_msg = _is_json_error_response(content)
                 if error_msg:
-                    raise Exception(f"EDINET API error for {doc_id}: {error_msg}")
+                    raise APIError(f"EDINET API error for {doc_id}: {error_msg}")
 
                 logger.info(f"Successfully fetched document {doc_id}.")
                 return content
 
         except urllib.error.HTTPError as e:
             logger.error(f"HTTP {e.code} fetching document {doc_id}: {e.reason}")
-            if e.code == 429 or e.code >= 500:
-                if attempt < max_retries - 1:
-                    backoff = min(2 ** (attempt + 1), 30)
-                    logger.warning(f"Retrying in {backoff}s...")
-                    time.sleep(backoff)
-                    continue
+            if (e.code == 429 or e.code >= 500) and attempt < max_retries - 1:
+                backoff = min(2 ** (attempt + 1), 30)
+                logger.warning(f"Retrying in {backoff}s...")
+                time.sleep(backoff)
+                continue
             raise
         except urllib.error.URLError as e:
             logger.error(f"URL Error fetching document {doc_id}: {e}")
@@ -203,7 +201,7 @@ def fetch_document(
             else:
                 raise
 
-    raise Exception(f"Failed to fetch document {doc_id} after multiple retries.")
+    raise APIError(f"Failed to fetch document {doc_id} after multiple retries.")
 
 
 def save_document_content(doc_content: bytes, output_path: str) -> None:
@@ -212,12 +210,12 @@ def save_document_content(doc_content: bytes, output_path: str) -> None:
         with open(output_path, "wb") as file_out:
             file_out.write(doc_content)
         logger.info(f"Saved document content to {output_path}")
-    except IOError as e:
+    except OSError as e:
         logger.error(f"Error saving document content to {output_path}: {e}")
         raise  # Re-raise to indicate failure
 
 
-def download_documents(docs: List[Dict], download_dir: str = "./downloads") -> None:
+def download_documents(docs: list[dict], download_dir: str = "./downloads") -> None:
     """
     Download all documents in the provided list.
     """
@@ -246,7 +244,7 @@ def download_documents(docs: List[Dict], download_dir: str = "./downloads") -> N
                 # make GET request to `documents/{docID}` endpoint
                 doc_content = fetch_document(doc_id)
                 save_document_content(doc_content, output_path)
-            except Exception as e:
+            except (OSError, APIError) as e:
                 logger.error(f"Error downloading and saving {save_name}: {e}")
         else:
             # logger.info(f"File already exists: {save_name}")
@@ -257,13 +255,19 @@ def download_documents(docs: List[Dict], download_dir: str = "./downloads") -> N
 
 # Document filtering and processing
 def filter_documents(
-    docs: List[Dict],
-    edinet_codes: Union[List[str], str] = [],
-    doc_type_codes: Union[List[str], str] = [],
-    excluded_doc_type_codes: Union[List[str], str] = [],
+    docs: list[dict],
+    edinet_codes: list[str] | str | None = None,
+    doc_type_codes: list[str] | str | None = None,
+    excluded_doc_type_codes: list[str] | str | None = None,
     require_sec_code: bool = True,
-) -> List[Dict]:
+) -> list[dict]:
     """Filter list of documents by EDINET codes and document type codes."""
+    if edinet_codes is None:
+        edinet_codes = []
+    if doc_type_codes is None:
+        doc_type_codes = []
+    if excluded_doc_type_codes is None:
+        excluded_doc_type_codes = []
     if isinstance(edinet_codes, str):
         edinet_codes = [edinet_codes]
     if isinstance(doc_type_codes, str):
@@ -310,12 +314,12 @@ def filter_documents(
 def get_documents_for_date_range(
     start_date: datetime.date,
     end_date: datetime.date,
-    edinet_codes: List[str] = [],
-    doc_type_codes: List[str] = [],
-    excluded_doc_type_codes: List[str] = [],
+    edinet_codes: list[str] | None = None,
+    doc_type_codes: list[str] | None = None,
+    excluded_doc_type_codes: list[str] | None = None,
     require_sec_code: bool = True,
     api_key: str | None = None,
-) -> List[Dict]:
+) -> list[dict]:
     """Retrieve and filter documents for a date range."""
     matching_docs = []
     current_date = start_date
@@ -340,7 +344,7 @@ def get_documents_for_date_range(
             elif not docs_res:
                 logger.warning(f"Empty response received for {current_date}.")
 
-        except Exception as e:
+        except (OSError, APIError) as e:
             logger.error(f"Error processing documents for date {current_date}: {e}")
             # Continue to next date even if one date fails
         finally:

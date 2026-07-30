@@ -12,38 +12,49 @@ for all five new parser modules:
 
 import io
 import zipfile
-import pytest
 from datetime import date
 from decimal import Decimal
 from unittest.mock import MagicMock, Mock
+
+import pytest
+
 from edinet_tools.parsers import parse
-from edinet_tools.parsers.generic import RawReport
-from edinet_tools.parsers.tender_offer_withdrawal import (
-    TenderOfferWithdrawalReport,
-    parse_tender_offer_withdrawal,
-    ELEMENT_MAP as WITHDRAWAL_MAP,
-)
-from edinet_tools.parsers.tender_offer_report import (
-    TenderOfferResultReport,
-    parse_tender_offer_report,
-    ELEMENT_MAP as REPORT_MAP,
-)
-from edinet_tools.parsers.opinion_report import (
-    OpinionReport,
-    parse_opinion_report,
-    ELEMENT_MAP as OPINION_MAP,
-)
-from edinet_tools.parsers.question_response import (
-    QuestionResponseReport,
-    parse_question_response,
-    ELEMENT_MAP as QUESTION_MAP,
+from edinet_tools.parsers.exemption_application import (
+    ELEMENT_MAP as EXEMPTION_MAP,
 )
 from edinet_tools.parsers.exemption_application import (
     ExemptionApplicationReport,
     parse_exemption_application,
-    ELEMENT_MAP as EXEMPTION_MAP,
 )
-
+from edinet_tools.parsers.generic import RawReport
+from edinet_tools.parsers.opinion_report import (
+    ELEMENT_MAP as OPINION_MAP,
+)
+from edinet_tools.parsers.opinion_report import (
+    OpinionReport,
+    parse_opinion_report,
+)
+from edinet_tools.parsers.question_response import (
+    ELEMENT_MAP as QUESTION_MAP,
+)
+from edinet_tools.parsers.question_response import (
+    QuestionResponseReport,
+    parse_question_response,
+)
+from edinet_tools.parsers.tender_offer_report import (
+    ELEMENT_MAP as REPORT_MAP,
+)
+from edinet_tools.parsers.tender_offer_report import (
+    TenderOfferResultReport,
+    parse_tender_offer_report,
+)
+from edinet_tools.parsers.tender_offer_withdrawal import (
+    ELEMENT_MAP as WITHDRAWAL_MAP,
+)
+from edinet_tools.parsers.tender_offer_withdrawal import (
+    TenderOfferWithdrawalReport,
+    parse_tender_offer_withdrawal,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -57,7 +57,7 @@ def test_extract_dimensional_returns_DimensionalFact_list():
 def test_extract_dimensional_parses_axis_member():
     facts = extract_dimensional(_csv_files_with_segment_axis(), "jpcrp_cor:Sales")
     # axis_members is a list of (axis_name, member_name) tuples
-    members = sorted(set(m[1] for f in facts for m in f.axis_members))
+    members = sorted({m[1] for f in facts for m in f.axis_members})
     assert "ReportableSegment1" in members
     assert "ReportableSegment2" in members
     assert "ReportableSegments" in members

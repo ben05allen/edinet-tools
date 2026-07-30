@@ -5,19 +5,17 @@ Extracts event information and filer details from 臨時報告書 filings.
 These are event-driven disclosures filed when significant corporate events occur.
 """
 
-from typing import Any
 from dataclasses import dataclass
 from datetime import date
-from typing import Optional
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
     parse_date,
 )
-
 
 # XBRL Element ID mappings for Doc 180 (Extraordinary Reports)
 # Note: Doc 180 has TWO namespaces:
@@ -134,7 +132,7 @@ class ExtraordinaryReport(ParsedReport):
         return f"ExtraordinaryReport(filer='{filer}', event='{event}')"
 
 
-def _classify_event_type(reason_text: Optional[str]) -> str:
+def _classify_event_type(reason_text: str | None) -> str:
     """Classify the event type based on reason for filing text."""
     if not reason_text:
         return "unknown"

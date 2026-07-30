@@ -4,7 +4,8 @@ Base classes for document parsers.
 ParsedReport is the base class for all parsed documents.
 """
 
-from dataclasses import dataclass, field, fields as dataclass_fields
+from dataclasses import dataclass, field
+from dataclasses import fields as dataclass_fields
 from typing import Any
 
 from ._facts import Fact

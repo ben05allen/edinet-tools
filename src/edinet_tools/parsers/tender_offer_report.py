@@ -9,21 +9,20 @@ Doc 270: Original tender offer report
 Doc 280: Amendment to tender offer report
 """
 
-from typing import Any
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
     parse_date,
     parse_int,
     parse_percentage,
 )
-
 
 # XBRL Element ID mappings for Doc 270/280
 # Namespace: jptoo-tor_cor (Japanese Public Tender Offer Report)

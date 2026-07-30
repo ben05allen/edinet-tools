@@ -6,12 +6,12 @@ and integrates with corporate entity translations.
 """
 
 import csv
-from datetime import datetime
 import logging
-from pathlib import Path
 import shutil
-import urllib.request
 import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,9 @@ class EdinetDataLoader:
         """
         if not force_update and self.edinet_codes_file.exists():
             # Check if file is recent (less than 7 days old)
-            file_age = datetime.now().timestamp() - self.edinet_codes_file.stat().st_mtime
+            file_age = (
+                datetime.now(tz=timezone.utc).timestamp() - self.edinet_codes_file.stat().st_mtime
+            )
             if file_age < 7 * 24 * 3600:  # 7 days in seconds
                 logger.info("EDINET codes file is recent, skipping download")
                 return True
@@ -109,7 +111,7 @@ class EdinetDataLoader:
                         translations[row[0]] = row[1]
 
             logger.info(f"Loaded {len(translations)} translations")
-        except Exception as e:
+        except (OSError, csv.Error) as e:
             logger.error(f"Error loading translations: {e}")
 
         return translations
@@ -223,7 +225,7 @@ class EdinetDataLoader:
 
             return companies
 
-        except Exception as e:
+        except (OSError, csv.Error, ValueError, TypeError, KeyError) as e:
             logger.error(f"Error processing EDINET data: {e}")
             return []
 
@@ -237,7 +239,7 @@ class EdinetDataLoader:
                     writer.writeheader()
                     writer.writerows(companies)
             logger.info(f"Saved processed data to {self.processed_data_file}")
-        except Exception as e:
+        except (OSError, csv.Error) as e:
             logger.error(f"Error saving processed data: {e}")
 
     def load_processed_data(self) -> list[dict]:
@@ -256,7 +258,7 @@ class EdinetDataLoader:
 
             logger.info(f"Loaded {len(companies)} companies from processed data")
             return companies
-        except Exception as e:
+        except (OSError, csv.Error, ValueError, TypeError, KeyError) as e:
             logger.error(f"Error loading processed data: {e}")
             return []
 
@@ -277,10 +279,11 @@ class EdinetDataLoader:
                 return companies
 
         # Download and process if needed
-        if force_update or not self.edinet_codes_file.exists():
-            if not self.download_edinet_codes(force_update=force_update):
-                logger.error("Failed to download EDINET codes")
-                return []
+        if (force_update or not self.edinet_codes_file.exists()) and not self.download_edinet_codes(
+            force_update=force_update
+        ):
+            logger.error("Failed to download EDINET codes")
+            return []
 
         # Process the data
         return self.process_edinet_data()

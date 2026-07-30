@@ -2,31 +2,35 @@
 
 import io
 import zipfile
-import pytest
 from datetime import date
 from unittest.mock import MagicMock
 
+import pytest
+
 from edinet_tools.parsers import parse
 from edinet_tools.parsers.generic import RawReport
-from edinet_tools.parsers.shelf_registration import (
-    ShelfRegistrationReport,
-    parse_shelf_registration,
-    ELEMENT_MAP as SHELF_ELEMENT_MAP,
-)
 from edinet_tools.parsers.issuance_notification import (
     IssuanceNotificationReport,
     parse_issuance_notification,
 )
 from edinet_tools.parsers.issuance_supplementary import (
+    ELEMENT_MAP as SUPP_ELEMENT_MAP,
+)
+from edinet_tools.parsers.issuance_supplementary import (
     IssuanceSupplementaryReport,
     parse_issuance_supplementary,
-    ELEMENT_MAP as SUPP_ELEMENT_MAP,
 )
 from edinet_tools.parsers.issuance_withdrawal import (
     IssuanceWithdrawalReport,
     parse_issuance_withdrawal,
 )
-
+from edinet_tools.parsers.shelf_registration import (
+    ELEMENT_MAP as SHELF_ELEMENT_MAP,
+)
+from edinet_tools.parsers.shelf_registration import (
+    ShelfRegistrationReport,
+    parse_shelf_registration,
+)
 
 # --- Routing tests ---
 

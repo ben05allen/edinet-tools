@@ -10,21 +10,20 @@ IMPORTANT: Income statement data is year-to-date cumulative, not quarterly-only.
 """
 
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
 from datetime import date
-from typing import Any, Optional
+from decimal import Decimal, InvalidOperation
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
-    extract_csv_from_zip,
-    extract_value,
     categorize_elements,
-    get_context_patterns,
+    extract_csv_from_zip,
     extract_financial,
-    parse_percentage,
+    extract_value,
+    get_context_patterns,
     parse_date,
+    parse_percentage,
 )
-
 
 # XBRL Element ID mappings for Doc 140 (Quarterly Reports)
 ELEMENT_MAP = {
@@ -126,7 +125,7 @@ class QuarterlyReport(ParsedReport):
         return f"QuarterlyReport(filer='{filer}', {q} FY{fy})"
 
 
-def _derive_quarter_number(filing_date: date, fiscal_year_end: date) -> Optional[int]:
+def _derive_quarter_number(filing_date: date, fiscal_year_end: date) -> int | None:
     """
     Derive quarter number (1, 2, or 3) from filing date and fiscal year end.
 

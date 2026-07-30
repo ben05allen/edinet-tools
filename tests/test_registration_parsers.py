@@ -2,9 +2,10 @@
 
 import io
 import zipfile
-import pytest
 from datetime import date
 from unittest.mock import MagicMock
+
+import pytest
 
 from edinet_tools.parsers import parse
 from edinet_tools.parsers.generic import RawReport
@@ -13,15 +14,16 @@ from edinet_tools.parsers.securities_notification import (
     parse_securities_notification,
 )
 from edinet_tools.parsers.securities_registration import (
+    ELEMENT_MAP as REG_ELEMENT_MAP,
+)
+from edinet_tools.parsers.securities_registration import (
     SecuritiesRegistrationReport,
     parse_securities_registration,
-    ELEMENT_MAP as REG_ELEMENT_MAP,
 )
 from edinet_tools.parsers.securities_withdrawal import (
     SecuritiesWithdrawalReport,
     parse_securities_withdrawal,
 )
-
 
 # --- Routing tests ---
 

@@ -12,7 +12,6 @@ from typing import Any
 from .base import ParsedReport
 from .extraction import extract_csv_from_zip, extract_value
 
-
 # Common DEI elements found across most document types
 COMMON_DEI_ELEMENTS = {
     "edinet_code": "jpdei_cor:EDINETCodeDEI",

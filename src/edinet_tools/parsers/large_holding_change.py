@@ -14,16 +14,15 @@ API. This parser exists for completeness — if a 370 filing ever appears, it
 will be captured with typed routing rather than falling to parse_raw.
 """
 
-from typing import Any
 from dataclasses import dataclass
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
 )
-
 
 # Common DEI elements available across all filing types.
 # Enrich this map after inspecting real Doc 370 filings if they emerge.

@@ -15,12 +15,11 @@ by header name (trying both language variants) so it works against either
 variant and fails loudly if a column is ever renamed.
 """
 
+import csv
+import glob
+import re
 from enum import Enum
 from pathlib import Path
-import csv
-import re
-import glob
-
 
 # --- CSV schema resolution ---------------------------------------------------
 #

@@ -2,17 +2,19 @@
 Tests for edinet_tools.client module (EdinetClient functionality).
 """
 
-import pytest
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 from edinet_tools.client import EdinetClient
 from edinet_tools.exceptions import (
-    ConfigurationError,
-    CompanyNotFoundError,
+    APIError,
     AuthenticationError,
+    CompanyNotFoundError,
+    ConfigurationError,
     DocumentNotFoundError,
 )
 
@@ -136,7 +138,7 @@ class TestDocumentMethods:
     @patch("edinet_tools.client.fetch_documents_list")
     def test_get_documents_api_error(self, mock_fetch):
         """Test API error handling in document retrieval."""
-        mock_fetch.side_effect = Exception("401 Unauthorized")
+        mock_fetch.side_effect = APIError("401 Unauthorized", status_code=401)
 
         with pytest.raises(AuthenticationError):
             self.client.get_documents_by_date("2024-01-01")

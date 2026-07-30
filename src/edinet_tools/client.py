@@ -5,28 +5,29 @@ Note: For v0.2+, prefer using module-level functions (e.g., edinet.entity(),
 edinet.documents(), doc.parse()) instead of EdinetClient methods directly.
 """
 
-import os
 import datetime
 import functools
 import json
+import logging
+import os
 import warnings
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Union
-import logging
+from typing import Any
 
-from .api import fetch_documents_list, fetch_document
+from .api import fetch_document, fetch_documents_list
 from .config import SUPPORTED_DOC_TYPES as DOCUMENT_TYPES
-from .utils import process_zip_file
-from .data import resolve_company, search_companies as search_companies_data, get_company_info
+from .data import get_company_info, resolve_company
+from .data import search_companies as search_companies_data
 from .exceptions import (
-    AuthenticationError,
-    DocumentNotFoundError,
-    CompanyNotFoundError,
-    ProcessingError,
-    ConfigurationError,
     APIError,
+    AuthenticationError,
+    CompanyNotFoundError,
+    ConfigurationError,
+    DocumentNotFoundError,
+    ProcessingError,
     suggest_companies,
 )
+from .utils import process_zip_file
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ class EdinetClient:
         >>> client.download_filing(filings[0]["docID"])
     """
 
-    def __init__(self, api_key: Optional[str] = None, download_dir: str = "./downloads"):
+    def __init__(self, api_key: str | None = None, download_dir: str = "./downloads"):
         """
         Initialize EDINET client.
 
@@ -105,8 +106,8 @@ class EdinetClient:
 
     @_deprecated(replacement="documents(date) (from edinet_tools._client)")
     def get_documents_by_date(
-        self, date: Union[str, datetime.date], doc_type: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, date: str | datetime.date, doc_type: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get all documents submitted on a specific date.
 
@@ -126,7 +127,7 @@ class EdinetClient:
 
             return documents
 
-        except Exception as e:
+        except (APIError, AuthenticationError) as e:
             logger.error(f"Error fetching documents for {date}: {e}")
             if "401" in str(e) or "unauthorized" in str(e).lower():
                 raise AuthenticationError()
@@ -137,8 +138,8 @@ class EdinetClient:
 
     @_deprecated(replacement="documents(date) (from edinet_tools._client)")
     def get_recent_filings(
-        self, days_back: int = 7, doc_types: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
+        self, days_back: int = 7, doc_types: list[str] | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get recent filings across all companies.
 
@@ -158,7 +159,7 @@ class EdinetClient:
             stacklevel=2,
         )
         all_filings = []
-        end_date = datetime.date.today()
+        end_date = datetime.date.today()  # noqa: DTZ011 — deprecated method, not worth fixing
 
         for i in range(days_back):
             check_date = end_date - datetime.timedelta(days=i)
@@ -170,7 +171,7 @@ class EdinetClient:
                     ]
                 all_filings.extend(daily_filings)
 
-            except Exception as e:
+            except (APIError, AuthenticationError) as e:
                 logger.warning(f"Could not fetch filings for {check_date}: {e}")
                 continue
 
@@ -180,8 +181,8 @@ class EdinetClient:
 
     @_deprecated(replacement="Entity.documents(doc_type=..., days=...)")
     def get_company_filings(
-        self, company_identifier: str, days_back: int = 30, doc_types: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
+        self, company_identifier: str, days_back: int = 30, doc_types: list[str] | None = None
+    ) -> list[dict[str, Any]]:
         """
         Get recent filings for a specific company.
 
@@ -213,7 +214,7 @@ class EdinetClient:
         return company_filings
 
     @_deprecated(replacement="search_entities(query, limit=...) from edinet_tools.entity")
-    def search_companies(self, query: str) -> List[Dict[str, Any]]:
+    def search_companies(self, query: str) -> list[dict[str, Any]]:
         """
         Search for companies by name or ticker.
 
@@ -233,12 +234,12 @@ class EdinetClient:
         )
         try:
             return search_companies_data(query)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — defensive catch for data module init failures
             logger.error(f"Error searching companies: {e}")
             return []
 
     @_deprecated(replacement="Document.fetch() (from edinet_tools._client)")
-    def download_filing_raw(self, doc_id: str, raise_on_error: bool = True) -> Optional[bytes]:
+    def download_filing_raw(self, doc_id: str, raise_on_error: bool = True) -> bytes | None:
         """
         Download a filing and return raw ZIP bytes without processing or saving to disk.
 
@@ -311,7 +312,7 @@ class EdinetClient:
             if raise_on_error:
                 raise
             return None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — api.fetch_document raises bare Exception for EDINET errors
             logger.error(f"Error downloading filing {doc_id}: {e}")
             if not raise_on_error:
                 return None
@@ -327,9 +328,9 @@ class EdinetClient:
         self,
         doc_id: str,
         extract_data: bool = True,
-        doc_type_code: Optional[str] = None,
+        doc_type_code: str | None = None,
         raise_on_error: bool = True,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Download and optionally process a specific filing.
 
@@ -428,7 +429,7 @@ class EdinetClient:
                 raise
             else:
                 return None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — api.fetch_document raises bare Exception for EDINET errors
             logger.error(f"Error downloading filing {doc_id}: {e}")
             if not raise_on_error:
                 return None
@@ -442,11 +443,11 @@ class EdinetClient:
     @_deprecated(replacement="[Document.fetch() in a loop or async batch]")
     def download_filings_batch(
         self,
-        doc_ids: List[str],
+        doc_ids: list[str],
         extract_data: bool = True,
-        doc_type_code: Optional[str] = None,
+        doc_type_code: str | None = None,
         raise_on_error: bool = False,
-    ) -> List[Optional[Dict[str, Any]]]:
+    ) -> list[dict[str, Any] | None]:
         """
         Download multiple filings with configurable error handling.
 
@@ -526,8 +527,8 @@ class EdinetClient:
         replacement="parsers.parse(document) for typed extraction, or extract_csv_from_zip for raw CSV"
     )
     def extract_filing_data(
-        self, zip_path: str, doc_type_code: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, zip_path: str, doc_type_code: str | None = None
+    ) -> dict[str, Any] | None:
         """
         Extract structured data from a downloaded filing ZIP file.
 
@@ -552,11 +553,11 @@ class EdinetClient:
 
             return structured_data
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — defensive catch-all wrapping in ProcessingError
             logger.error(f"Error extracting data from {zip_path}: {e}")
             raise ProcessingError(f"Failed to extract data from {zip_path}", doc_id, str(e))
 
-    def get_document_types(self) -> Dict[str, str]:
+    def get_document_types(self) -> dict[str, str]:
         """Get mapping of document type codes to descriptions."""
         return DOCUMENT_TYPES.copy()
 
@@ -582,7 +583,7 @@ class EdinetClient:
             logger.error(f"Error resolving company identifier '{identifier}': {e}")
             raise
 
-    def _determine_document_type(self, csv_data: List[Dict], filename: str) -> str:
+    def _determine_document_type(self, csv_data: list[dict], filename: str) -> str:
         """
         Determine document type code from CSV data or filename.
 

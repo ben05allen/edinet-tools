@@ -2,8 +2,10 @@
 
 import io
 import zipfile
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from edinet_tools.parsers import parse
 from edinet_tools.parsers.generic import RawReport
 

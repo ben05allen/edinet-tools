@@ -3,18 +3,19 @@
 import csv as _csv_module
 import warnings
 from pathlib import Path as _Path
+from unittest.mock import Mock, patch
 
 import pytest
-from unittest.mock import Mock, patch
+
 from edinet_tools.entity import (
     Entity,
-    entity,
-    entity_by_ticker,
-    entity_by_edinet_code,
-    search_entities,
     Fund,
+    entity,
+    entity_by_edinet_code,
+    entity_by_ticker,
     fund,
     funds_by_issuer,
+    search_entities,
 )
 
 
@@ -493,8 +494,9 @@ def test_search_toyota_still_works():
 
 def test_search_exact_match_is_fast():
     """Performance canary: exact-match path completes in under 0.1s for 100 calls."""
-    import edinet_tools
     import time
+
+    import edinet_tools
 
     # Warm-up to ensure classifier is loaded (load time isn't what we're measuring)
     edinet_tools.search_entities("Toyota Motor Corporation", limit=1)
@@ -587,8 +589,9 @@ def test_entity_by_ticker_unknown_returns_none():
 
 def test_entity_by_ticker_is_fast():
     """Performance canary: 100 lookups under 0.1s (was O(N) scan over 11k rows)."""
-    import edinet_tools
     import time
+
+    import edinet_tools
 
     # Warm-up
     edinet_tools.entity_by_ticker("7203")

@@ -6,10 +6,11 @@ Run with: pytest -m integration
 Budget: 8-10 API calls per test run to respect API limits.
 """
 
-import pytest
 from datetime import date, timedelta
 
-from edinet_tools.api import fetch_documents_list, fetch_document, get_documents_for_date_range
+import pytest
+
+from edinet_tools.api import fetch_document, fetch_documents_list, get_documents_for_date_range
 
 
 @pytest.mark.integration
@@ -19,6 +20,7 @@ class TestRealAPIContracts:
     def setup_method(self):
         """Set up API key for integration tests"""
         import os
+
         from dotenv import load_dotenv
 
         # Load .env file to get API key
@@ -39,7 +41,7 @@ class TestRealAPIContracts:
         # Debug: Show exactly what key is being found and where it's coming from
         print(f"🔑 EDINET_API_KEY found (length: {len(self.api_key)} chars)")
         print(f"   Key preview: '{self.api_key[:12]}...' (showing first 12 chars)")
-        print(f"   Key repr: {repr(self.api_key)}")
+        print(f"   Key repr: {self.api_key!r}")
 
         # Check multiple sources to see where it might be coming from
         import os
@@ -244,6 +246,7 @@ class TestCriticalDocumentTypeRetrieval:
     def setup_method(self):
         """Set up API key for integration tests"""
         import os
+
         from dotenv import load_dotenv
 
         # Load .env file to get API key
@@ -264,7 +267,7 @@ class TestCriticalDocumentTypeRetrieval:
         # Debug: Show exactly what key is being found and where it's coming from
         print(f"🔑 EDINET_API_KEY found (length: {len(self.api_key)} chars)")
         print(f"   Key preview: '{self.api_key[:12]}...' (showing first 12 chars)")
-        print(f"   Key repr: {repr(self.api_key)}")
+        print(f"   Key repr: {self.api_key!r}")
 
         # Check multiple sources to see where it might be coming from
         import os

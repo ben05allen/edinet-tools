@@ -9,98 +9,93 @@ __author__ = "Matt Helmer"
 __description__ = "Python package for accessing Japanese corporate financial data from EDINET"
 
 # Core API
-from .client import EdinetClient  # Deprecated, but kept for migration
 from ._client import configure, documents, fetch_and_parse
-from .timezone import today_jst
+from .client import EdinetClient  # Deprecated, but kept for migration
 from .config import SUPPORTED_DOC_TYPES as DOCUMENT_TYPES
-
-# Entity classification
-from .entity_classifier import EntityClassifier, EntityType
+from .doc_types import DocType, doc_type, doc_types, list_doc_types
+from .document import Document
 
 # Entity-first API
 from .entity import (
     Entity,
+    Fund,
     entity,
-    entity_by_ticker,
-    entity_by_edinet_code,
     entity_by_code,  # Shorter alias
     entity_by_corporate_number,
-    search_entities,
-    search,
-    Fund,
+    entity_by_edinet_code,
+    entity_by_ticker,
     fund,
     funds_by_issuer,
+    search,
+    search_entities,
 )
+
+# Entity classification
+from .entity_classifier import EntityClassifier, EntityType
 from .normalize import normalize_for_matching
-from .document import Document
-from .doc_types import DocType, doc_type, list_doc_types, doc_types
 
 # Parsers
 from .parsers import (
+    ConfirmationReport,
+    ExtraordinaryReport,
+    GenericReport,  # Backwards compatibility alias
+    InternalControlReport,
+    LargeHoldingChangeReport,
+    LargeHoldingReport,
+    ParentCompanyReport,
+    ParsedReport,
+    QuarterlyReport,
+    RawReport,
+    SecuritiesReport,
+    SemiAnnualReport,
+    TenderOfferReport,
+    TreasuryStockReport,
     parse,
     supported_doc_types,
-    ParsedReport,
-    RawReport,
-    LargeHoldingReport,
-    SecuritiesReport,
-    QuarterlyReport,
-    SemiAnnualReport,
-    ExtraordinaryReport,
-    TreasuryStockReport,
-    TenderOfferReport,
-    InternalControlReport,
-    ConfirmationReport,
-    ParentCompanyReport,
-    LargeHoldingChangeReport,
-    GenericReport,  # Backwards compatibility alias
 )
+from .timezone import today_jst
 
 __all__ = [
-    # Configuration
-    "configure",
-    "documents",
-    "fetch_and_parse",
-    "today_jst",
     "DOCUMENT_TYPES",
-    "__version__",
-    # Entity lookup
-    "Entity",
-    "entity",
-    "entity_by_ticker",
-    "entity_by_edinet_code",
-    "entity_by_code",  # Shorter alias
-    "entity_by_corporate_number",
-    "search_entities",
-    "search",
-    "Fund",
-    "fund",
-    "funds_by_issuer",
-    "normalize_for_matching",
-    # Documents
-    "Document",
-    "DocType",
-    "doc_type",
-    "list_doc_types",
-    "doc_types",
-    # Parsers
-    "parse",
-    "supported_doc_types",
-    "ParsedReport",
-    "RawReport",
-    "LargeHoldingReport",
-    "SecuritiesReport",
-    "QuarterlyReport",
-    "SemiAnnualReport",
-    "ExtraordinaryReport",
-    "TreasuryStockReport",
-    "TenderOfferReport",
-    "InternalControlReport",
     "ConfirmationReport",
-    "ParentCompanyReport",
-    "LargeHoldingChangeReport",
-    # Legacy (deprecated)
+    "DocType",
+    "Document",
     "EdinetClient",
+    "Entity",
     "EntityClassifier",
     "EntityType",
-    "GenericReport",  # Backwards compatibility alias
+    "ExtraordinaryReport",
+    "Fund",
+    "GenericReport",
+    "InternalControlReport",
+    "LargeHoldingChangeReport",
+    "LargeHoldingReport",
+    "ParentCompanyReport",
+    "ParsedReport",
+    "QuarterlyReport",
+    "RawReport",
+    "SecuritiesReport",
+    "SemiAnnualReport",
+    "TenderOfferReport",
+    "TreasuryStockReport",
+    "__version__",
+    "configure",
+    "doc_type",
+    "doc_types",
+    "documents",
+    "entity",
+    "entity_by_code",
+    "entity_by_corporate_number",
+    "entity_by_edinet_code",
+    "entity_by_ticker",
+    "fetch_and_parse",
+    "fund",
+    "funds_by_issuer",
+    "list_doc_types",
+    "normalize_for_matching",
+    "parse",
+    "search",
+    "search_entities",
+    "supported_doc_types",
+    "today_jst",
 ]

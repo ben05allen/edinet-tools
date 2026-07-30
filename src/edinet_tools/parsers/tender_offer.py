@@ -10,21 +10,20 @@ Doc 240: Original tender offer registration
 Doc 250: Amendment to tender offer registration
 """
 
-from typing import Any
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
     parse_date,
     parse_int,
     parse_percentage,
 )
-
 
 # XBRL Element ID mappings for Doc 240/250
 # Namespace: jptoo-ton_cor (Japanese Public Tender Offer)

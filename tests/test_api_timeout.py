@@ -1,10 +1,10 @@
 """Tests for API timeout and exponential backoff."""
 
 import unittest
-from unittest.mock import patch, MagicMock
 import urllib.error
+from unittest.mock import MagicMock, patch
 
-from edinet_tools.api import fetch_documents_list, fetch_document
+from edinet_tools.api import fetch_document, fetch_documents_list
 
 
 class TestApiTimeoutAndBackoff(unittest.TestCase):

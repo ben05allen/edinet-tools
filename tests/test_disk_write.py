@@ -4,7 +4,6 @@ import io
 import zipfile
 from pathlib import Path
 
-
 from edinet_tools.parsers.extraction import extract_csv_to_disk
 
 
@@ -17,7 +16,7 @@ def _make_test_zip(csv_content: str, csv_name: str = "jpcrp030000-asr-001_test.c
 
 def _sample_csv_content() -> str:
     # Note: extractor parses all rows as data, so we omit the literal header line
-    row1 = "\t".join(
+    row1 = "\t".join(  # noqa: FLY002 — list-join is clearer for TSV rows
         [
             "jpdei_cor:EDINETCodeDEI",
             "EDINETコード、DEI",
@@ -30,7 +29,7 @@ def _sample_csv_content() -> str:
             "E12345",
         ]
     )
-    row2 = "\t".join(
+    row2 = "\t".join(  # noqa: FLY002 — list-join is clearer for TSV rows
         [
             "jpcrp_cor:NetSales",
             "売上高",
@@ -43,7 +42,7 @@ def _sample_csv_content() -> str:
             "1000000000",
         ]
     )
-    return "\n".join([row1, row2])
+    return f"{row1}\n{row2}"
 
 
 def test_extract_csv_to_disk_writes_files(tmp_path):

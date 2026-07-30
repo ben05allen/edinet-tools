@@ -10,9 +10,9 @@ import logging
 import unicodedata
 import zipfile
 from datetime import date, datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from ._facts import Fact
 
@@ -48,14 +48,14 @@ def extract_csv_from_zip(zip_bytes: bytes) -> list[dict[str, Any]]:
                     csv_data = _read_csv_from_zip(zf, name)
                     if csv_data:
                         csv_files.append({"filename": name.split("/")[-1], "data": csv_data})
-                except Exception as e:
+                except (KeyError, OSError, TypeError) as e:
                     logger.warning(f"Failed to read CSV {name}: {e}")
                     continue
 
     except zipfile.BadZipFile as e:
         logger.error(f"Invalid ZIP file: {e}")
         return []
-    except Exception as e:
+    except (OSError, TypeError) as e:
         logger.error(f"Error extracting ZIP: {e}")
         return []
 
@@ -74,8 +74,7 @@ def _read_csv_from_zip(zf: zipfile.ZipFile, name: str) -> list[dict[str, Any]]:
         try:
             decoded = raw_bytes.decode(encoding)
             # Remove BOM if present
-            if decoded.startswith("\ufeff"):
-                decoded = decoded[1:]
+            decoded = decoded.removeprefix("\ufeff")
             content = decoded
             break
         except (UnicodeDecodeError, UnicodeError):
@@ -108,7 +107,7 @@ def _read_csv_from_zip(zf: zipfile.ZipFile, name: str) -> list[dict[str, Any]]:
                         "値": cleaned[8],  # value
                     }
                 )
-    except Exception as e:
+    except (csv.Error, ValueError, TypeError) as e:
         logger.warning(f"Error parsing CSV {name}: {e}")
         return []
 
@@ -130,7 +129,7 @@ def _clean_value(value: str) -> str:
 # --- Parsing utilities ---
 
 
-def parse_percentage(value: Any) -> Optional[Decimal]:
+def parse_percentage(value: Any) -> Decimal | None:
     """
     Parse percentage/ratio value to Decimal.
 
@@ -148,15 +147,15 @@ def parse_percentage(value: Any) -> Optional[Decimal]:
         try:
             cleaned = value.replace("%", "").strip()
             return Decimal(cleaned)
-        except Exception:
+        except (ValueError, TypeError, InvalidOperation):
             return None
     try:
         return Decimal(str(value))
-    except Exception:
+    except (ValueError, TypeError, InvalidOperation):
         return None
 
 
-def parse_int(value: Any) -> Optional[int]:
+def parse_int(value: Any) -> int | None:
     """
     Parse integer, handling Japanese formatting.
 
@@ -173,16 +172,16 @@ def parse_int(value: Any) -> Optional[int]:
         if not value or value in ("－", "―", "-", "—"):
             return None
         try:
-            return int(round(float(value)))
-        except Exception:
+            return round(float(value))
+        except (ValueError, TypeError):
             return None
     try:
         return int(value)
-    except Exception:
+    except (ValueError, TypeError):
         return None
 
 
-def parse_date(value: Any) -> Optional[date]:
+def parse_date(value: Any) -> date | None:
     """
     Parse date from various formats.
 
@@ -205,15 +204,15 @@ def parse_date(value: Any) -> Optional[date]:
         # Try standard formats
         for fmt in ("%Y-%m-%d", "%Y/%m/%d"):
             try:
-                return datetime.strptime(value, fmt).date()
+                return datetime.strptime(value, fmt).date()  # noqa: DTZ007 — EDINET dates have no timezone
             except ValueError:
                 continue
 
         # Try Japanese format (2025年11月20日)
         try:
             cleaned = value.replace("年", "-").replace("月", "-").replace("日", "")
-            return datetime.strptime(cleaned, "%Y-%m-%d").date()
-        except Exception:
+            return datetime.strptime(cleaned, "%Y-%m-%d").date()  # noqa: DTZ007 — EDINET dates have no timezone
+        except ValueError:
             pass
 
     return None
@@ -223,8 +222,8 @@ def extract_value(
     csv_files: list,
     element_id: str,
     get_last: bool = False,
-    context_patterns: Optional[list[str]] = None,
-) -> Optional[str]:
+    context_patterns: list[str] | None = None,
+) -> str | None:
     """
     Extract value from csv_files by XBRL element ID.
 
@@ -299,8 +298,8 @@ def extract_financial(
     element_id: str,
     period: str,
     is_consolidated: bool | None,
-    ifrs_fallback_map: Optional[dict[str, Any]] = None,
-) -> Optional[int]:
+    ifrs_fallback_map: dict[str, Any] | None = None,
+) -> int | None:
     """
     Extract financial value with context preference and optional IFRS fallback.
 
@@ -356,7 +355,7 @@ def extract_financial(
 
 def categorize_elements(
     csv_files: list,
-    element_map: Optional[dict[str, str]] = None,
+    element_map: dict[str, str] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], list[Fact]]:
     """
     Categorize all elements from csv_files into four buckets.
@@ -586,6 +585,6 @@ def coerce_int(value) -> int | None:
     # Strip comma separators (e.g. '1,000,000' -> '1000000')
     cleaned = normalized.replace(",", "")
     try:
-        return int(round(float(cleaned)))
+        return round(float(cleaned))
     except ValueError:
         return None

@@ -9,18 +9,17 @@ Doc 290: Original statement of opinion report
 Doc 300: Amendment to statement of opinion report
 """
 
-from typing import Any
 from dataclasses import dataclass
 from datetime import date
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
+    categorize_elements,
     extract_csv_from_zip,
     extract_value,
-    categorize_elements,
     parse_date,
 )
-
 
 # XBRL Element ID mappings for Doc 290/300
 # Namespace: jptoo-pst_cor (Japanese Public Tender Offer — Position Statement)

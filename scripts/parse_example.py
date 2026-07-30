@@ -7,16 +7,17 @@ Usage:
 
 import re
 import sys
+import urllib.error
 from types import SimpleNamespace
 
+from edinet_tools import doc_type
 from edinet_tools.api import fetch_document, fetch_documents_list
 from edinet_tools.parsers import parse
-from edinet_tools import doc_type
 
 
 def lookup_doc_type(doc_id):
-    from datetime import date, timedelta
     import time
+    from datetime import date, timedelta
 
     d = date.today()
     end = d - timedelta(days=90)
@@ -26,7 +27,7 @@ def lookup_doc_type(doc_id):
             for doc in result.get("results", []):
                 if doc.get("docID") == doc_id:
                     return doc["docTypeCode"]
-        except Exception:
+        except (urllib.error.URLError, OSError):
             pass
         d -= timedelta(days=1)
         time.sleep(0.3)

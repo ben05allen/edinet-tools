@@ -5,9 +5,10 @@ Usage: python scripts/inspect_doc_type.py --doc-type 130 --samples 5
 
 import argparse
 import time
+import urllib.error
 from datetime import date, timedelta
 
-from edinet_tools.api import fetch_documents_list, fetch_document
+from edinet_tools.api import fetch_document, fetch_documents_list
 from edinet_tools.parsers.extraction import extract_csv_from_zip
 
 
@@ -30,7 +31,7 @@ def find_samples(doc_type_code: str, num_samples: int = 5, days_back: int = 365)
                     )
                     if len(samples) >= num_samples:
                         break
-        except Exception as e:
+        except (urllib.error.URLError, OSError) as e:
             print(f"  Error on {d}: {e}")
         d -= timedelta(days=1)
         time.sleep(0.5)
@@ -113,7 +114,7 @@ if __name__ == "__main__":
                 elements = inspect_elements(sample["docID"])
                 element_lists.append(elements)
                 print(f"  {len(elements)} unique elements")
-            except Exception as e:
+            except (urllib.error.URLError, OSError) as e:
                 print(f"  Error: {e}")
 
         samples_by_type[dt] = element_lists

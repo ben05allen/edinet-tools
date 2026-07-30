@@ -6,16 +6,16 @@ ZIP handling, encoding detection, CSV parsing, directory processing.
 """
 
 import os
-import tempfile
 import shutil
+import tempfile
 import zipfile
 from unittest.mock import patch
 
 from edinet_tools.utils import (
-    read_csv_file,
     clean_text,
-    process_zip_file,
     process_zip_directory,
+    process_zip_file,
+    read_csv_file,
 )
 
 
@@ -458,9 +458,7 @@ jpcrp_cor:TestData\tTest\tDoc Type {doc_type}"""
         for zip_name, doc_type in zip_files:
             zip_path = os.path.join(self.temp_dir, zip_name)
             with zipfile.ZipFile(zip_path, "w") as zf:
-                zf.writestr(
-                    "data.csv", f"要素ID\t値\njpcrp_cor:DocType\t{doc_type}\n".encode("utf-8")
-                )
+                zf.writestr("data.csv", f"要素ID\t値\njpcrp_cor:DocType\t{doc_type}\n".encode())
 
         with patch("edinet_tools.utils.process_raw_csv_data") as mock_process:
             mock_process.return_value = {"processed": True}

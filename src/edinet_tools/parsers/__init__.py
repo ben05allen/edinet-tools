@@ -5,31 +5,30 @@ Provides typed parsers for known document types and a raw fallback.
 """
 
 from .base import ParsedReport
-from .generic import RawReport, parse_raw, GenericReport, parse_generic  # noqa: F401
-from .large_holding import LargeHoldingReport, JointHolder, parse_large_holding
-from .securities import SecuritiesReport, parse_securities_report
-from .quarterly import QuarterlyReport, parse_quarterly_report
-from .semi_annual import SemiAnnualReport, parse_semi_annual_report
-from .extraordinary import ExtraordinaryReport, parse_extraordinary_report
-from .treasury_stock import TreasuryStockReport, parse_treasury_stock_report
-from .tender_offer import TenderOfferReport, parse_tender_offer
-from .tender_offer_report import TenderOfferResultReport, parse_tender_offer_report
-from .tender_offer_withdrawal import TenderOfferWithdrawalReport, parse_tender_offer_withdrawal
-from .opinion_report import OpinionReport, parse_opinion_report
-from .question_response import QuestionResponseReport, parse_question_response
+from .confirmation import ConfirmationReport, parse_confirmation
 from .exemption_application import ExemptionApplicationReport, parse_exemption_application
+from .extraordinary import ExtraordinaryReport, parse_extraordinary_report
+from .generic import GenericReport, RawReport, parse_generic, parse_raw  # noqa: F401
+from .internal_control import InternalControlReport, parse_internal_control
+from .issuance_notification import IssuanceNotificationReport, parse_issuance_notification
+from .issuance_supplementary import IssuanceSupplementaryReport, parse_issuance_supplementary
+from .issuance_withdrawal import IssuanceWithdrawalReport, parse_issuance_withdrawal
+from .large_holding import JointHolder, LargeHoldingReport, parse_large_holding
+from .large_holding_change import LargeHoldingChangeReport, parse_large_holding_change
+from .opinion_report import OpinionReport, parse_opinion_report
+from .parent_company import ParentCompanyReport, parse_parent_company
+from .quarterly import QuarterlyReport, parse_quarterly_report
+from .question_response import QuestionResponseReport, parse_question_response
+from .securities import SecuritiesReport, parse_securities_report
 from .securities_notification import SecuritiesNotificationReport, parse_securities_notification
 from .securities_registration import SecuritiesRegistrationReport, parse_securities_registration
 from .securities_withdrawal import SecuritiesWithdrawalReport, parse_securities_withdrawal
-from .issuance_notification import IssuanceNotificationReport, parse_issuance_notification
+from .semi_annual import SemiAnnualReport, parse_semi_annual_report
 from .shelf_registration import ShelfRegistrationReport, parse_shelf_registration
-from .issuance_supplementary import IssuanceSupplementaryReport, parse_issuance_supplementary
-from .issuance_withdrawal import IssuanceWithdrawalReport, parse_issuance_withdrawal
-from .internal_control import InternalControlReport, parse_internal_control
-from .confirmation import ConfirmationReport, parse_confirmation
-from .parent_company import ParentCompanyReport, parse_parent_company
-from .large_holding_change import LargeHoldingChangeReport, parse_large_holding_change
-
+from .tender_offer import TenderOfferReport, parse_tender_offer
+from .tender_offer_report import TenderOfferResultReport, parse_tender_offer_report
+from .tender_offer_withdrawal import TenderOfferWithdrawalReport, parse_tender_offer_withdrawal
+from .treasury_stock import TreasuryStockReport, parse_treasury_stock_report
 
 # Doc type codes that have typed parsers (not raw fallback).
 # Kept as a frozenset so supported_doc_types() can return it without
@@ -161,34 +160,33 @@ def supported_doc_types() -> list[str]:
 
 
 __all__ = [
-    "parse",
-    "supported_doc_types",
-    "ParsedReport",
-    "RawReport",
-    "LargeHoldingReport",
-    "JointHolder",
-    "SecuritiesReport",
-    "QuarterlyReport",
-    "SemiAnnualReport",
+    "ConfirmationReport",
+    "ExemptionApplicationReport",
     "ExtraordinaryReport",
-    "TreasuryStockReport",
+    "GenericReport",
+    "InternalControlReport",
+    "IssuanceNotificationReport",
+    "IssuanceSupplementaryReport",
+    "IssuanceWithdrawalReport",
+    "JointHolder",
+    "LargeHoldingChangeReport",
+    "LargeHoldingReport",
+    "OpinionReport",
+    "ParentCompanyReport",
+    "ParsedReport",
+    "QuarterlyReport",
+    "QuestionResponseReport",
+    "RawReport",
+    "SecuritiesNotificationReport",
+    "SecuritiesRegistrationReport",
+    "SecuritiesReport",
+    "SecuritiesWithdrawalReport",
+    "SemiAnnualReport",
+    "ShelfRegistrationReport",
     "TenderOfferReport",
     "TenderOfferResultReport",
     "TenderOfferWithdrawalReport",
-    "OpinionReport",
-    "QuestionResponseReport",
-    "ExemptionApplicationReport",
-    "SecuritiesNotificationReport",
-    "SecuritiesRegistrationReport",
-    "SecuritiesWithdrawalReport",
-    "IssuanceNotificationReport",
-    "ShelfRegistrationReport",
-    "IssuanceSupplementaryReport",
-    "IssuanceWithdrawalReport",
-    "InternalControlReport",
-    "ConfirmationReport",
-    "ParentCompanyReport",
-    "LargeHoldingChangeReport",
-    # Backwards compatibility
-    "GenericReport",
+    "TreasuryStockReport",
+    "parse",
+    "supported_doc_types",
 ]

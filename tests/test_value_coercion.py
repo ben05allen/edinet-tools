@@ -5,7 +5,7 @@ Per spec §3.5: handle EDINET's varied null-placeholder shapes:
 '' (empty). All should coerce to None when expecting numeric.
 """
 
-from edinet_tools.parsers.extraction import coerce_numeric_value, coerce_int, parse_int
+from edinet_tools.parsers.extraction import coerce_int, coerce_numeric_value, parse_int
 
 
 def test_coerce_numeric_value_handles_dash_placeholders():
