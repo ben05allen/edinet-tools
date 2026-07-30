@@ -98,6 +98,63 @@ jpcrp_cor:BusinessResultsTextBlock\t事業の状況\t当第2四半期連結累�
         # May return None, but should not raise exception
         # This is acceptable - we handle graceful degradation
 
+    def test_empty_file_returns_none(self):
+        """Empty file should return None, not crash"""
+        empty_file = os.path.join(self.temp_dir, "empty.csv")
+        with open(empty_file, "w", encoding="utf-8") as f:
+            f.write("")
+
+        result = read_csv_file(empty_file)
+        assert result is None
+
+    def test_header_only_returns_empty_list(self):
+        """File with headers but no data rows should return empty list"""
+        header_file = os.path.join(self.temp_dir, "header_only.csv")
+        with open(header_file, "w", encoding="utf-8") as f:
+            f.write("要素ID\t項目名\t値\n")
+
+        result = read_csv_file(header_file)
+        assert result is not None
+        assert result == []
+
+    def test_empty_string_values_become_none(self):
+        """Empty string values should be replaced with None"""
+        test_file = os.path.join(self.temp_dir, "empty_vals.csv")
+        with open(test_file, "w", encoding="utf-8") as f:
+            f.write(
+                "要素ID\t項目名\t値\njpcrp_cor:NetSales\t売上高\t1000000\njpcrp_cor:Loss\t損失\t\n"
+            )
+
+        records = read_csv_file(test_file)
+        assert records is not None
+        assert len(records) == 2
+        assert records[0]["値"] == "1000000"
+        assert records[1]["値"] is None
+
+    def test_whitespace_only_values_become_none(self):
+        """Whitespace-only values should be stripped to None"""
+        test_file = os.path.join(self.temp_dir, "whitespace_vals.csv")
+        with open(test_file, "w", encoding="utf-8") as f:
+            f.write("要素ID\t値\njpcrp_cor:NetSales\t  \njpcrp_cor:Loss\t\n")
+
+        records = read_csv_file(test_file)
+        assert records is not None
+        assert records[0]["値"] is None
+        assert records[1]["値"] is None
+
+    def test_mixed_line_endings(self):
+        """CSV with mixed line endings should parse correctly"""
+        test_file = os.path.join(self.temp_dir, "mixed_endings.csv")
+        content = "要素ID\t値\r\njpcrp_cor:A\t100\njpcrp_cor:B\t200\r\njpcrp_cor:C\t300\n"
+        with open(test_file, "wb") as f:
+            f.write(content.encode("utf-8"))
+
+        records = read_csv_file(test_file)
+        assert records is not None
+        assert len(records) == 3
+        assert records[0]["値"] == "100"
+        assert records[2]["値"] == "300"
+
 
 class TestZipFileProcessing:
     """Test ZIP file extraction and processing - critical for EDINET document downloads"""
@@ -401,7 +458,9 @@ jpcrp_cor:TestData\tTest\tDoc Type {doc_type}"""
         for zip_name, doc_type in zip_files:
             zip_path = os.path.join(self.temp_dir, zip_name)
             with zipfile.ZipFile(zip_path, "w") as zf:
-                zf.writestr("data.csv", f"doc_type,{doc_type}\n".encode("utf-8"))
+                zf.writestr(
+                    "data.csv", f"要素ID\t値\njpcrp_cor:DocType\t{doc_type}\n".encode("utf-8")
+                )
 
         with patch("edinet_tools.utils.process_raw_csv_data") as mock_process:
             mock_process.return_value = {"processed": True}

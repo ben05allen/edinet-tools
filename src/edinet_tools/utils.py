@@ -1,6 +1,6 @@
 # utils.py
+import csv
 import os
-import pandas as pd
 import re
 import tempfile
 import warnings
@@ -19,22 +19,37 @@ _EDINET_ENCODINGS = ["utf-16le", "utf-16", "utf-8", "shift-jis", "cp932"]
 
 
 def read_csv_file(file_path):
-    """Read a tab-separated CSV file trying known EDINET encodings."""
-    # Try known EDINET encodings in priority order.
-    # chardet on a small sample is unreliable for these files —
-    # a pure-ASCII header can be mis-detected as windows-1252,
-    # silently garbling later Japanese content.
+    """Read a tab-separated CSV file trying known EDINET encodings.
+
+    Returns a list of dicts (one per row), with empty strings replaced by None.
+    Returns None if no encoding works.
+    """
     for encoding in _EDINET_ENCODINGS:
-        if not encoding:
-            continue
         try:
-            # Use low_memory=False to avoid DtypeWarning on mixed types
-            df = pd.read_csv(file_path, encoding=encoding, sep="\t", dtype=str, low_memory=False)
+            with open(file_path, encoding=encoding, newline="") as f:
+                # Peek at first line to validate encoding produced readable content
+                first_line = f.readline()
+                if not first_line or "\t" not in first_line:
+                    # Not a valid TSV — wrong encoding produced garbage
+                    continue
+                f.seek(0)
+                reader = csv.DictReader(f, delimiter="\t")
+                records = []
+                for row in reader:
+                    # Strip BOM from first key if present (common in UTF-16 files)
+                    fixed = {}
+                    for i, (k, v) in enumerate(row.items()):
+                        key = k.lstrip("\ufeff") if i == 0 and k and k[0] == "\ufeff" else k
+                        fixed[key] = v.strip() or None
+                    records.append(fixed)
             logger.debug(f"Successfully read {Path(file_path).name} with encoding {encoding}")
-            # Replace NaN with None to handle missing values consistently
-            df = df.replace({float("nan"): None, "": None})
-            return df.to_dict(orient="records")  # Return as list of dictionaries
-        except (UnicodeDecodeError, pd.errors.EmptyDataError, pd.errors.ParserError) as e:
+            return records
+        except UnicodeDecodeError:
+            logger.debug(
+                f"Failed to read {Path(file_path).name} with encoding {encoding}: decode error"
+            )
+            continue
+        except csv.Error as e:
             logger.debug(f"Failed to read {Path(file_path).name} with encoding {encoding}: {e}")
             continue
         except Exception as e:
