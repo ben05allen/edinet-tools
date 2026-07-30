@@ -257,7 +257,7 @@ def extract_value(
     return result
 
 
-def get_context_patterns(is_consolidated: bool, period: str) -> list[str]:
+def get_context_patterns(is_consolidated: bool | None, period: str) -> list[str]:
     """
     Build context patterns in priority order for financial data extraction.
 
@@ -292,8 +292,8 @@ def extract_financial(
     csv_files: list,
     element_id: str,
     period: str,
-    is_consolidated: bool,
-    ifrs_fallback_map: Optional[dict[str, str | list[str]]] = None,
+    is_consolidated: bool | None,
+    ifrs_fallback_map: Optional[dict[str, Any]] = None,
 ) -> Optional[int]:
     """
     Extract financial value with context preference and optional IFRS fallback.

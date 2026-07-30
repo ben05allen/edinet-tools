@@ -9,6 +9,7 @@ Doc 290: Original statement of opinion report
 Doc 300: Amendment to statement of opinion report
 """
 
+from typing import Any
 from dataclasses import dataclass
 from datetime import date
 
@@ -104,7 +105,7 @@ class OpinionReport(ParsedReport):
 
 
 def parse_opinion_report(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> OpinionReport:
     """
     Parse a Statement of Opinion Report filing (Doc 290/300).

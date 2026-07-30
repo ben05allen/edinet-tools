@@ -8,6 +8,7 @@ filings have been inspected for their XBRL element names.
 Doc 050: Securities withdrawal document
 """
 
+from typing import Any
 from dataclasses import dataclass
 
 from .base import ParsedReport
@@ -52,7 +53,7 @@ class SecuritiesWithdrawalReport(ParsedReport):
 
 
 def parse_securities_withdrawal(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> SecuritiesWithdrawalReport:
     """
     Parse a Securities Withdrawal filing.

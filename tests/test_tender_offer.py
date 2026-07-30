@@ -325,6 +325,9 @@ class TestParseTenderOffer:
         doc = self._make_doc(rows=rows)
         report = parse_tender_offer(doc)
         assert report.target_name == "株式会社ローソン"
+        assert report.purpose_text is not None
+        assert report.price_text is not None
+        assert report.period_text is not None
         assert "目的" in report.purpose_text
         assert "10,360" in report.price_text
         assert "2024" in report.period_text

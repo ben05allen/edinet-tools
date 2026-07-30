@@ -10,6 +10,7 @@ Doc 240: Original tender offer registration
 Doc 250: Amendment to tender offer registration
 """
 
+from typing import Any
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -148,7 +149,7 @@ class TenderOfferReport(ParsedReport):
 
 
 def parse_tender_offer(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> TenderOfferReport:
     """
     Parse a Tender Offer Registration filing.

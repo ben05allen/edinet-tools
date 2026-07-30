@@ -9,6 +9,7 @@ Doc 220: Original report
 Doc 230: Amendment to treasury stock report
 """
 
+from typing import Any
 from dataclasses import dataclass
 from datetime import date
 
@@ -155,7 +156,7 @@ class TreasuryStockReport(ParsedReport):
 
 
 def parse_treasury_stock_report(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> TreasuryStockReport:
     """
     Parse a Treasury Stock Purchase Status Report.

@@ -14,7 +14,7 @@ class EdinetError(Exception):
 class APIError(EdinetError):
     """EDINET API related errors."""
 
-    def __init__(self, message: str, status_code: int = None, response_text: str = None):
+    def __init__(self, message: str, status_code: int | None = None, response_text: str | None = None):
         self.status_code = status_code
         self.response_text = response_text
         super().__init__(message)
@@ -23,7 +23,7 @@ class APIError(EdinetError):
 class AuthenticationError(APIError):
     """API authentication/authorization errors."""
 
-    def __init__(self, message: str = None):
+    def __init__(self, message: str | None = None):
         if not message:
             message = (
                 "EDINET API authentication failed. "
@@ -36,7 +36,7 @@ class AuthenticationError(APIError):
 class RateLimitError(APIError):
     """API rate limit exceeded errors."""
 
-    def __init__(self, message: str = None, retry_after: int = None):
+    def __init__(self, message: str | None = None, retry_after: int | None = None):
         if not message:
             message = "EDINET API rate limit exceeded. Please wait before making more requests."
             if retry_after:
@@ -48,7 +48,7 @@ class RateLimitError(APIError):
 class DocumentNotFoundError(EdinetError):
     """Document not found or not accessible."""
 
-    def __init__(self, doc_id: str, message: str = None):
+    def __init__(self, doc_id: str, message: str | None = None):
         self.doc_id = doc_id
         if not message:
             message = (
@@ -61,7 +61,7 @@ class DocumentNotFoundError(EdinetError):
 class CompanyNotFoundError(EdinetError):
     """Company not found in lookup database."""
 
-    def __init__(self, identifier: str, suggestions: list = None):
+    def __init__(self, identifier: str, suggestions: list | None = None):
         self.identifier = identifier
         self.suggestions = suggestions or []
 
@@ -81,7 +81,7 @@ class CompanyNotFoundError(EdinetError):
 class ProcessingError(EdinetError):
     """Document processing and parsing errors."""
 
-    def __init__(self, message: str, doc_id: str = None, details: str = None):
+    def __init__(self, message: str, doc_id: str | None = None, details: str | None = None):
         self.doc_id = doc_id
         self.details = details
 
@@ -97,7 +97,7 @@ class ProcessingError(EdinetError):
 class ConfigurationError(EdinetError):
     """Configuration and setup errors."""
 
-    def __init__(self, message: str, fix_suggestion: str = None):
+    def __init__(self, message: str, fix_suggestion: str | None = None):
         self.fix_suggestion = fix_suggestion
 
         full_message = message

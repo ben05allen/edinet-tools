@@ -12,7 +12,7 @@ IMPORTANT: Income statement data is year-to-date cumulative, not quarterly-only.
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from datetime import date
-from typing import Optional
+from typing import Any, Optional
 
 from .base import ParsedReport
 from .extraction import (
@@ -161,7 +161,7 @@ def _derive_quarter_number(filing_date: date, fiscal_year_end: date) -> Optional
 
 
 def parse_quarterly_report(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> QuarterlyReport:
     """
     Parse a Quarterly Report document.

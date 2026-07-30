@@ -203,6 +203,7 @@ class TestEntityAutoClient:
 
             configure(api_key="test-key")
             toyota = edinet_tools.entity("7203")
+            assert toyota is not None
             docs = toyota.documents(days=1)
             assert docs == []
 

@@ -36,14 +36,17 @@ def entity_lookup():
 
     # By ticker
     mitsubishi = edinet_tools.entity("8058")
+    assert mitsubishi is not None
     print(f"Ticker 8058: {mitsubishi.name} ({mitsubishi.edinet_code})")
 
     # By EDINET code
     same = edinet_tools.entity("E02529")
+    assert same is not None
     print(f"Code E02529: {same.name}")
 
     # By name search
     toyota = edinet_tools.entity("Toyota")
+    assert toyota is not None
     print(f"Search 'Toyota': {toyota.name} ({toyota.ticker})")
 
     # Multiple results
@@ -215,6 +218,7 @@ def show_doc_type_metadata():
 
     # Type 200 has metadata but no typed parser — falls back to RawReport
     dt = edinet_tools.doc_type("200")
+    assert dt is not None
     print(f"Code 200: {dt.name_en}")
     print(f"  Japanese: {dt.name_jp}")
     print(f"  Description: {dt.description}")
@@ -228,6 +232,7 @@ def show_doc_type_metadata():
 
     # Type 235 has both metadata AND a typed parser
     dt2 = edinet_tools.doc_type("235")
+    assert dt2 is not None
     print(f"Code 235: {dt2.name_en}")
     print(f"  Japanese: {dt2.name_jp}")
     print(f"  Description: {dt2.description}")
@@ -364,7 +369,8 @@ def main():
     print("  import edinet_tools\n")
     print("  # Look up any company")
     print('  company = edinet_tools.entity("7203")')
-    print(f"  # → {edinet_tools.entity('7203').name}\n")
+    entity_7203 = edinet_tools.entity('7203')
+    print(f"  # → {entity_7203.name if entity_7203 else 'Not found'}\n")
     print("  # Show all doc types with typed parsers")
     print("  edinet_tools.supported_doc_types()")
     print(f"  # → {edinet_tools.supported_doc_types()[:4]} ...\n")

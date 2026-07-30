@@ -323,7 +323,7 @@ class TestReverseIndexes:
         # Each value is a list of EDINET codes (lists, not strings — homonyms possible)
         for key, value in list(classifier._by_normalized_name.items())[:5]:
             assert isinstance(value, list)
-            assert all(v.startswith("E") for v in value)
+            assert all(isinstance(v, str) and v.startswith("E") for v in value)
 
     def test_reverse_index_by_securities_code_built(self, classifier):
         """The _by_securities_code reverse index is populated and maps to EDINET codes."""

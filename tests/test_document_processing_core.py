@@ -136,6 +136,7 @@ class TestCriticalDocumentTypes:
     def test_internal_control_report_140_complete_extraction(self):
         """Type 140: Internal Control Reports must extract all data without loss"""
         result = process_raw_csv_data(self.type_140_csv_data, "S100TEST1", "140", "")
+        assert result is not None
 
         # Must extract core metadata
         assert result["doc_id"] == "S100TEST1"
@@ -218,6 +219,7 @@ class TestCriticalDocumentTypes:
             }
         ]
         result = process_raw_csv_data(type_160_csv_data_real_ids, "S100TEST2", "160", "")
+        assert result is not None
 
         # Must extract core metadata
         assert result["doc_id"] == "S100TEST2"
@@ -260,6 +262,7 @@ class TestCriticalDocumentTypes:
     def test_extraordinary_report_180_event_details(self):
         """Type 180: Extraordinary Reports must extract event details and context"""
         result = process_raw_csv_data(self.type_180_csv_data, "S100TEST3", "180", "")
+        assert result is not None
 
         # Must extract core metadata
         assert result["doc_id"] == "S100TEST3"
@@ -293,6 +296,7 @@ class TestCriticalDocumentTypes:
 
         for csv_data, doc_type, expected_terms in test_cases:
             result = process_raw_csv_data(csv_data, f"S100TEST_{doc_type}", doc_type, "")
+            assert result is not None
 
             # Check that Japanese company name is preserved
             assert result["company_name_ja"] is not None
@@ -717,6 +721,7 @@ class TestDocumentProcessingPipeline:
         ]
 
         result = process_raw_csv_data(japanese_test_data, "S100JP", "160", "")
+        assert result is not None
 
         # Company name should be preserved
         assert result["company_name_ja"] == "株式会社テスト"

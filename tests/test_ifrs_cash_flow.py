@@ -9,6 +9,7 @@ These are integration tests that fetch real data from EDINET API.
 
 import pytest
 from edinet_tools import entity_by_ticker, parse
+from edinet_tools.parsers.securities import SecuritiesReport
 
 
 @pytest.mark.integration
@@ -25,6 +26,7 @@ def test_ifrs_company():
     sec_report = sec_reports[0]
 
     report = parse(sec_report)
+    assert isinstance(report, SecuritiesReport)
 
     # Verify accounting standard
     assert report.accounting_standard == "IFRS", "JAL should use IFRS"
@@ -48,12 +50,14 @@ def test_japan_gaap_company():
     """Test Japan GAAP company (Shizuki Electric) still works (regression test)."""
 
     shizuki = entity_by_ticker("6994")
+    assert shizuki is not None
     docs = shizuki.documents(doc_type="120", days=730)
     if not docs:
         pytest.skip("No securities report found for Shizuki in last 730 days")
     latest = docs[0]
 
     report = parse(latest)
+    assert isinstance(report, SecuritiesReport)
 
     # Verify accounting standard
     assert report.accounting_standard == "Japan GAAP", "Shizuki should use Japan GAAP"

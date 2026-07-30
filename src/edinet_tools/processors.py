@@ -18,7 +18,7 @@ class BaseDocumentProcessor:
         raw_csv_data: List[Dict[str, Any]],
         doc_id: str,
         doc_type_code: str,
-        zip_extract_path: str = None,
+        zip_extract_path: str | None = None,
     ):
         """
         Initialize with raw data from CSV files and document metadata.
@@ -105,7 +105,7 @@ class BaseDocumentProcessor:
         """
         raise NotImplementedError("Subclasses must implement the 'process' method")
 
-    def _get_common_metadata(self) -> Dict[str, Optional[str]]:
+    def _get_common_metadata(self) -> Dict[str, Any]:
         """Extract common metadata available in many filings."""
         from .utils import clean_text  # Avoid circular import
 
@@ -186,7 +186,7 @@ class SemiAnnualReportProcessor(BaseDocumentProcessor):
         structured_data = self._get_common_metadata()
 
         # --- Extract XBRL Financial Metrics (Enhanced approach) ---
-        xbrl_data = {}
+        xbrl_data: Dict[str, Any] = {}
         if self.zip_extract_path:
             try:
                 xbrl_data = extract_xbrl_financial_data(self.zip_extract_path)
@@ -515,7 +515,7 @@ def process_raw_csv_data(
     raw_csv_data: List[Dict[str, Any]],
     doc_id: str,
     doc_type_code: str,
-    zip_extract_path: str = None,
+    zip_extract_path: str | None = None,
 ) -> Optional[StructuredDocumentData]:
     """
     Dispatches raw CSV data to the appropriate document processor.

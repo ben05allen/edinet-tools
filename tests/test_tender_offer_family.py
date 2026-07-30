@@ -627,4 +627,5 @@ class TestParseOpinionReport:
         assert report.target_company_name == "テスト対象会社"
         assert report.filing_date == date(2024, 4, 5)
         assert report.filer_edinet_code == "E09876"
+        assert report.opinion_text is not None
         assert "賛同" in report.opinion_text

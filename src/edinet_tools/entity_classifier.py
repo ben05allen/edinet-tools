@@ -220,7 +220,7 @@ class EntityClassifier:
         # EDINET code from this file, but we still resolve it by header so
         # that a schema change surfaces immediately instead of silently
         # indexing the wrong column.
-        with open(self.fund_codes_path, "r", encoding="cp932", errors="replace") as f:
+        with open(str(self.fund_codes_path), "r", encoding="cp932", errors="replace") as f:
             reader = csv.reader(f)
             next(reader, None)  # metadata row (download date, count)
             header = next(reader, None)
@@ -237,7 +237,7 @@ class EntityClassifier:
 
         # Load EDINET codes (Shift-JIS encoded). Resolve every column by
         # header alias so the loader handles both EN and JP CSV variants.
-        with open(self.edinet_codes_path, "r", encoding="cp932", errors="replace") as f:
+        with open(str(self.edinet_codes_path), "r", encoding="cp932", errors="replace") as f:
             reader = csv.reader(f)
             next(reader, None)  # metadata row
             header = next(reader, None)
@@ -341,7 +341,7 @@ class EntityClassifier:
 
         # Check submitter type for individuals
         # Japanese: '個人' means individual
-        if "個人" in entity["submitter_type"]:
+        if "個人" in str(entity.get("submitter_type", "")):
             return EntityType.INDIVIDUAL
 
         return EntityType.UNLISTED_COMPANY
@@ -371,7 +371,7 @@ class EntityClassifier:
             stacklevel=2,
         )
         entity = self._edinet_entities.get(edinet_code)
-        return entity is not None and entity.get("is_listed", False)
+        return entity is not None and bool(entity.get("is_listed", False))
 
     def is_known(self, edinet_code: str) -> bool:
         """
@@ -419,8 +419,9 @@ class EntityClassifier:
             return None
 
         if prefer_english and entity.get("name_en"):
-            return entity["name_en"]
-        return entity.get("name_jp")
+            return str(entity["name_en"])
+        name_jp = entity.get("name_jp")
+        return str(name_jp) if name_jp else None
 
     @property
     def data_version(self) -> dict:

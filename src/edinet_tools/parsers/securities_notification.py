@@ -10,6 +10,7 @@ Doc 010: Securities notification
 Doc 020: Amendment to securities notification
 """
 
+from typing import Any
 from dataclasses import dataclass
 
 from .base import ParsedReport
@@ -55,7 +56,7 @@ class SecuritiesNotificationReport(ParsedReport):
 
 
 def parse_securities_notification(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> SecuritiesNotificationReport:
     """
     Parse a Securities Notification filing.

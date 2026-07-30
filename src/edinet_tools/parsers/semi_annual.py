@@ -5,6 +5,7 @@ Extracts financial data from 半期報告書 filings.
 Supports both corporate and fund reports with IFRS fallback.
 """
 
+from typing import Any
 from dataclasses import dataclass
 from datetime import date
 from typing import Optional
@@ -131,7 +132,7 @@ def _extract_financial(csv_files: list, element_id: str) -> Optional[int]:
 
 
 def parse_semi_annual_report(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> SemiAnnualReport:
     """
     Parse a Semi-Annual Report document.

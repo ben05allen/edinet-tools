@@ -9,6 +9,7 @@ Doc 270: Original tender offer report
 Doc 280: Amendment to tender offer report
 """
 
+from typing import Any
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -123,7 +124,7 @@ class TenderOfferResultReport(ParsedReport):
 
 
 def parse_tender_offer_report(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> TenderOfferResultReport:
     """
     Parse a Tender Offer Report filing (Doc 270/280).

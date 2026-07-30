@@ -13,6 +13,7 @@ filing index). Use ``fetch_document(doc_id, type=2)`` to retrieve the PDF
 content. This parser handles any XBRL-enabled filings for completeness.
 """
 
+from typing import Any
 from dataclasses import dataclass
 
 from .base import ParsedReport
@@ -60,7 +61,7 @@ class ConfirmationReport(ParsedReport):
 
 
 def parse_confirmation(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> ConfirmationReport:
     """
     Parse a Confirmation Document filing (Doc 135/136).

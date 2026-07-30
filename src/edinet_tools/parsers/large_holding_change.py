@@ -14,6 +14,7 @@ API. This parser exists for completeness — if a 370 filing ever appears, it
 will be captured with typed routing rather than falling to parse_raw.
 """
 
+from typing import Any
 from dataclasses import dataclass
 
 from .base import ParsedReport
@@ -61,7 +62,7 @@ class LargeHoldingChangeReport(ParsedReport):
 
 
 def parse_large_holding_change(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> LargeHoldingChangeReport:
     """
     Parse a Large Shareholding Change Report filing (Doc 370/380).

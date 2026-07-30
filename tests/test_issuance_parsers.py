@@ -284,6 +284,7 @@ class TestParseShelfRegistration:
         doc = self._make_doc(rows=rows)
         report = parse_shelf_registration(doc)
         assert report.shelf_registration_number == "第1号"
+        assert report.planned_period is not None
         assert "2024" in report.planned_period
         assert report.security_types == "社債券"
 

@@ -10,6 +10,7 @@ Doc 080: Original shelf registration statement
 Doc 090: Amendment to shelf registration statement
 """
 
+from typing import Any
 from dataclasses import dataclass
 from datetime import date
 
@@ -95,7 +96,7 @@ class ShelfRegistrationReport(ParsedReport):
 
 
 def parse_shelf_registration(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> ShelfRegistrationReport:
     """
     Parse a Shelf Registration Statement filing.

@@ -934,6 +934,8 @@ class TestTreasuryStockExtraction:
         assert r.is_amendment is False
 
         # TextBlock content
+        assert r.by_shareholders_meeting is not None
+        assert r.by_board_meeting is not None
         assert "株主総会決議" in r.by_shareholders_meeting
         assert "取締役会決議" in r.by_board_meeting
         # has_shareholder_authorization / has_board_authorization are deprecated v0.6.1;
@@ -942,6 +944,7 @@ class TestTreasuryStockExtraction:
             warnings.simplefilter("always")
             assert r.has_shareholder_authorization is True
             assert r.has_board_authorization is True
+        assert r.disposal_holding_text is not None
         assert "保有自己株式数" in r.disposal_holding_text
 
     def test_amendment_flag(self):

@@ -214,11 +214,13 @@ class TestEntityFundIssuer:
     def test_entity_funds_property_returns_list(self):
         """Entity.funds returns a list."""
         toyota = entity("7203")
+        assert toyota is not None
         assert isinstance(toyota.funds, list)
 
     def test_entity_funds_empty_for_non_issuer(self):
         """Non-fund-issuers have empty funds list."""
         toyota = entity("7203")
+        assert toyota is not None
         assert toyota.funds == []
 
     def test_entity_funds_populated_for_issuer(self):
@@ -239,6 +241,7 @@ class TestEntityDocuments:
         from edinet_tools._client import _reset_client, configure
 
         toyota = entity("7203")
+        assert toyota is not None
         assert toyota._client is None
 
         _reset_client()
@@ -269,6 +272,7 @@ class TestEntityDocuments:
         mock_client.get_documents_by_date.return_value = mock_filings
 
         toyota = entity("7203")
+        assert toyota is not None
         toyota._client = mock_client
         docs = toyota.documents(days_back=1)
 
@@ -298,6 +302,7 @@ class TestEntityDocuments:
         mock_client.get_documents_by_date.return_value = mock_filings
 
         toyota = entity("7203")
+        assert toyota is not None
         toyota._client = mock_client
         docs = toyota.documents(doc_type="350", days_back=1)
 
@@ -322,6 +327,7 @@ class TestEntityDocuments:
         mock_client.get_documents_by_date.return_value = mock_filings
 
         toyota = entity("7203")
+        assert toyota is not None
         toyota._client = mock_client
         docs = toyota.documents(days_back=1)
 
@@ -618,6 +624,7 @@ def test_search_homonym_returns_multiple():
             query = raw["name_en"]
             break
     assert query is not None, "Could not reconstruct a query for the homonym set"
+    assert isinstance(query, str)
     results = edinet_tools.search_entities(query, limit=20)
     result_codes = {e.edinet_code for e in results}
     intersection = set(codes) & result_codes

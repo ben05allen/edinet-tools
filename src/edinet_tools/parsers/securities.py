@@ -13,6 +13,7 @@ PROCESSING PHILOSOPHY: Store raw XBRL values faithfully. No interpretation.
 from dataclasses import dataclass, field
 from decimal import Decimal
 from datetime import date
+from typing import Any
 
 from .base import ParsedReport
 from .extraction import (
@@ -307,7 +308,7 @@ def _coalesce(*values):
 
 
 def parse_securities_report(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> SecuritiesReport:
     """
     Parse a Securities Report document.

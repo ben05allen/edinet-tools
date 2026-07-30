@@ -27,8 +27,8 @@ class ParsedReport:
         text_blocks: TextBlock elements by name
     """
 
-    doc_id: str
-    doc_type_code: str
+    doc_id: str | None = None
+    doc_type_code: str | None = None
     source_files: list[str] = field(default_factory=list)
     raw_fields: dict[str, Any] = field(default_factory=dict)
     unmapped_fields: dict[str, Any] = field(default_factory=dict)

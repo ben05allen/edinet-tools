@@ -410,8 +410,8 @@ def search_entities(query: str, limit: int = 10) -> list[Entity]:
     # Substring-scan fallback (O(N)): use pre-normalized forms on both sides
     matches = []
     for edinet_code, raw in classifier._edinet_entities.items():
-        norm_jp = raw.get("_normalized", "")
-        norm_en = raw.get("_normalized_en", "")
+        norm_jp = str(raw.get("_normalized", ""))
+        norm_en = str(raw.get("_normalized_en", ""))
 
         if q_norm in norm_jp or q_norm in norm_en:
             score = 1000  # Base score (only reached if not exact — exact was index-handled above)
@@ -427,7 +427,7 @@ def search_entities(query: str, limit: int = 10) -> list[Entity]:
             if not raw.get("is_listed", False):
                 score += 500
 
-            name_len = len(raw.get("name_en") or "") or len(raw.get("name_jp") or "") or 999
+            name_len = len(str(raw.get("name_en") or "")) or len(str(raw.get("name_jp") or "")) or 999
             matches.append((score, name_len, edinet_code))
 
     matches.sort(key=lambda x: (x[0], x[1]))
@@ -489,7 +489,7 @@ def entity(identifier: str) -> Entity | None:
     return results[0] if results else None
 
 
-def _load_funds() -> tuple[dict[str, dict], dict[str, list[str]]]:
+def _load_funds() -> tuple[dict[str, dict], dict[str, list[str]] | None]:
     """Load and index fund data from FundcodeDlInfo.csv."""
     global _funds, _funds_by_issuer
     if _funds is not None:
@@ -502,7 +502,10 @@ def _load_funds() -> tuple[dict[str, dict], dict[str, list[str]]]:
     # Read fund CSV
     # Columns: 0=Fund Code, 1=Securities Code, 2=Fund Name, 3=Name Phonetic,
     #          4=Type, 5=Closing Date 1, 6=Closing Date 2, 7=EDINET Code, 8=Issuer Name
-    with open(classifier.fund_codes_path, "r", encoding="cp932", errors="replace") as f:
+    fund_codes_path = classifier.fund_codes_path
+    if not fund_codes_path:
+        return _funds, _funds_by_issuer
+    with open(fund_codes_path, "r", encoding="cp932", errors="replace") as f:
         reader = csv.reader(f)
         next(reader)  # Skip metadata row
         next(reader)  # Skip header row
@@ -624,5 +627,5 @@ def funds_by_issuer(edinet_code: str) -> list[Fund]:
         List of Fund objects issued by this entity
     """
     funds, by_issuer = _load_funds()
-    fund_codes = by_issuer.get(edinet_code, [])
+    fund_codes = by_issuer.get(edinet_code, []) if by_issuer else []
     return [Fund(funds[fc]) for fc in fund_codes]

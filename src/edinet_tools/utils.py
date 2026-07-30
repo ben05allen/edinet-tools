@@ -213,7 +213,7 @@ def process_zip_directory(
                 continue
 
             logger.info(f"Processing {i}/{total_files}: `{filename}`")
-            structured_data = process_zip_file(file_path, doc_id, doc_type_code)
+            structured_data = process_zip_file(str(file_path), doc_id, doc_type_code)
 
             if structured_data:
                 all_structured_data.append(structured_data)

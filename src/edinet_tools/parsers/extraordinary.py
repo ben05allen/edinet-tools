@@ -5,6 +5,7 @@ Extracts event information and filer details from 臨時報告書 filings.
 These are event-driven disclosures filed when significant corporate events occur.
 """
 
+from typing import Any
 from dataclasses import dataclass
 from datetime import date
 from typing import Optional
@@ -147,7 +148,7 @@ def _classify_event_type(reason_text: Optional[str]) -> str:
 
 
 def parse_extraordinary_report(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> ExtraordinaryReport:
     """
     Parse an Extraordinary Report document.

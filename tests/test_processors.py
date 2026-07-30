@@ -817,6 +817,7 @@ class TestProcessorWithRealisticNoiseFixture:
 
         processor = SecuritiesReportProcessor(data, "S100NOISE1", "120")
         result = processor.process()
+        assert result is not None
 
         # Metadata robustness:
         assert result["edinet_code"] == "E54321"

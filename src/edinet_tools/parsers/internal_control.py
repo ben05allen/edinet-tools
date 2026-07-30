@@ -11,6 +11,7 @@ Doc 235: Original internal control report
 Doc 236: Amendment to internal control report
 """
 
+from typing import Any
 from dataclasses import dataclass
 from datetime import date
 
@@ -115,7 +116,7 @@ class InternalControlReport(ParsedReport):
 
 
 def parse_internal_control(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> InternalControlReport:
     """
     Parse an Internal Control Report filing (Doc 235/236).

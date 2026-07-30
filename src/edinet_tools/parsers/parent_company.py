@@ -15,6 +15,7 @@ content. These filings can be relevant for MBO screening — a listed subsidiary
 disclosing its parent's intentions may signal privatisation risk or squeeze-out.
 """
 
+from typing import Any
 from dataclasses import dataclass
 
 from .base import ParsedReport
@@ -65,7 +66,7 @@ class ParentCompanyReport(ParsedReport):
 
 
 def parse_parent_company(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> ParentCompanyReport:
     """
     Parse a Parent Company Status Report filing (Doc 200/210).

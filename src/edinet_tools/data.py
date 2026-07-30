@@ -274,7 +274,7 @@ class CompanyLookup:
                 matches.append(match)
 
         # Sort by match score and limit results
-        matches.sort(key=lambda x: x["match_score"], reverse=True)  # type: ignore
+        matches.sort(key=lambda x: x["match_score"], reverse=True)
         return matches[:limit]
 
     def get_company_info(self, edinet_code: str) -> dict[str, Any] | None:

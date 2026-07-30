@@ -112,7 +112,7 @@ def _parse_axis_members(context_id: str) -> tuple[str, list[tuple[str, str]]]:
     return base_context, members
 
 
-def extract_dimensional(csv_files: list, element_id: str) -> list:
+def extract_dimensional(csv_files: list | None, element_id: str) -> list:
     """Extract all DimensionalFact rows for a given element_id.
 
     Args:

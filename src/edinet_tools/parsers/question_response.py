@@ -9,6 +9,7 @@ Doc 310: Original response to questions report
 Doc 320: Amendment to response to questions report
 """
 
+from typing import Any
 from dataclasses import dataclass
 
 from .base import ParsedReport
@@ -65,7 +66,7 @@ class QuestionResponseReport(ParsedReport):
 
 
 def parse_question_response(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> QuestionResponseReport:
     """
     Parse a Response to Questions Report filing (Doc 310/320).

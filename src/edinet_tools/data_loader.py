@@ -92,7 +92,7 @@ class EdinetDataLoader:
             Dictionary mapping Japanese names to English names
         """
         if translation_file is None:
-            translation_file = self.translations_file
+            translation_file = str(self.translations_file)
 
         translations = {}
 

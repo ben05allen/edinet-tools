@@ -1,3 +1,4 @@
+from typing import Any
 """
 Parser for Large Shareholding Reports (Doc Type 350).
 
@@ -299,7 +300,7 @@ def _extract_joint_holders(csv_files: list) -> list[JointHolder]:
 
 
 def parse_large_holding(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> LargeHoldingReport:
     """
     Parse a Large Shareholding Report document.

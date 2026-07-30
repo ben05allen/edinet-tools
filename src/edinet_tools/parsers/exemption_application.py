@@ -10,6 +10,7 @@ Doc 330: Original exemption application
 Doc 340: Amendment to exemption application
 """
 
+from typing import Any
 from dataclasses import dataclass
 
 from .base import ParsedReport
@@ -67,7 +68,7 @@ class ExemptionApplicationReport(ParsedReport):
 
 
 def parse_exemption_application(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> ExemptionApplicationReport:
     """
     Parse an Exemption Application filing (Doc 330/340).

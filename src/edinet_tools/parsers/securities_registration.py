@@ -9,6 +9,7 @@ Doc 030: Original securities registration statement
 Doc 040: Amendment to securities registration statement
 """
 
+from typing import Any
 from dataclasses import dataclass
 from datetime import date
 
@@ -173,7 +174,7 @@ class SecuritiesRegistrationReport(ParsedReport):
 
 
 def parse_securities_registration(
-    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
 ) -> SecuritiesRegistrationReport:
     """
     Parse a Securities Registration Statement filing.
