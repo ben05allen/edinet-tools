@@ -2,6 +2,7 @@
 import datetime
 import json
 import os
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -13,6 +14,32 @@ from .config import EDINET_API_KEY, SUPPORTED_DOC_TYPES
 
 # Use module-specific logger
 logger = logging.getLogger(__name__)
+
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+
+def _is_json_error_response(body: bytes) -> str | None:
+    """Detect EDINET JSON error bodies returned with HTTP 200.
+
+    The EDINET API sometimes returns ``{"metadata": {"status": "404", ...}}`
+    with a 200 status code.  Returns the error message string if the body is
+    an error, or ``None`` if the body looks like valid data.
+    """
+    try:
+        data = json.loads(body)
+        status = str(data.get("metadata", {}).get("status", ""))
+        if status and status != "200":
+            return data.get("metadata", {}).get("message", f"API error {status}")
+    except (json.JSONDecodeError, AttributeError, TypeError):
+        pass
+    return None
+
+
+def _sanitize_filename(name: str, max_length: int = 100) -> str:
+    """Remove filesystem-unsafe characters and truncate *name*."""
+    safe = re.sub(r'[/\\:*?"<>|\x00]', "_", name)
+    return safe[:max_length]
 
 
 # API interaction functions
@@ -60,37 +87,27 @@ def fetch_documents_list(
         try:
             logger.info(f"Attempt {attempt + 1} to fetch documents for {date_str}...")
             with urllib.request.urlopen(full_url, timeout=timeout) as response:
-                # Check for non-200 status codes
-                if response.getcode() != 200:
-                    logger.error(
-                        f"API returned status code {response.getcode()} for date {date_str}."
-                    )
-                    # Attempt to read error body if available
-                    try:
-                        error_body = response.read().decode("utf-8")
-                        logger.error(f"Error body: {error_body}")
-                    except Exception:
-                        pass
-                    # If it's a client error (4xx) or server error (5xx), might be retryable
-                    if 400 <= response.getcode() < 600 and attempt < max_retries - 1:
-                        backoff = min(2 ** (attempt + 1), 30)
-                        logger.warning(f"Retrying in {backoff}s...")
-                        time.sleep(backoff)
-                        continue  # Retry
-                    else:
-                        # Non-retryable error or last attempt
-                        raise urllib.error.HTTPError(
-                            full_url,
-                            response.getcode(),
-                            f"HTTP Error: {response.getcode()}",
-                            response.headers,
-                            None,
-                        )
+                data = response.read()
 
-                data = json.loads(response.read().decode("utf-8"))
+                # EDINET may return HTTP 200 with a JSON error body
+                error_msg = _is_json_error_response(data)
+                if error_msg:
+                    raise Exception(f"EDINET API error for {date_str}: {error_msg}")
+
                 logger.info(f"Successfully fetched documents for {date_str}.")
-                return data
+                return json.loads(data)
 
+        except urllib.error.HTTPError as e:
+            logger.error(f"HTTP {e.code} fetching documents for {date_str}: {e.reason}")
+            # 429 (rate limit) and 5xx (server errors) are retryable
+            if e.code == 429 or e.code >= 500:
+                if attempt < max_retries - 1:
+                    backoff = min(2 ** (attempt + 1), 30)
+                    logger.warning(f"Retrying in {backoff}s...")
+                    time.sleep(backoff)
+                    continue
+            # 4xx client errors (except 429) are deterministic — fail immediately
+            raise
         except urllib.error.URLError as e:
             logger.error(f"URL Error fetching documents for {date_str}: {e}")
             if attempt < max_retries - 1:
@@ -99,18 +116,16 @@ def fetch_documents_list(
                 time.sleep(backoff)
             else:
                 logger.error("Max retries reached for fetching documents.")
-                raise  # Re-raise the last exception
+                raise
         except Exception as e:
-            logger.error(f"An unexpected error occurred fetching documents for {date_str}: {e}")
+            logger.error(f"Unexpected error fetching documents for {date_str}: {e}")
             if attempt < max_retries - 1:
                 backoff = min(2 ** (attempt + 1), 30)
                 logger.warning(f"Retrying in {backoff}s...")
                 time.sleep(backoff)
             else:
-                logger.error("Max retries reached for fetching documents.")
-                raise  # Re-raise
+                raise
 
-    # This line should theoretically not be reached if max_retries > 0
     raise Exception("Failed to fetch documents after multiple retries.")
 
 
@@ -151,35 +166,25 @@ def fetch_document(
         try:
             logger.info(f"Attempt {attempt + 1} to fetch document {doc_id}...")
             with urllib.request.urlopen(full_url, timeout=timeout) as response:
-                # Check for non-200 status codes
-                if response.getcode() != 200:
-                    logger.error(
-                        f"API returned status code {response.getcode()} for document {doc_id}."
-                    )
-                    try:
-                        error_body = response.read().decode("utf-8")
-                        logger.error(f"Error body: {error_body}")
-                    except Exception:
-                        pass
-
-                    if 400 <= response.getcode() < 600 and attempt < max_retries - 1:
-                        backoff = min(2 ** (attempt + 1), 30)
-                        logger.warning(f"Retrying in {backoff}s...")
-                        time.sleep(backoff)
-                        continue  # Retry
-                    else:
-                        raise urllib.error.HTTPError(
-                            full_url,
-                            response.getcode(),
-                            f"HTTP Error: {response.getcode()}",
-                            response.headers,
-                            None,
-                        )
-
                 content = response.read()
+
+                # EDINET may return HTTP 200 with a JSON error body
+                error_msg = _is_json_error_response(content)
+                if error_msg:
+                    raise Exception(f"EDINET API error for {doc_id}: {error_msg}")
+
                 logger.info(f"Successfully fetched document {doc_id}.")
                 return content
 
+        except urllib.error.HTTPError as e:
+            logger.error(f"HTTP {e.code} fetching document {doc_id}: {e.reason}")
+            if e.code == 429 or e.code >= 500:
+                if attempt < max_retries - 1:
+                    backoff = min(2 ** (attempt + 1), 30)
+                    logger.warning(f"Retrying in {backoff}s...")
+                    time.sleep(backoff)
+                    continue
+            raise
         except urllib.error.URLError as e:
             logger.error(f"URL Error fetching document {doc_id}: {e}")
             if attempt < max_retries - 1:
@@ -190,13 +195,12 @@ def fetch_document(
                 logger.error("Max retries reached for fetching document.")
                 raise
         except Exception as e:
-            logger.error(f"An unexpected error occurred fetching document {doc_id}: {e}")
+            logger.error(f"Unexpected error fetching document {doc_id}: {e}")
             if attempt < max_retries - 1:
                 backoff = min(2 ** (attempt + 1), 30)
                 logger.warning(f"Retrying in {backoff}s...")
                 time.sleep(backoff)
             else:
-                logger.error("Max retries reached for fetching document.")
                 raise
 
     raise Exception(f"Failed to fetch document {doc_id} after multiple retries.")
@@ -232,7 +236,7 @@ def download_documents(docs: List[Dict], download_dir: str = "./downloads") -> N
             logger.warning(f"Skipping document {i}/{total_docs} due to missing metadata: {doc}")
             continue
 
-        save_name = f"{doc_id}-{doc_type_code}-{filer}.zip"
+        save_name = f"{doc_id}-{doc_type_code}-{_sanitize_filename(filer)}.zip"
         output_path = os.path.join(download_dir, save_name)
 
         logger.info(f"Downloading {i}/{total_docs}: `{save_name}`")

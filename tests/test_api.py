@@ -7,6 +7,7 @@ error scenarios, and response processing with realistic Japanese market conditio
 
 import pytest
 import urllib.error
+from email.message import Message
 import urllib.request
 import json
 from datetime import date, timedelta
@@ -219,25 +220,36 @@ class TestFetchDocumentsList:
 
         for status_code, error_msg in error_scenarios:
             with patch("urllib.request.urlopen") as mock_urlopen:
-                mock_response = Mock()
-                mock_response.getcode.return_value = status_code
-                mock_response.read.return_value = error_msg.encode()
-                mock_urlopen.return_value.__enter__.return_value = mock_response
+                mock_urlopen.side_effect = urllib.error.HTTPError(
+                    url="https://example.com",
+                    code=status_code,
+                    msg=error_msg,
+                    hdrs=Message(),
+                    fp=Mock(read=Mock(return_value=error_msg.encode())),
+                )
 
-                with pytest.raises(urllib.error.HTTPError):
+                with pytest.raises(urllib.error.HTTPError) as exc_info:
                     fetch_documents_list("2025-01-15", max_retries=1, api_key="test_key")
+
+                assert exc_info.value.code == status_code
 
     def test_retry_logic_server_errors(self):
         """Test retry logic for transient server errors."""
         with patch("urllib.request.urlopen") as mock_urlopen, patch("time.sleep") as mock_sleep:
-            # First two calls return 503, third succeeds
-            responses = [
-                Mock(getcode=lambda: 503, read=lambda: b"Service Unavailable"),
-                Mock(getcode=lambda: 503, read=lambda: b"Service Unavailable"),
-                Mock(getcode=lambda: 200, read=lambda: b'{"results": [{"docID": "S100A001"}]}'),
-            ]
+            # First two calls raise 503, third succeeds
+            error_503 = urllib.error.HTTPError(
+                url="https://example.com",
+                code=503,
+                msg="Service Unavailable",
+                hdrs=Message(),
+                fp=Mock(read=Mock(return_value=b"Service Unavailable")),
+            )
+            success_response = Mock()
+            success_response.read.return_value = b'{"results": [{"docID": "S100A001"}]}'
+            success_response.__enter__ = Mock(return_value=success_response)
+            success_response.__exit__ = Mock(return_value=False)
 
-            mock_urlopen.return_value.__enter__.side_effect = responses
+            mock_urlopen.side_effect = [error_503, error_503, success_response]
 
             result = fetch_documents_list(
                 "2025-01-15", max_retries=3, delay_seconds=1, api_key="test_key"
@@ -354,13 +366,18 @@ class TestFetchDocument:
 
         for doc_id, status_code, error_msg in not_found_scenarios:
             with patch("urllib.request.urlopen") as mock_urlopen:
-                mock_response = Mock()
-                mock_response.getcode.return_value = status_code
-                mock_response.read.return_value = error_msg.encode()
-                mock_urlopen.return_value.__enter__.return_value = mock_response
+                mock_urlopen.side_effect = urllib.error.HTTPError(
+                    url="https://example.com",
+                    code=status_code,
+                    msg=error_msg,
+                    hdrs=Message(),
+                    fp=Mock(read=Mock(return_value=error_msg.encode())),
+                )
 
-                with pytest.raises(urllib.error.HTTPError):
+                with pytest.raises(urllib.error.HTTPError) as exc_info:
                     fetch_document(doc_id, api_key="test_key")
+
+                assert exc_info.value.code == status_code
 
     def test_api_key_authentication_errors(self):
         """Test API key related authentication errors."""
@@ -372,13 +389,18 @@ class TestFetchDocument:
 
         for api_key, status_code, error_msg in auth_scenarios:
             with patch("urllib.request.urlopen") as mock_urlopen:
-                mock_response = Mock()
-                mock_response.getcode.return_value = status_code
-                mock_response.read.return_value = error_msg.encode()
-                mock_urlopen.return_value.__enter__.return_value = mock_response
+                mock_urlopen.side_effect = urllib.error.HTTPError(
+                    url="https://example.com",
+                    code=status_code,
+                    msg=error_msg,
+                    hdrs=Message(),
+                    fp=Mock(read=Mock(return_value=error_msg.encode())),
+                )
 
-                with pytest.raises(urllib.error.HTTPError):
+                with pytest.raises(urllib.error.HTTPError) as exc_info:
                     fetch_document("S100A001", api_key=api_key)
+
+                assert exc_info.value.code == status_code
 
 
 class TestSaveDocumentContent:
