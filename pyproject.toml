@@ -76,7 +76,5 @@ exclude_lines = [
 dev = [
   "pytest>=9.0.0",
   "pytest-cov>=2.0.0",
-  "sphinx>=4.0.0",
-  "sphinx-rtd-theme>=1.0.0",
   "ruff>=0.16.0",
 ]
