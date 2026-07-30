@@ -61,7 +61,11 @@ class ConfirmationReport(ParsedReport):
 
 
 def parse_confirmation(
-    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
+    document: Any = None,
+    *,
+    csv_files: list[dict[str, Any]] | None = None,
+    doc_id: str | None = None,
+    doc_type_code: str | None = None,
 ) -> ConfirmationReport:
     """
     Parse a Confirmation Document filing (Doc 135/136).

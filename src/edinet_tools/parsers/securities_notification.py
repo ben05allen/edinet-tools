@@ -56,7 +56,11 @@ class SecuritiesNotificationReport(ParsedReport):
 
 
 def parse_securities_notification(
-    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
+    document: Any = None,
+    *,
+    csv_files: list[dict[str, Any]] | None = None,
+    doc_id: str | None = None,
+    doc_type_code: str | None = None,
 ) -> SecuritiesNotificationReport:
     """
     Parse a Securities Notification filing.

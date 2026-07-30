@@ -116,7 +116,11 @@ class InternalControlReport(ParsedReport):
 
 
 def parse_internal_control(
-    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
+    document: Any = None,
+    *,
+    csv_files: list[dict[str, Any]] | None = None,
+    doc_id: str | None = None,
+    doc_type_code: str | None = None,
 ) -> InternalControlReport:
     """
     Parse an Internal Control Report filing (Doc 235/236).

@@ -53,7 +53,11 @@ class IssuanceWithdrawalReport(ParsedReport):
 
 
 def parse_issuance_withdrawal(
-    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
+    document: Any = None,
+    *,
+    csv_files: list[dict[str, Any]] | None = None,
+    doc_id: str | None = None,
+    doc_type_code: str | None = None,
 ) -> IssuanceWithdrawalReport:
     """
     Parse an Issuance Withdrawal filing.

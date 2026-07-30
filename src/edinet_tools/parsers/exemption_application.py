@@ -68,7 +68,11 @@ class ExemptionApplicationReport(ParsedReport):
 
 
 def parse_exemption_application(
-    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
+    document: Any = None,
+    *,
+    csv_files: list[dict[str, Any]] | None = None,
+    doc_id: str | None = None,
+    doc_type_code: str | None = None,
 ) -> ExemptionApplicationReport:
     """
     Parse an Exemption Application filing (Doc 330/340).

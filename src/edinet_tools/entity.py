@@ -427,7 +427,9 @@ def search_entities(query: str, limit: int = 10) -> list[Entity]:
             if not raw.get("is_listed", False):
                 score += 500
 
-            name_len = len(str(raw.get("name_en") or "")) or len(str(raw.get("name_jp") or "")) or 999
+            name_len = (
+                len(str(raw.get("name_en") or "")) or len(str(raw.get("name_jp") or "")) or 999
+            )
             matches.append((score, name_len, edinet_code))
 
     matches.sort(key=lambda x: (x[0], x[1]))

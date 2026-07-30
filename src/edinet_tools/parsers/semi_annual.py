@@ -132,7 +132,11 @@ def _extract_financial(csv_files: list, element_id: str) -> Optional[int]:
 
 
 def parse_semi_annual_report(
-    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
+    document: Any = None,
+    *,
+    csv_files: list[dict[str, Any]] | None = None,
+    doc_id: str | None = None,
+    doc_type_code: str | None = None,
 ) -> SemiAnnualReport:
     """
     Parse a Semi-Annual Report document.

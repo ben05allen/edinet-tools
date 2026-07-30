@@ -369,7 +369,7 @@ def main():
     print("  import edinet_tools\n")
     print("  # Look up any company")
     print('  company = edinet_tools.entity("7203")')
-    entity_7203 = edinet_tools.entity('7203')
+    entity_7203 = edinet_tools.entity("7203")
     print(f"  # → {entity_7203.name if entity_7203 else 'Not found'}\n")
     print("  # Show all doc types with typed parsers")
     print("  edinet_tools.supported_doc_types()")

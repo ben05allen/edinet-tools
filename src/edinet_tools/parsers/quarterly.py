@@ -161,7 +161,11 @@ def _derive_quarter_number(filing_date: date, fiscal_year_end: date) -> Optional
 
 
 def parse_quarterly_report(
-    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
+    document: Any = None,
+    *,
+    csv_files: list[dict[str, Any]] | None = None,
+    doc_id: str | None = None,
+    doc_type_code: str | None = None,
 ) -> QuarterlyReport:
     """
     Parse a Quarterly Report document.

@@ -124,7 +124,11 @@ class TenderOfferResultReport(ParsedReport):
 
 
 def parse_tender_offer_report(
-    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
+    document: Any = None,
+    *,
+    csv_files: list[dict[str, Any]] | None = None,
+    doc_id: str | None = None,
+    doc_type_code: str | None = None,
 ) -> TenderOfferResultReport:
     """
     Parse a Tender Offer Report filing (Doc 270/280).

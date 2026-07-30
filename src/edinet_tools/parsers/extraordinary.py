@@ -148,7 +148,11 @@ def _classify_event_type(reason_text: Optional[str]) -> str:
 
 
 def parse_extraordinary_report(
-    document: Any = None, *, csv_files: list[dict[str, Any]] | None = None, doc_id: str | None = None, doc_type_code: str | None = None
+    document: Any = None,
+    *,
+    csv_files: list[dict[str, Any]] | None = None,
+    doc_id: str | None = None,
+    doc_type_code: str | None = None,
 ) -> ExtraordinaryReport:
     """
     Parse an Extraordinary Report document.
