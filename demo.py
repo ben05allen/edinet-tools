@@ -29,6 +29,7 @@ def _get_recent_docs(max_days_back=5):
 
 # ── 1. Entity lookup (no API key needed) ──────────────────────────
 
+
 def entity_lookup():
     """Look up companies by ticker, EDINET code, or name."""
     print("\n--- Entity Lookup ---")
@@ -54,6 +55,7 @@ def entity_lookup():
 
 # ── 2. Document listing ───────────────────────────────────────────
 
+
 def list_documents():
     """Fetch the latest day's filings and show a summary."""
     print("\n--- Recent Documents ---")
@@ -68,6 +70,7 @@ def list_documents():
 
 
 # ── 3. Typed parsers ─────────────────────────────────────────────
+
 
 def parse_large_holding(docs):
     """Parse a large holding report (doc 350) — typed fields."""
@@ -84,7 +87,7 @@ def parse_large_holding(docs):
             if report.prior_ownership_pct is not None:
                 print(f"  Prior:     {report.prior_ownership_pct}%")
             if report.purpose:
-                preview = report.purpose[:120].replace('\n', ' ')
+                preview = report.purpose[:120].replace("\n", " ")
                 print(f"  Purpose:   {preview}...")
             return
 
@@ -153,7 +156,7 @@ def parse_internal_control(docs):
             if report.cfo:
                 print(f"  CFO:       {report.cfo}")
             if report.evaluation_result_text:
-                preview = report.evaluation_result_text[:120].replace('\n', ' ')
+                preview = report.evaluation_result_text[:120].replace("\n", " ")
                 print(f"  Evaluation: {preview}...")
             print(f"  Amendment: {report.is_amendment}")
             return
@@ -162,6 +165,7 @@ def parse_internal_control(docs):
 
 
 # ── 4. Doc type registry ─────────────────────────────────────────
+
 
 def doc_type_registry():
     """Browse the document type registry."""
@@ -176,6 +180,7 @@ def doc_type_registry():
 
 # ── 5. supported_doc_types() — what has a typed parser ───────────
 
+
 def show_supported_doc_types():
     """Show which doc types have typed parsers (not a generic fallback)."""
     print("\n--- Typed Parser Coverage ---")
@@ -185,7 +190,7 @@ def show_supported_doc_types():
 
     # Print in groups of 8 for readability
     for i in range(0, len(codes), 8):
-        row = codes[i:i + 8]
+        row = codes[i : i + 8]
         print("  " + "  ".join(row))
 
     print()
@@ -203,6 +208,7 @@ def show_supported_doc_types():
 
 # ── 6. doc_type() — metadata for any code (even without a parser) ─
 
+
 def show_doc_type_metadata():
     """Look up metadata for doc types, including those without typed parsers."""
     print("\n--- Doc Type Metadata Lookup ---")
@@ -214,6 +220,7 @@ def show_doc_type_metadata():
     print(f"  Description: {dt.description}")
 
     from edinet_tools.parsers import supported_doc_types
+
     has_parser = "200" in supported_doc_types()
     print(f"  Has typed parser: {has_parser}  (falls back to RawReport)")
 
@@ -229,6 +236,7 @@ def show_doc_type_metadata():
 
 
 # ── 7. PDF download via fetch_document(type=2) ────────────────────
+
 
 def show_pdf_download():
     """Show how to download PDF versions using the low-level API."""
@@ -259,6 +267,7 @@ def show_pdf_download():
 
 
 # ── 8. Shelf registration parser (Doc 080) — static example ──────
+
 
 def show_shelf_registration_parser():
     """Show the ShelfRegistrationReport parser using mock data."""
@@ -292,16 +301,16 @@ def show_shelf_registration_parser():
         f"{ELEMENT_MAP['planned_period']}\tlabel\tFilingDateInstant\t0\t連結\t期間\t\t\t2024年4月1日から2026年3月31日まで",
         f"{ELEMENT_MAP['security_types']}\tlabel\tFilingDateInstant\t0\t連結\t期間\t\t\t社債券",
     ]
-    content = '\n'.join(rows)
+    content = "\n".join(rows)
     buf = io.BytesIO()
-    with zipfile.ZipFile(buf, 'w') as zf:
-        zf.writestr('XBRL_TO_CSV/test.csv', content.encode('utf-16le'))
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("XBRL_TO_CSV/test.csv", content.encode("utf-16le"))
 
     csv_files = extract_csv_from_zip(buf.getvalue())
     report = parse_shelf_registration(
         csv_files=csv_files,
-        doc_id='S100MOCK1',
-        doc_type_code='080',
+        doc_id="S100MOCK1",
+        doc_type_code="080",
     )
 
     print(f"  Result: {repr(report)}")
@@ -316,8 +325,9 @@ def show_shelf_registration_parser():
 
 # ── Main ──────────────────────────────────────────────────────────
 
+
 def main():
-    has_api_key = bool(os.getenv('EDINET_API_KEY'))
+    has_api_key = bool(os.getenv("EDINET_API_KEY"))
 
     print("EDINET Tools Quick Start")
     print("=" * 40)

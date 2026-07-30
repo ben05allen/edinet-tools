@@ -10,9 +10,9 @@ import logging
 import re
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
 from .entity_classifier import EntityClassifier
+
+logger = logging.getLogger(__name__)
 
 
 # Module-level cache for classifier instance

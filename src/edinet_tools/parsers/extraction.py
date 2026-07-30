@@ -3,6 +3,7 @@ ZIP and CSV extraction utilities for EDINET documents.
 
 Handles in-memory extraction of XBRL CSV data from EDINET ZIP files.
 """
+
 import csv
 import io
 import logging
@@ -32,24 +33,21 @@ def extract_csv_from_zip(zip_bytes: bytes) -> list[dict[str, Any]]:
     csv_files = []
 
     try:
-        with zipfile.ZipFile(io.BytesIO(zip_bytes), 'r') as zf:
+        with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zf:
             for name in zf.namelist():
                 # Skip non-CSV files and macOS metadata
-                if not name.endswith('.csv'):
+                if not name.endswith(".csv"):
                     continue
-                if '__MACOSX' in name:
+                if "__MACOSX" in name:
                     continue
                 # Skip auditor report files
-                if name.split('/')[-1].startswith('jpaud'):
+                if name.split("/")[-1].startswith("jpaud"):
                     continue
 
                 try:
                     csv_data = _read_csv_from_zip(zf, name)
                     if csv_data:
-                        csv_files.append({
-                            'filename': name.split('/')[-1],
-                            'data': csv_data
-                        })
+                        csv_files.append({"filename": name.split("/")[-1], "data": csv_data})
                 except Exception as e:
                     logger.warning(f"Failed to read CSV {name}: {e}")
                     continue
@@ -69,14 +67,14 @@ def _read_csv_from_zip(zf: zipfile.ZipFile, name: str) -> list[dict[str, Any]]:
     raw_bytes = zf.read(name)
 
     # Try multiple encodings (EDINET uses various encodings)
-    encodings = ['utf-16le', 'utf-16', 'utf-8', 'shift-jis', 'cp932']
+    encodings = ["utf-16le", "utf-16", "utf-8", "shift-jis", "cp932"]
     content = None
 
     for encoding in encodings:
         try:
             decoded = raw_bytes.decode(encoding)
             # Remove BOM if present
-            if decoded.startswith('\ufeff'):
+            if decoded.startswith("\ufeff"):
                 decoded = decoded[1:]
             content = decoded
             break
@@ -90,24 +88,26 @@ def _read_csv_from_zip(zf: zipfile.ZipFile, name: str) -> list[dict[str, Any]]:
     # Parse tab-separated CSV
     rows = []
     try:
-        lines = content.strip().split('\n')
-        reader = csv.reader(lines, delimiter='\t')
+        lines = content.strip().split("\n")
+        reader = csv.reader(lines, delimiter="\t")
 
         for row in reader:
             if len(row) >= 9:
                 # Clean up values
                 cleaned = [_clean_value(col) for col in row]
-                rows.append({
-                    '要素ID': cleaned[0],      # element_id
-                    '項目名': cleaned[1],      # japanese_label
-                    'コンテキストID': cleaned[2],  # context_id
-                    '相対年度': cleaned[3],    # relative_year
-                    '連結・個別': cleaned[4],   # consolidated_or_individual
-                    '期間・時点': cleaned[5],   # period_or_instant
-                    'ユニットID': cleaned[6],   # unit_id
-                    '単位': cleaned[7],        # unit
-                    '値': cleaned[8],          # value
-                })
+                rows.append(
+                    {
+                        "要素ID": cleaned[0],  # element_id
+                        "項目名": cleaned[1],  # japanese_label
+                        "コンテキストID": cleaned[2],  # context_id
+                        "相対年度": cleaned[3],  # relative_year
+                        "連結・個別": cleaned[4],  # consolidated_or_individual
+                        "期間・時点": cleaned[5],  # period_or_instant
+                        "ユニットID": cleaned[6],  # unit_id
+                        "単位": cleaned[7],  # unit
+                        "値": cleaned[8],  # value
+                    }
+                )
     except Exception as e:
         logger.warning(f"Error parsing CSV {name}: {e}")
         return []
@@ -118,16 +118,17 @@ def _read_csv_from_zip(zf: zipfile.ZipFile, name: str) -> list[dict[str, Any]]:
 def _clean_value(value: str) -> str:
     """Clean a CSV cell value."""
     if not value:
-        return ''
+        return ""
     cleaned = value.strip()
     # Remove null bytes and control characters
-    cleaned = cleaned.replace('\x00', '').replace('\ufeff', '')
+    cleaned = cleaned.replace("\x00", "").replace("\ufeff", "")
     # Remove quotes
     cleaned = cleaned.strip('"').strip("'").strip()
     return cleaned
 
 
 # --- Parsing utilities ---
+
 
 def parse_percentage(value: Any) -> Optional[Decimal]:
     """
@@ -140,10 +141,10 @@ def parse_percentage(value: Any) -> Optional[Decimal]:
         return None
     if isinstance(value, str):
         value = value.strip()
-        if value in ('', '－', '―', '-', '—', 'N/A', 'n/a'):
+        if value in ("", "－", "―", "-", "—", "N/A", "n/a"):
             return None
         try:
-            cleaned = value.replace('%', '').strip()
+            cleaned = value.replace("%", "").strip()
             return Decimal(cleaned)
         except Exception:
             return None
@@ -164,8 +165,8 @@ def parse_int(value: Any) -> Optional[int]:
     if isinstance(value, int):
         return value
     if isinstance(value, str):
-        value = value.strip().replace(',', '').replace('，', '')
-        if not value or value in ('－', '―', '-', '—'):
+        value = value.strip().replace(",", "").replace("，", "")
+        if not value or value in ("－", "―", "-", "—"):
             return None
         try:
             return int(float(value))
@@ -192,11 +193,11 @@ def parse_date(value: Any) -> Optional[date]:
         return value
     if isinstance(value, str):
         value = value.strip()
-        if not value or value in ('－', '―', '-', '—'):
+        if not value or value in ("－", "―", "-", "—"):
             return None
 
         # Try standard formats
-        for fmt in ('%Y-%m-%d', '%Y/%m/%d'):
+        for fmt in ("%Y-%m-%d", "%Y/%m/%d"):
             try:
                 return datetime.strptime(value, fmt).date()
             except ValueError:
@@ -204,8 +205,8 @@ def parse_date(value: Any) -> Optional[date]:
 
         # Try Japanese format (2025年11月20日)
         try:
-            cleaned = value.replace('年', '-').replace('月', '-').replace('日', '')
-            return datetime.strptime(cleaned, '%Y-%m-%d').date()
+            cleaned = value.replace("年", "-").replace("月", "-").replace("日", "")
+            return datetime.strptime(cleaned, "%Y-%m-%d").date()
         except Exception:
             pass
 
@@ -216,7 +217,7 @@ def extract_value(
     csv_files: list,
     element_id: str,
     get_last: bool = False,
-    context_patterns: Optional[list[str]] = None
+    context_patterns: Optional[list[str]] = None,
 ) -> Optional[str]:
     """
     Extract value from csv_files by XBRL element ID.
@@ -234,21 +235,21 @@ def extract_value(
     if context_patterns:
         for pattern in context_patterns:
             for csv_file in csv_files:
-                data = csv_file.get('data', [])
+                data = csv_file.get("data", [])
                 for entry in data:
-                    if entry.get('要素ID') == element_id:
-                        context = entry.get('コンテキストID', '')
+                    if entry.get("要素ID") == element_id:
+                        context = entry.get("コンテキストID", "")
                         if context == pattern:
-                            return entry.get('値')
+                            return entry.get("値")
         return None
 
     # No context patterns - return first (or last) match
     result = None
     for csv_file in csv_files:
-        data = csv_file.get('data', [])
+        data = csv_file.get("data", [])
         for entry in data:
-            if entry.get('要素ID') == element_id:
-                value = entry.get('値')
+            if entry.get("要素ID") == element_id:
+                value = entry.get("値")
                 if get_last:
                     result = value  # Keep updating to get last
                 else:
@@ -282,8 +283,8 @@ def get_context_patterns(is_consolidated: bool, period: str) -> list[str]:
         return [period]
     else:
         return [
-            f"{period}_NonConsolidatedMember",   # Non-consolidated (preferred)
-            period,                              # Fallback to bare context
+            f"{period}_NonConsolidatedMember",  # Non-consolidated (preferred)
+            period,  # Fallback to bare context
         ]
 
 
@@ -292,7 +293,7 @@ def extract_financial(
     element_id: str,
     period: str,
     is_consolidated: bool,
-    ifrs_fallback_map: Optional[dict[str, str | list[str]]] = None
+    ifrs_fallback_map: Optional[dict[str, str | list[str]]] = None,
 ) -> Optional[int]:
     """
     Extract financial value with context preference and optional IFRS fallback.
@@ -375,38 +376,40 @@ def categorize_elements(
     raw_facts: list[Fact] = []
 
     for csv_file in csv_files or []:
-        for row in csv_file.get('data', []):
-            elem_id = row.get('要素ID', '')
-            value = row.get('値')
+        for row in csv_file.get("data", []):
+            elem_id = row.get("要素ID", "")
+            value = row.get("値")
 
             if not elem_id or value is None:
                 continue
 
             # Skip header row
-            if elem_id == '要素ID':
+            if elem_id == "要素ID":
                 continue
 
             # Store in raw_fields (everything, last-wins)
             raw_fields[elem_id] = value
 
             # Collect every triple for raw_facts
-            context_id = row.get('コンテキストID', '')
-            unit_id = row.get('ユニットID', '') or None
-            raw_facts.append(Fact(
-                element_id=elem_id,
-                context_id=context_id,
-                value=value,
-                unit_id=unit_id,
-            ))
+            context_id = row.get("コンテキストID", "")
+            unit_id = row.get("ユニットID", "") or None
+            raw_facts.append(
+                Fact(
+                    element_id=elem_id,
+                    context_id=context_id,
+                    value=value,
+                    unit_id=unit_id,
+                )
+            )
 
             # Categorize
-            if 'TextBlock' in elem_id:
+            if "TextBlock" in elem_id:
                 # TextBlock element
-                key = elem_id.split(':')[-1] if ':' in elem_id else elem_id
+                key = elem_id.split(":")[-1] if ":" in elem_id else elem_id
                 text_blocks[key] = value
             elif elem_id not in mapped_element_ids:
                 # Unmapped element
-                key = elem_id.split(':')[-1] if ':' in elem_id else elem_id
+                key = elem_id.split(":")[-1] if ":" in elem_id else elem_id
                 unmapped_fields[key] = value
 
     return raw_fields, text_blocks, unmapped_fields, raw_facts
@@ -434,18 +437,16 @@ def match_element_by_suffix(
         List of CSV row dicts (full rows, not just element_ids) whose element_id
         ends with the canonical name or any of the suffixed variants.
     """
-    accepted_endings = [canonical_name] + [
-        canonical_name + suffix for suffix in industry_suffixes
-    ]
+    accepted_endings = [canonical_name] + [canonical_name + suffix for suffix in industry_suffixes]
     results = []
 
     for csv_file in csv_files or []:
-        for row in csv_file.get('data', []) or []:
-            elem_id = row.get('要素ID', '') or ''
-            if not elem_id or elem_id == '要素ID':
+        for row in csv_file.get("data", []) or []:
+            elem_id = row.get("要素ID", "") or ""
+            if not elem_id or elem_id == "要素ID":
                 continue
             # Match against the local-name portion (after the colon, if present)
-            local_name = elem_id.split(':')[-1] if ':' in elem_id else elem_id
+            local_name = elem_id.split(":")[-1] if ":" in elem_id else elem_id
             if local_name in accepted_endings:
                 results.append(row)
 
@@ -478,16 +479,25 @@ def extract_csv_to_disk(zip_bytes: bytes, output_dir) -> list:
 
     csv_files = extract_csv_from_zip(zip_bytes)
     written_paths = []
-    columns = ['要素ID', '項目名', 'コンテキストID', '相対年度',
-               '連結・個別', '期間・時点', 'ユニットID', '単位', '値']
+    columns = [
+        "要素ID",
+        "項目名",
+        "コンテキストID",
+        "相対年度",
+        "連結・個別",
+        "期間・時点",
+        "ユニットID",
+        "単位",
+        "値",
+    ]
 
     for csv_file in csv_files:
-        output_path = output_dir / csv_file['filename']
-        with open(output_path, 'w', encoding='utf-8', newline='') as f:
-            writer = csv.writer(f, delimiter='\t')
+        output_path = output_dir / csv_file["filename"]
+        with open(output_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f, delimiter="\t")
             writer.writerow(columns)
-            for row in csv_file.get('data', []):
-                writer.writerow([row.get(col, '') for col in columns])
+            for row in csv_file.get("data", []):
+                writer.writerow([row.get(col, "") for col in columns])
         written_paths.append(output_path)
 
     return written_paths
@@ -500,7 +510,7 @@ def extract_csv_to_disk(zip_bytes: bytes, output_dir) -> list:
 # Placeholders EDINET uses for "no value" in numeric contexts.
 # After NFKC normalization, U+FF0D (－) becomes '-', and U+2212 (−) becomes '-'.
 # So the normalized set is just ('', '-').
-_NUMERIC_NULL_PLACEHOLDERS = frozenset({'－', '−', '', '-'})
+_NUMERIC_NULL_PLACEHOLDERS = frozenset({"－", "−", "", "-"})
 
 
 def coerce_numeric_value(value) -> str | None:
@@ -534,11 +544,11 @@ def coerce_numeric_value(value) -> str | None:
     # e.g. '１０００' -> '1000', '１，０００' -> '1,000', '－' (U+FF0D) -> '-'
     # Note: U+2212 (−, mathematical minus) is NOT changed by NFKC, so handle it
     # explicitly alongside the bare ASCII '-' placeholder check below.
-    s = unicodedata.normalize('NFKC', s)
+    s = unicodedata.normalize("NFKC", s)
 
     # After normalization, bare '-' (and its full-width forms, and U+2212 alone)
     # is a null placeholder.  '-1000' is a real negative number and passes through.
-    if s in ('-', '−'):
+    if s in ("-", "−"):
         return None
 
     # Empty string after normalization (shouldn't happen after strip, but be safe)
@@ -563,7 +573,7 @@ def coerce_int(value) -> int | None:
     if normalized is None:
         return None
     # Strip comma separators (e.g. '1,000,000' -> '1000000')
-    cleaned = normalized.replace(',', '')
+    cleaned = normalized.replace(",", "")
     try:
         return int(cleaned)
     except ValueError:

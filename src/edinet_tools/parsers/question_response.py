@@ -8,6 +8,7 @@ process — typically from a hostile bidder or concerned shareholders.
 Doc 310: Original response to questions report
 Doc 320: Amendment to response to questions report
 """
+
 from dataclasses import dataclass
 
 from .base import ParsedReport
@@ -22,11 +23,11 @@ from .extraction import (
 # Domain-specific elements can be added once real Doc 310/320 filings
 # have been inspected for their XBRL element names.
 ELEMENT_MAP = {
-    'filer_name': 'jpdei_cor:FilerNameInJapaneseDEI',
-    'filer_name_en': 'jpdei_cor:FilerNameInEnglishDEI',
-    'filer_edinet_code': 'jpdei_cor:EDINETCodeDEI',
-    'security_code': 'jpdei_cor:SecurityCodeDEI',
-    'amendment_flag': 'jpdei_cor:AmendmentFlagDEI',
+    "filer_name": "jpdei_cor:FilerNameInJapaneseDEI",
+    "filer_name_en": "jpdei_cor:FilerNameInEnglishDEI",
+    "filer_edinet_code": "jpdei_cor:EDINETCodeDEI",
+    "security_code": "jpdei_cor:SecurityCodeDEI",
+    "amendment_flag": "jpdei_cor:AmendmentFlagDEI",
 }
 
 
@@ -56,14 +57,16 @@ class QuestionResponseReport(ParsedReport):
     is_amendment: bool = False
 
     def __repr__(self) -> str:
-        name = self.filer_name or 'Unknown'
+        name = self.filer_name or "Unknown"
         if len(name) > 30:
-            name = name[:27] + '...'
-        amend = ' [AMENDED]' if self.is_amendment else ''
+            name = name[:27] + "..."
+        amend = " [AMENDED]" if self.is_amendment else ""
         return f"QuestionResponseReport(filer='{name}'{amend})"
 
 
-def parse_question_response(document=None, *, csv_files=None, doc_id=None, doc_type_code=None) -> QuestionResponseReport:
+def parse_question_response(
+    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+) -> QuestionResponseReport:
     """
     Parse a Response to Questions Report filing (Doc 310/320).
 
@@ -92,19 +95,21 @@ def parse_question_response(document=None, *, csv_files=None, doc_id=None, doc_t
             text_blocks={},
         )
 
-    source_files = [f['filename'] for f in csv_files]
+    source_files = [f["filename"] for f in csv_files]
 
     def get(key: str, context: list[str] | None = None) -> str | None:
-        return extract_value(csv_files, ELEMENT_MAP.get(key, ''), context_patterns=context)
+        return extract_value(csv_files, ELEMENT_MAP.get(key, ""), context_patterns=context)
 
-    filer_edinet_code = get('filer_edinet_code', ['FilingDateInstant'])
-    filer_name = get('filer_name', ['FilingDateInstant'])
-    filer_name_en = get('filer_name_en', ['FilingDateInstant'])
-    security_code = get('security_code', ['FilingDateInstant'])
-    amendment_flag = get('amendment_flag', ['FilingDateInstant'])
-    is_amendment = amendment_flag == 'true' if amendment_flag else False
+    filer_edinet_code = get("filer_edinet_code", ["FilingDateInstant"])
+    filer_name = get("filer_name", ["FilingDateInstant"])
+    filer_name_en = get("filer_name_en", ["FilingDateInstant"])
+    security_code = get("security_code", ["FilingDateInstant"])
+    amendment_flag = get("amendment_flag", ["FilingDateInstant"])
+    is_amendment = amendment_flag == "true" if amendment_flag else False
 
-    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(
+        csv_files, ELEMENT_MAP
+    )
 
     return QuestionResponseReport(
         doc_id=doc_id,
@@ -116,7 +121,9 @@ def parse_question_response(document=None, *, csv_files=None, doc_id=None, doc_t
         raw_facts=raw_facts,
         filer_name=filer_name,
         filer_name_en=filer_name_en,
-        filer_edinet_code=filer_edinet_code or getattr(document, 'filer_edinet_code', None) if document else filer_edinet_code,
+        filer_edinet_code=filer_edinet_code or getattr(document, "filer_edinet_code", None)
+        if document
+        else filer_edinet_code,
         security_code=security_code,
         is_amendment=is_amendment,
     )

@@ -18,28 +18,39 @@ Fixture route:
     in operating_cash_flow / investing_cash_flow / financing_cash_flow when no
     summary or IFRS source is present.
 """
+
 import csv as _csv
 from pathlib import Path
 from edinet_tools.parsers.securities import parse_securities_report
 
-_COLS = ['要素ID', '項目名', 'コンテキストID', '相対年度',
-         '連結・個別', '期間・時点', 'ユニットID', '単位', '値']
+_COLS = [
+    "要素ID",
+    "項目名",
+    "コンテキストID",
+    "相対年度",
+    "連結・個別",
+    "期間・時点",
+    "ユニットID",
+    "単位",
+    "値",
+]
 
 
 def _load(name):
-    p = Path(__file__).parent / 'fixtures' / 'securities' / f'{name}.csv'
-    rows = list(_csv.reader(open(p, encoding='utf-8'), delimiter='\t'))
-    return [{'filename': f'{name}.csv', 'data': [dict(zip(_COLS, r)) for r in rows[1:]]}]
+    p = Path(__file__).parent / "fixtures" / "securities" / f"{name}.csv"
+    rows = list(_csv.reader(open(p, encoding="utf-8"), delimiter="\t"))
+    return [{"filename": f"{name}.csv", "data": [dict(zip(_COLS, r)) for r in rows[1:]]}]
 
 
 def _parse(name):
-    return parse_securities_report(csv_files=_load(name), doc_id='TEST', doc_type_code='120')
+    return parse_securities_report(csv_files=_load(name), doc_id="TEST", doc_type_code="120")
 
 
 # ---------------------------------------------------------------------------
 # Bank/insurer gross-revenue (経常収益) → net_sales
 # Fixture: MUFG FY S100W4FB (Japan GAAP, consolidated, doc_id E03606 / 8306)
 # ---------------------------------------------------------------------------
+
 
 def test_bank_net_sales_from_ordinary_income_summary():
     """MUFG: 経常収益 (OrdinaryIncomeSummaryOfBusinessResults) must land in
@@ -54,24 +65,24 @@ def test_bank_net_sales_from_ordinary_income_summary():
       OrdinaryIncomeLossSummaryOfBusinessResults CurrentYearDuration  2,669,483,000,000
       OrdinaryIncomeLossSummaryOfBusinessResults Prior1YearDuration   2,127,958,000,000
     """
-    r = _parse('mufg_fy_revenue')
-    assert r.accounting_standard == 'Japan GAAP'
+    r = _parse("mufg_fy_revenue")
+    assert r.accounting_standard == "Japan GAAP"
 
     # Primary fix: gross revenue must be 経常収益, not None.
     assert r.net_sales == 13_629_997_000_000, (
-        f'net_sales: expected 13_629_997_000_000, got {r.net_sales}'
+        f"net_sales: expected 13_629_997_000_000, got {r.net_sales}"
     )
     assert r.prior_net_sales == 11_890_350_000_000, (
-        f'prior_net_sales: expected 11_890_350_000_000, got {r.prior_net_sales}'
+        f"prior_net_sales: expected 11_890_350_000_000, got {r.prior_net_sales}"
     )
 
     # Cross-contamination guard: OrdinaryIncomeLoss... must still land in
     # ordinary_income — not bleed into net_sales and not be None.
     assert r.ordinary_income == 2_669_483_000_000, (
-        f'ordinary_income: expected 2_669_483_000_000, got {r.ordinary_income}'
+        f"ordinary_income: expected 2_669_483_000_000, got {r.ordinary_income}"
     )
     assert r.prior_ordinary_income == 2_127_958_000_000, (
-        f'prior_ordinary_income: expected 2_127_958_000_000, got {r.prior_ordinary_income}'
+        f"prior_ordinary_income: expected 2_127_958_000_000, got {r.prior_ordinary_income}"
     )
 
 
@@ -96,28 +107,49 @@ def test_bank_net_sales_from_ordinary_income_summary():
 #   jpcrp_cor:CashFlowsFromFinancingActivities    — does not exist in any real filing
 # ---------------------------------------------------------------------------
 
+
 def _synthetic_jgaap_cf_only():
     """Minimal SYNTHETIC csv_files — Japan GAAP consolidated filer with ONLY
     jppfs_cor CF statement rows and no CF-summary, no IFRS rows. Exercises the
     tier-3 J-GAAP CF fallback in the coalesce waterfall."""
     rows = [
         # DEI
-        {'要素ID': 'jpdei_cor:AccountingStandardsDEI', '項目名': '会計基準',
-         'コンテキストID': 'FilingDateInstant', '値': 'Japan GAAP'},
-        {'要素ID': 'jpdei_cor:WhetherConsolidatedFinancialStatementsArePreparedDEI',
-         '項目名': '連結決算の有無', 'コンテキストID': 'FilingDateInstant', '値': 'true'},
+        {
+            "要素ID": "jpdei_cor:AccountingStandardsDEI",
+            "項目名": "会計基準",
+            "コンテキストID": "FilingDateInstant",
+            "値": "Japan GAAP",
+        },
+        {
+            "要素ID": "jpdei_cor:WhetherConsolidatedFinancialStatementsArePreparedDEI",
+            "項目名": "連結決算の有無",
+            "コンテキストID": "FilingDateInstant",
+            "値": "true",
+        },
         # CF statement — jppfs_cor ids (the real taxonomy ids)
-        {'要素ID': 'jppfs_cor:NetCashProvidedByUsedInOperatingActivities',
-         '項目名': '営業活動によるキャッシュ・フロー',
-         'コンテキストID': 'CurrentYearDuration', 'ユニットID': 'JPY', '値': '1234000000'},
-        {'要素ID': 'jppfs_cor:NetCashProvidedByUsedInInvestmentActivities',
-         '項目名': '投資活動によるキャッシュ・フロー',
-         'コンテキストID': 'CurrentYearDuration', 'ユニットID': 'JPY', '値': '-567000000'},
-        {'要素ID': 'jppfs_cor:NetCashProvidedByUsedInFinancingActivities',
-         '項目名': '財務活動によるキャッシュ・フロー',
-         'コンテキストID': 'CurrentYearDuration', 'ユニットID': 'JPY', '値': '-890000000'},
+        {
+            "要素ID": "jppfs_cor:NetCashProvidedByUsedInOperatingActivities",
+            "項目名": "営業活動によるキャッシュ・フロー",
+            "コンテキストID": "CurrentYearDuration",
+            "ユニットID": "JPY",
+            "値": "1234000000",
+        },
+        {
+            "要素ID": "jppfs_cor:NetCashProvidedByUsedInInvestmentActivities",
+            "項目名": "投資活動によるキャッシュ・フロー",
+            "コンテキストID": "CurrentYearDuration",
+            "ユニットID": "JPY",
+            "値": "-567000000",
+        },
+        {
+            "要素ID": "jppfs_cor:NetCashProvidedByUsedInFinancingActivities",
+            "項目名": "財務活動によるキャッシュ・フロー",
+            "コンテキストID": "CurrentYearDuration",
+            "ユニットID": "JPY",
+            "値": "-890000000",
+        },
     ]
-    return [{'filename': 'synthetic_cf.csv', 'data': rows}]
+    return [{"filename": "synthetic_cf.csv", "data": rows}]
 
 
 def test_jgaap_cf_fallback_real_jppfs_ids():
@@ -131,15 +163,16 @@ def test_jgaap_cf_fallback_real_jppfs_ids():
     """
     r = parse_securities_report(
         csv_files=_synthetic_jgaap_cf_only(),
-        doc_id='SYNTH-CF', doc_type_code='120',
+        doc_id="SYNTH-CF",
+        doc_type_code="120",
     )
-    assert r.accounting_standard == 'Japan GAAP'
+    assert r.accounting_standard == "Japan GAAP"
     assert r.operating_cash_flow == 1_234_000_000, (
-        f'operating_cash_flow: expected 1_234_000_000, got {r.operating_cash_flow}'
+        f"operating_cash_flow: expected 1_234_000_000, got {r.operating_cash_flow}"
     )
     assert r.investing_cash_flow == -567_000_000, (
-        f'investing_cash_flow: expected -567_000_000, got {r.investing_cash_flow}'
+        f"investing_cash_flow: expected -567_000_000, got {r.investing_cash_flow}"
     )
     assert r.financing_cash_flow == -890_000_000, (
-        f'financing_cash_flow: expected -890_000_000, got {r.financing_cash_flow}'
+        f"financing_cash_flow: expected -890_000_000, got {r.financing_cash_flow}"
     )

@@ -1,4 +1,5 @@
 """Tests for DocType registry."""
+
 from edinet_tools.doc_types import DocType, doc_type, list_doc_types
 
 
@@ -33,10 +34,10 @@ class TestDocType:
     def test_doc_type_has_all_attributes(self):
         """DocType has expected attributes."""
         dt = doc_type("120")
-        assert hasattr(dt, 'code')
-        assert hasattr(dt, 'name_en')
-        assert hasattr(dt, 'name_jp')
-        assert hasattr(dt, 'description')
+        assert hasattr(dt, "code")
+        assert hasattr(dt, "name_en")
+        assert hasattr(dt, "name_jp")
+        assert hasattr(dt, "description")
 
     def test_doc_type_repr(self):
         """DocType repr is informative."""

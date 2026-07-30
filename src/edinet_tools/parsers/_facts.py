@@ -8,12 +8,14 @@ financial history in a later release).
 
 Per spec §4.3: existing raw_fields behavior unchanged.
 """
+
 from dataclasses import dataclass
 
 
 @dataclass
 class Fact:
     """A single XBRL fact: (element_id, context_id, value, unit_id)."""
+
     element_id: str
     context_id: str
     value: str

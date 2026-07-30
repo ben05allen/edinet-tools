@@ -464,4 +464,3 @@ class TestTextProcessing:
         assert clean_text(None) is None
         assert clean_text("") == ""
         assert clean_text("   \t\n   ") == ""
-

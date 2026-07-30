@@ -19,11 +19,12 @@ Axis member parsing convention:
 This primitive is used by items #1 (segments), #3 (top-shareholders),
 and #5 (directors+comp) in the 0.7.0+ release family.
 """
+
 import re
 from dataclasses import dataclass, field
 
 
-_MEMBER_SUFFIX = 'Member'
+_MEMBER_SUFFIX = "Member"
 
 # Per-filer extension-namespace prefix that filers prepend to custom member
 # names: 'E03847-000DomesticLifeInsuranceReportableSegmentsMember' →
@@ -31,16 +32,17 @@ _MEMBER_SUFFIX = 'Member'
 # axis-member name the spec describes (and matches segments.py's own
 # _clean_member_name); without it, every caller would have to re-implement
 # cleaning. See test_extract_dimensional_preserves_filer_extension_member_names.
-_EDINET_FILER_PREFIX_RE = re.compile(r'^E\d{5}-\d{3}')
+_EDINET_FILER_PREFIX_RE = re.compile(r"^E\d{5}-\d{3}")
 
 
 @dataclass
 class DimensionalFact:
     """A fact paired with axis members parsed from its context_id."""
+
     element_id: str
     base_context: str
     axis_members: list[tuple[str, str]] = field(default_factory=list)
-    value: str = ''
+    value: str = ""
     unit_id: str | None = None
 
 
@@ -65,48 +67,48 @@ def _parse_axis_members(context_id: str) -> tuple[str, list[tuple[str, str]]]:
     logical token.
     """
     if not context_id:
-        return '', []
+        return "", []
 
     # Reassemble '_'-split fragments into logical tokens by grouping prefix
     # fragments (no colon) with the immediately following colon-containing fragment.
-    raw_parts = context_id.split('_')
+    raw_parts = context_id.split("_")
     tokens: list[str] = []
     pending: list[str] = []
 
     for part in raw_parts:
-        if ':' in part:
+        if ":" in part:
             # This fragment has the colon — combine with any pending prefix parts
             pending.append(part)
-            tokens.append('_'.join(pending))
+            tokens.append("_".join(pending))
             pending = []
         else:
             # No colon yet — could be a namespace prefix fragment or a base segment
             # We flush pending first (shouldn't happen, but defensive)
             if pending:
-                tokens.append('_'.join(pending))
+                tokens.append("_".join(pending))
                 pending = []
             pending.append(part)
 
     # Flush any remaining pending (plain context fragments like 'CurrentYearDuration')
     if pending:
-        tokens.append('_'.join(pending))
+        tokens.append("_".join(pending))
 
     base_parts = []
     members: list[tuple[str, str]] = []
 
     for token in tokens:
         # Strip namespace prefix if present (e.g., 'jpcrp_cor:FooMember' -> 'FooMember')
-        local_name = token.split(':')[-1] if ':' in token else token
+        local_name = token.split(":")[-1] if ":" in token else token
         if local_name.endswith(_MEMBER_SUFFIX) and len(local_name) > len(_MEMBER_SUFFIX):
-            member_name = local_name[:-len(_MEMBER_SUFFIX)]
+            member_name = local_name[: -len(_MEMBER_SUFFIX)]
             # Strip the per-filer EDINET extension-namespace prefix so callers
             # get the canonical member name regardless of which filer emitted it.
-            member_name = _EDINET_FILER_PREFIX_RE.sub('', member_name)
-            members.append(('', member_name))
+            member_name = _EDINET_FILER_PREFIX_RE.sub("", member_name)
+            members.append(("", member_name))
         else:
             base_parts.append(token)
 
-    base_context = '_'.join(base_parts)
+    base_context = "_".join(base_parts)
     return base_context, members
 
 
@@ -125,24 +127,26 @@ def extract_dimensional(csv_files: list, element_id: str) -> list:
     results: list[DimensionalFact] = []
 
     for csv_file in csv_files or []:
-        for row in csv_file.get('data', []) or []:
-            elem_id = row.get('要素ID', '') or ''
+        for row in csv_file.get("data", []) or []:
+            elem_id = row.get("要素ID", "") or ""
             if elem_id != element_id:
                 continue
 
-            context_id = row.get('コンテキストID', '') or ''
-            value = row.get('値', '') or ''
-            unit_id = row.get('ユニットID', '') or None
-            if unit_id == '':
+            context_id = row.get("コンテキストID", "") or ""
+            value = row.get("値", "") or ""
+            unit_id = row.get("ユニットID", "") or None
+            if unit_id == "":
                 unit_id = None
 
             base_context, axis_members = _parse_axis_members(context_id)
-            results.append(DimensionalFact(
-                element_id=elem_id,
-                base_context=base_context,
-                axis_members=axis_members,
-                value=value,
-                unit_id=unit_id,
-            ))
+            results.append(
+                DimensionalFact(
+                    element_id=elem_id,
+                    base_context=base_context,
+                    axis_members=axis_members,
+                    value=value,
+                    unit_id=unit_id,
+                )
+            )
 
     return results

@@ -1,4 +1,5 @@
 """Tests that amendment doc types route to the correct base parser."""
+
 import io
 import zipfile
 import pytest
@@ -16,10 +17,10 @@ def _make_minimal_zip() -> bytes:
     """
     # 9-column EDINET CSV row: element_id, label, context_id, year, consol,
     # period, unit_id, unit, value
-    row = 'jpdei_cor:EDINETCodeDEI\tlabel\tFilingDateInstant\t0\t連結\t期間\t\t\tE12345'
+    row = "jpdei_cor:EDINETCodeDEI\tlabel\tFilingDateInstant\t0\t連結\t期間\t\t\tE12345"
     buf = io.BytesIO()
-    with zipfile.ZipFile(buf, 'w') as zf:
-        zf.writestr('XBRL_TO_CSV/test.csv', row.encode('utf-16le'))
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("XBRL_TO_CSV/test.csv", row.encode("utf-16le"))
     return buf.getvalue()
 
 
@@ -27,7 +28,7 @@ def _make_doc(code: str) -> MagicMock:
     doc = MagicMock()
     doc.doc_type_code = code
     doc.doc_id = f"TEST_{code}"
-    doc.filer_edinet_code = ''
+    doc.filer_edinet_code = ""
     doc.fetch.return_value = _make_minimal_zip()
     return doc
 
@@ -51,7 +52,7 @@ def test_amendment_does_not_fall_through_to_raw(amendment_code, base_code):
     )
     # The CSV row we fed in has the DEI EDINET code 'E12345' — proves
     # the parse body actually ran rather than short-circuiting on empty input.
-    assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345', (
+    assert result.raw_fields.get("jpdei_cor:EDINETCodeDEI") == "E12345", (
         f"Doc type {amendment_code}: parse body did not consume the input CSV row"
     )
 
@@ -62,6 +63,6 @@ def test_existing_amendment_routes_still_work():
         doc = _make_doc(code)
         result = parse(doc)
         assert not isinstance(result, RawReport)
-        assert result.raw_fields.get('jpdei_cor:EDINETCodeDEI') == 'E12345', (
+        assert result.raw_fields.get("jpdei_cor:EDINETCodeDEI") == "E12345", (
             f"Doc type {code}: parse body did not consume the input CSV row"
         )

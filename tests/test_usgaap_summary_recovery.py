@@ -38,22 +38,32 @@ Canon FY24 fixture element-presence audit (filing S100XTLJ, 2026-06-10):
   NetIncomeLossAttributableToOwnersOfParentUSGAAPSummaryOfBR          MISSING   — Canon omits; net_income is None
   OperatingIncomeLossUSGAAPSummaryOfBusinessResults                   MISSING   — Canon omits; operating_income is None
 """
+
 import csv as _csv
 from decimal import Decimal
 from pathlib import Path
 
 from edinet_tools.parsers.securities import parse_securities_report
 
-_COLS = ['要素ID', '項目名', 'コンテキストID', '相対年度',
-         '連結・個別', '期間・時点', 'ユニットID', '単位', '値']
+_COLS = [
+    "要素ID",
+    "項目名",
+    "コンテキストID",
+    "相対年度",
+    "連結・個別",
+    "期間・時点",
+    "ユニットID",
+    "単位",
+    "値",
+]
 
 
 def _parse(name: str):
-    p = Path(__file__).parent / 'fixtures' / 'securities' / f'{name}.csv'
-    with open(p, encoding='utf-8') as fh:
-        rows = list(_csv.reader(fh, delimiter='\t'))
-    cf = [{'filename': f'{name}.csv', 'data': [dict(zip(_COLS, r)) for r in rows[1:]]}]
-    return parse_securities_report(csv_files=cf, doc_id='TEST', doc_type_code='120')
+    p = Path(__file__).parent / "fixtures" / "securities" / f"{name}.csv"
+    with open(p, encoding="utf-8") as fh:
+        rows = list(_csv.reader(fh, delimiter="\t"))
+    cf = [{"filename": f"{name}.csv", "data": [dict(zip(_COLS, r)) for r in rows[1:]]}]
+    return parse_securities_report(csv_files=cf, doc_id="TEST", doc_type_code="120")
 
 
 def test_usgaap_equity_ratio_recovered():
@@ -63,16 +73,16 @@ def test_usgaap_equity_ratio_recovered():
     Before fix: equity_ratio is None because the waterfall only tried J-GAAP
     and IFRS variants; the US-GAAP element was never attempted.
     """
-    r = _parse('sony_fy20_usgaap_revenue')
-    assert r.accounting_standard == 'US GAAP'
-    assert r.equity_ratio == Decimal('0.179')
+    r = _parse("sony_fy20_usgaap_revenue")
+    assert r.accounting_standard == "US GAAP"
+    assert r.equity_ratio == Decimal("0.179")
 
 
 def test_usgaap_equity_ratio_is_ratio_not_bps():
     """Sanity check: equity_ratio for a US-GAAP filer must be a fraction (< 1),
     not a yen-per-share BPS figure (which would be in the thousands).
     """
-    r = _parse('sony_fy20_usgaap_revenue')
+    r = _parse("sony_fy20_usgaap_revenue")
     assert r.equity_ratio is not None
     assert r.equity_ratio < 1, (
         f"equity_ratio={r.equity_ratio!r} looks like a BPS figure, not a ratio"
@@ -85,7 +95,7 @@ def test_usgaap_total_assets_absent_in_fixture_is_honest_none():
     Real US-GAAP filers that DO have this element will be covered by the waterfall
     extension once those fixtures / prod data are exercised.
     """
-    r = _parse('sony_fy20_usgaap_revenue')
+    r = _parse("sony_fy20_usgaap_revenue")
     # The J-GAAP summary and IFRS summary elements are also absent in the Sony
     # fixture; only the non-consolidated jppfs_cor:LiabilitiesAndNetAssets exists.
     # total_assets should come from jppfs_cor:Assets at a consolidated context —
@@ -97,7 +107,7 @@ def test_usgaap_net_assets_absent_in_fixture_is_honest_none():
     """EquityAttributableToOwnersOfParentUSGAAPSummaryOfBusinessResults is missing
     from the Sony fixture. Field must remain None (not the non-consolidated value).
     """
-    r = _parse('sony_fy20_usgaap_revenue')
+    r = _parse("sony_fy20_usgaap_revenue")
     assert r.net_assets is None
 
 
@@ -106,7 +116,7 @@ def test_usgaap_net_assets_per_share_absent_in_fixture_is_honest_none():
     absent from the Sony fixture (only a company-custom-ns variant exists, which
     the parser does not pick up). Field must remain None.
     """
-    r = _parse('sony_fy20_usgaap_revenue')
+    r = _parse("sony_fy20_usgaap_revenue")
     assert r.net_assets_per_share is None
 
 
@@ -114,7 +124,7 @@ def test_usgaap_operating_cf_absent_in_fixture_is_honest_none():
     """CashFlowsFromUsedInOperatingActivitiesUSGAAPSummaryOfBusinessResults is
     missing from the Sony fixture. operating_cash_flow must remain None.
     """
-    r = _parse('sony_fy20_usgaap_revenue')
+    r = _parse("sony_fy20_usgaap_revenue")
     assert r.operating_cash_flow is None
 
 
@@ -122,7 +132,7 @@ def test_usgaap_investing_cf_absent_in_fixture_is_honest_none():
     """CashFlowsFromUsedInInvestingActivitiesUSGAAPSummaryOfBusinessResults is
     missing from the Sony fixture. investing_cash_flow must remain None.
     """
-    r = _parse('sony_fy20_usgaap_revenue')
+    r = _parse("sony_fy20_usgaap_revenue")
     assert r.investing_cash_flow is None
 
 
@@ -131,7 +141,7 @@ def test_usgaap_financing_cf_prior_year_only_is_honest_none():
     present in the Sony fixture but only at Prior2YearDuration (not CurrentYearDuration).
     financing_cash_flow must remain None — the parser must not read the wrong period.
     """
-    r = _parse('sony_fy20_usgaap_revenue')
+    r = _parse("sony_fy20_usgaap_revenue")
     assert r.financing_cash_flow is None
 
 
@@ -140,15 +150,16 @@ def test_usgaap_financing_cf_prior_year_only_is_honest_none():
 # Pins every R3-mapped element that is present in this filing.
 # ---------------------------------------------------------------------------
 
+
 def test_canon_usgaap_accounting_standard():
     """Canon FY24 is filed under US GAAP — accounting_standard must reflect that."""
-    r = _parse('canon_fy_usgaap')
-    assert r.accounting_standard == 'US GAAP'
+    r = _parse("canon_fy_usgaap")
+    assert r.accounting_standard == "US GAAP"
 
 
 def test_canon_usgaap_total_assets():
     """TotalAssetsUSGAAPSummaryOfBusinessResults @ CurrentYearInstant: 6,135,044,000,000 JPY."""
-    r = _parse('canon_fy_usgaap')
+    r = _parse("canon_fy_usgaap")
     assert r.total_assets == 6_135_044_000_000
 
 
@@ -156,19 +167,19 @@ def test_canon_usgaap_net_assets():
     """EquityAttributableToOwnersOfParentUSGAAPSummaryOfBusinessResults @ CurrentYearInstant:
     3,491,808,000,000 JPY.
     """
-    r = _parse('canon_fy_usgaap')
+    r = _parse("canon_fy_usgaap")
     assert r.net_assets == 3_491_808_000_000
 
 
 def test_canon_usgaap_equity_ratio():
     """EquityToAssetRatioUSGAAPSummaryOfBusinessResults @ CurrentYearInstant: 0.569."""
-    r = _parse('canon_fy_usgaap')
-    assert r.equity_ratio == Decimal('0.569')
+    r = _parse("canon_fy_usgaap")
+    assert r.equity_ratio == Decimal("0.569")
 
 
 def test_canon_usgaap_equity_ratio_is_ratio_not_bps():
     """Sanity check: Canon equity_ratio must be a fraction (< 1), not a yen-per-share figure."""
-    r = _parse('canon_fy_usgaap')
+    r = _parse("canon_fy_usgaap")
     assert r.equity_ratio is not None
     assert r.equity_ratio < 1, (
         f"equity_ratio={r.equity_ratio!r} looks like a BPS figure, not a ratio"
@@ -179,15 +190,15 @@ def test_canon_usgaap_net_assets_per_share():
     """EquityAttributableToOwnersOfParentPerShareUSGAAPSummaryOfBusinessResults
     @ CurrentYearInstant: 3974.81 JPY/share.
     """
-    r = _parse('canon_fy_usgaap')
-    assert r.net_assets_per_share == Decimal('3974.81')
+    r = _parse("canon_fy_usgaap")
+    assert r.net_assets_per_share == Decimal("3974.81")
 
 
 def test_canon_usgaap_operating_cash_flow():
     """CashFlowsFromUsedInOperatingActivitiesUSGAAPSummaryOfBusinessResults
     @ CurrentYearDuration: 475,903,000,000 JPY.
     """
-    r = _parse('canon_fy_usgaap')
+    r = _parse("canon_fy_usgaap")
     assert r.operating_cash_flow == 475_903_000_000
 
 
@@ -195,7 +206,7 @@ def test_canon_usgaap_investing_cash_flow():
     """CashFlowsFromUsedInInvestingActivitiesUSGAAPSummaryOfBusinessResults
     @ CurrentYearDuration: -237,450,000,000 JPY.
     """
-    r = _parse('canon_fy_usgaap')
+    r = _parse("canon_fy_usgaap")
     assert r.investing_cash_flow == -237_450_000_000
 
 
@@ -203,13 +214,13 @@ def test_canon_usgaap_financing_cash_flow():
     """CashFlowsFromUsedInFinancingActivitiesUSGAAPSummaryOfBusinessResults
     @ CurrentYearDuration: -179,221,000,000 JPY.
     """
-    r = _parse('canon_fy_usgaap')
+    r = _parse("canon_fy_usgaap")
     assert r.financing_cash_flow == -179_221_000_000
 
 
 def test_canon_usgaap_net_sales():
     """RevenuesUSGAAPSummaryOfBusinessResults @ CurrentYearDuration: 4,624,727,000,000 JPY."""
-    r = _parse('canon_fy_usgaap')
+    r = _parse("canon_fy_usgaap")
     assert r.net_sales == 4_624_727_000_000
 
 
@@ -218,7 +229,7 @@ def test_canon_usgaap_net_income_absent_is_honest_none():
     tagged in the Canon filing. net_income must be None — no fallback to non-consolidated
     jppfs_cor:ProfitLoss or ProfitLossBeforeTax.
     """
-    r = _parse('canon_fy_usgaap')
+    r = _parse("canon_fy_usgaap")
     assert r.net_income is None
 
 
@@ -227,5 +238,5 @@ def test_canon_usgaap_operating_income_absent_is_honest_none():
     filing (Canon uses ProfitLossBeforeTax instead). operating_income must be None —
     no fallback to non-consolidated jppfs_cor:OperatingIncome.
     """
-    r = _parse('canon_fy_usgaap')
+    r = _parse("canon_fy_usgaap")
     assert r.operating_income is None

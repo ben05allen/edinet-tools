@@ -4,6 +4,7 @@ Parser for Semi-Annual Reports (Doc Type 160).
 Extracts financial data from 半期報告書 filings.
 Supports both corporate and fund reports with IFRS fallback.
 """
+
 from dataclasses import dataclass
 from datetime import date
 from typing import Optional
@@ -22,37 +23,35 @@ from .extraction import (
 # XBRL Element ID mappings for Doc 160 (Semi-Annual Reports)
 ELEMENT_MAP = {
     # === DEI Elements (Identification) ===
-    'edinet_code': 'jpdei_cor:EDINETCodeDEI',
-    'fund_code': 'jpdei_cor:FundCodeDEI',
-    'filer_name': 'jpdei_cor:FilerNameInJapaneseDEI',
-    'fund_name': 'jpdei_cor:FundNameInJapaneseDEI',
-    'period_start': 'jpdei_cor:CurrentFiscalYearStartDateDEI',
-    'period_end': 'jpdei_cor:CurrentPeriodEndDateDEI',
-    'submission_date': 'jpdei_cor:DateOfSubmissionDEI',
-
+    "edinet_code": "jpdei_cor:EDINETCodeDEI",
+    "fund_code": "jpdei_cor:FundCodeDEI",
+    "filer_name": "jpdei_cor:FilerNameInJapaneseDEI",
+    "fund_name": "jpdei_cor:FundNameInJapaneseDEI",
+    "period_start": "jpdei_cor:CurrentFiscalYearStartDateDEI",
+    "period_end": "jpdei_cor:CurrentPeriodEndDateDEI",
+    "submission_date": "jpdei_cor:DateOfSubmissionDEI",
     # === Balance Sheet Elements ===
-    'assets': 'jppfs_cor:Assets',
-    'current_assets': 'jppfs_cor:CurrentAssets',
-    'liabilities': 'jppfs_cor:Liabilities',
-    'current_liabilities': 'jppfs_cor:CurrentLiabilities',
-    'net_assets': 'jppfs_cor:NetAssets',
-
+    "assets": "jppfs_cor:Assets",
+    "current_assets": "jppfs_cor:CurrentAssets",
+    "liabilities": "jppfs_cor:Liabilities",
+    "current_liabilities": "jppfs_cor:CurrentLiabilities",
+    "net_assets": "jppfs_cor:NetAssets",
     # === Income Statement ===
-    'operating_income': 'jppfs_cor:OperatingIncome',
-    'ordinary_income': 'jppfs_cor:OrdinaryIncome',
-    'profit_loss': 'jppfs_cor:ProfitLoss',
+    "operating_income": "jppfs_cor:OperatingIncome",
+    "ordinary_income": "jppfs_cor:OrdinaryIncome",
+    "profit_loss": "jppfs_cor:ProfitLoss",
 }
 
 # IFRS fallback elements
 IFRS_FALLBACK_MAP = {
-    'jppfs_cor:Assets': 'jpigp_cor:AssetsIFRS',
-    'jppfs_cor:CurrentAssets': 'jpigp_cor:CurrentAssetsIFRS',
-    'jppfs_cor:Liabilities': 'jpigp_cor:LiabilitiesIFRS',
-    'jppfs_cor:CurrentLiabilities': 'jpigp_cor:CurrentLiabilitiesIFRS',
-    'jppfs_cor:NetAssets': 'jpigp_cor:EquityIFRS',
-    'jppfs_cor:OperatingIncome': 'jpigp_cor:OperatingProfitLossIFRS',
-    'jppfs_cor:OrdinaryIncome': 'jpigp_cor:ProfitLossBeforeTaxIFRS',
-    'jppfs_cor:ProfitLoss': 'jpigp_cor:ProfitLossIFRS',
+    "jppfs_cor:Assets": "jpigp_cor:AssetsIFRS",
+    "jppfs_cor:CurrentAssets": "jpigp_cor:CurrentAssetsIFRS",
+    "jppfs_cor:Liabilities": "jpigp_cor:LiabilitiesIFRS",
+    "jppfs_cor:CurrentLiabilities": "jpigp_cor:CurrentLiabilitiesIFRS",
+    "jppfs_cor:NetAssets": "jpigp_cor:EquityIFRS",
+    "jppfs_cor:OperatingIncome": "jpigp_cor:OperatingProfitLossIFRS",
+    "jppfs_cor:OrdinaryIncome": "jpigp_cor:ProfitLossBeforeTaxIFRS",
+    "jppfs_cor:ProfitLoss": "jpigp_cor:ProfitLossIFRS",
 }
 
 
@@ -98,14 +97,15 @@ class SemiAnnualReport(ParsedReport):
         """
         if self.filer_edinet_code:
             from edinet_tools.entity import entity_by_edinet_code
+
             return entity_by_edinet_code(self.filer_edinet_code)
         return None
 
     def __repr__(self) -> str:
-        filer = self.filer_name or self.fund_name or 'Unknown'
+        filer = self.filer_name or self.fund_name or "Unknown"
         if len(filer) > 25:
-            filer = filer[:22] + '...'
-        period = self.period_end.strftime('%Y-%m') if self.period_end else '?'
+            filer = filer[:22] + "..."
+        period = self.period_end.strftime("%Y-%m") if self.period_end else "?"
         return f"SemiAnnualReport(filer='{filer}', period_end={period})"
 
 
@@ -130,7 +130,9 @@ def _extract_financial(csv_files: list, element_id: str) -> Optional[int]:
     return None
 
 
-def parse_semi_annual_report(document=None, *, csv_files=None, doc_id=None, doc_type_code=None) -> SemiAnnualReport:
+def parse_semi_annual_report(
+    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+) -> SemiAnnualReport:
     """
     Parse a Semi-Annual Report document.
 
@@ -159,35 +161,39 @@ def parse_semi_annual_report(document=None, *, csv_files=None, doc_id=None, doc_
             text_blocks={},
         )
 
-    source_files = [f['filename'] for f in csv_files]
+    source_files = [f["filename"] for f in csv_files]
 
     # Helper to get DEI values
     def get_dei(key: str) -> str | None:
-        return extract_value(csv_files, ELEMENT_MAP.get(key, ''), context_patterns=['FilingDateInstant'])
+        return extract_value(
+            csv_files, ELEMENT_MAP.get(key, ""), context_patterns=["FilingDateInstant"]
+        )
 
     # Extract DEI elements
-    edinet_code = get_dei('edinet_code')
-    filer_name = get_dei('filer_name')
-    fund_code = get_dei('fund_code')
-    fund_name = get_dei('fund_name')
+    edinet_code = get_dei("edinet_code")
+    filer_name = get_dei("filer_name")
+    fund_code = get_dei("fund_code")
+    fund_name = get_dei("fund_name")
 
     # Extract period
-    period_start = parse_date(get_dei('period_start'))
-    period_end = parse_date(get_dei('period_end'))
-    filing_date = parse_date(get_dei('submission_date')) or period_end
+    period_start = parse_date(get_dei("period_start"))
+    period_end = parse_date(get_dei("period_end"))
+    filing_date = parse_date(get_dei("submission_date")) or period_end
 
     # Financial data
-    total_assets = _extract_financial(csv_files, ELEMENT_MAP['assets'])
-    current_assets = _extract_financial(csv_files, ELEMENT_MAP['current_assets'])
-    total_liabilities = _extract_financial(csv_files, ELEMENT_MAP['liabilities'])
-    current_liabilities = _extract_financial(csv_files, ELEMENT_MAP['current_liabilities'])
-    net_assets = _extract_financial(csv_files, ELEMENT_MAP['net_assets'])
-    operating_income = _extract_financial(csv_files, ELEMENT_MAP['operating_income'])
-    ordinary_income = _extract_financial(csv_files, ELEMENT_MAP['ordinary_income'])
-    profit_loss = _extract_financial(csv_files, ELEMENT_MAP['profit_loss'])
+    total_assets = _extract_financial(csv_files, ELEMENT_MAP["assets"])
+    current_assets = _extract_financial(csv_files, ELEMENT_MAP["current_assets"])
+    total_liabilities = _extract_financial(csv_files, ELEMENT_MAP["liabilities"])
+    current_liabilities = _extract_financial(csv_files, ELEMENT_MAP["current_liabilities"])
+    net_assets = _extract_financial(csv_files, ELEMENT_MAP["net_assets"])
+    operating_income = _extract_financial(csv_files, ELEMENT_MAP["operating_income"])
+    ordinary_income = _extract_financial(csv_files, ELEMENT_MAP["ordinary_income"])
+    profit_loss = _extract_financial(csv_files, ELEMENT_MAP["profit_loss"])
 
     # Categorize all elements
-    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(
+        csv_files, ELEMENT_MAP
+    )
 
     return SemiAnnualReport(
         doc_id=doc_id,
@@ -197,25 +203,21 @@ def parse_semi_annual_report(document=None, *, csv_files=None, doc_id=None, doc_
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
         raw_facts=raw_facts,
-
         # Identification
-        filer_name=filer_name or getattr(document, 'filer_name', None),
-        filer_edinet_code=edinet_code or getattr(document, 'filer_edinet_code', None),
+        filer_name=filer_name or getattr(document, "filer_name", None),
+        filer_edinet_code=edinet_code or getattr(document, "filer_edinet_code", None),
         fund_code=fund_code,
         fund_name=fund_name,
-
         # Period
         period_start=period_start,
         period_end=period_end,
         filing_date=filing_date,
-
         # Balance Sheet
         total_assets=total_assets,
         current_assets=current_assets,
         total_liabilities=total_liabilities,
         current_liabilities=current_liabilities,
         net_assets=net_assets,
-
         # Income Statement
         operating_income=operating_income,
         ordinary_income=ordinary_income,

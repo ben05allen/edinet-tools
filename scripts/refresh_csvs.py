@@ -15,6 +15,7 @@ Run before cutting a release:
 Existing dated CSVs are kept (older snapshots may be useful for debugging
 historical classifications). To prune, delete them manually.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -43,9 +44,7 @@ def download_and_extract(url: str, expected_csv_name: str, out_path: Path) -> in
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
         names = zf.namelist()
         if expected_csv_name not in names:
-            raise RuntimeError(
-                f"Expected {expected_csv_name!r} in zip but found {names!r}"
-            )
+            raise RuntimeError(f"Expected {expected_csv_name!r} in zip but found {names!r}")
         csv_bytes = zf.read(expected_csv_name)
 
     out_path.write_bytes(csv_bytes)

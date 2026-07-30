@@ -67,11 +67,27 @@ class TestPackageExports:
     def test_all_exports_complete(self):
         """__all__ contains all expected exports."""
         expected = [
-            'configure', 'documents', 'DOCUMENT_TYPES', '__version__',
-            'Entity', 'entity', 'entity_by_ticker', 'entity_by_edinet_code',
-            'search_entities', 'search', 'Fund', 'fund', 'funds_by_issuer',
-            'Document', 'DocType', 'doc_type', 'list_doc_types', 'doc_types',
-            'parse', 'ParsedReport', 'EdinetClient',
+            "configure",
+            "documents",
+            "DOCUMENT_TYPES",
+            "__version__",
+            "Entity",
+            "entity",
+            "entity_by_ticker",
+            "entity_by_edinet_code",
+            "search_entities",
+            "search",
+            "Fund",
+            "fund",
+            "funds_by_issuer",
+            "Document",
+            "DocType",
+            "doc_type",
+            "list_doc_types",
+            "doc_types",
+            "parse",
+            "ParsedReport",
+            "EdinetClient",
         ]
         for name in expected:
             assert name in edinet_tools.__all__, f"Missing: {name}"
@@ -89,7 +105,7 @@ class TestModuleConfiguration:
         from edinet_tools._client import _get_client, _reset_client
 
         _reset_client()
-        with patch.dict(os.environ, {'EDINET_API_KEY': 'test-key'}):
+        with patch.dict(os.environ, {"EDINET_API_KEY": "test-key"}):
             client1 = _get_client()
             client2 = _get_client()
             assert client1 is client2
@@ -99,10 +115,10 @@ class TestModuleConfiguration:
         from edinet_tools._client import configure, _get_client, _reset_client
 
         _reset_client()
-        with patch.dict(os.environ, {'EDINET_API_KEY': 'key1'}):
+        with patch.dict(os.environ, {"EDINET_API_KEY": "key1"}):
             client1 = _get_client()
 
-        configure(api_key='key2')
+        configure(api_key="key2")
         client2 = _get_client()
         assert client1 is not client2
 
@@ -111,15 +127,19 @@ class TestModuleConfiguration:
         from edinet_tools._client import _reset_client, configure
 
         _reset_client()
-        with patch('edinet_tools._client.EdinetClient') as MockClient:
+        with patch("edinet_tools._client.EdinetClient") as MockClient:
             mock_instance = MockClient.return_value
             mock_instance.get_documents_by_date.return_value = [
-                {'docID': 'S100TEST', 'docTypeCode': '350',
-                 'submitDateTime': '2026-01-15 09:30',
-                 'edinetCode': 'E12345', 'filerName': 'Test Corp'}
+                {
+                    "docID": "S100TEST",
+                    "docTypeCode": "350",
+                    "submitDateTime": "2026-01-15 09:30",
+                    "edinetCode": "E12345",
+                    "filerName": "Test Corp",
+                }
             ]
-            configure(api_key='test-key')
-            docs = edinet_tools.documents('2026-01-15')
+            configure(api_key="test-key")
+            docs = edinet_tools.documents("2026-01-15")
 
             assert isinstance(docs, list)
             assert len(docs) == 1
@@ -131,12 +151,12 @@ class TestEndToEndWorkflows:
     def test_company_discovery_workflow(self):
         """Find a company and access its properties."""
         # Search -> get entity -> access properties
-        results = edinet_tools.search('Toyota')
+        results = edinet_tools.search("Toyota")
         assert len(results) > 0
 
-        toyota = edinet_tools.entity('7203')
+        toyota = edinet_tools.entity("7203")
         assert toyota is not None
-        assert toyota.edinet_code == 'E02144'
+        assert toyota.edinet_code == "E02144"
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             assert toyota.is_listed is True
@@ -144,9 +164,9 @@ class TestEndToEndWorkflows:
     def test_document_type_workflow(self):
         """Look up document types."""
         # Get a specific type
-        large_holding = edinet_tools.doc_type('350')
+        large_holding = edinet_tools.doc_type("350")
         assert large_holding is not None
-        assert large_holding.code == '350'
+        assert large_holding.code == "350"
 
         # List all types
         all_types = edinet_tools.doc_types()
@@ -154,10 +174,10 @@ class TestEndToEndWorkflows:
 
     def test_graceful_not_found(self):
         """Invalid lookups return None, not exceptions."""
-        assert edinet_tools.entity('INVALID_12345') is None
-        assert edinet_tools.entity_by_ticker('0000') is None
-        assert edinet_tools.entity_by_edinet_code('E99999') is None
-        assert edinet_tools.doc_type('999') is None
+        assert edinet_tools.entity("INVALID_12345") is None
+        assert edinet_tools.entity_by_ticker("0000") is None
+        assert edinet_tools.entity_by_edinet_code("E99999") is None
+        assert edinet_tools.doc_type("999") is None
 
 
 class TestDeprecationWarnings:
@@ -166,7 +186,7 @@ class TestDeprecationWarnings:
     def test_edinet_client_deprecated(self):
         """EdinetClient shows deprecation warning."""
         with pytest.warns(DeprecationWarning, match="EdinetClient is deprecated"):
-            edinet_tools.EdinetClient(api_key='dummy')
+            edinet_tools.EdinetClient(api_key="dummy")
 
 
 class TestEntityAutoClient:
@@ -177,11 +197,11 @@ class TestEntityAutoClient:
         from edinet_tools._client import _reset_client, configure
 
         _reset_client()
-        with patch('edinet_tools._client.EdinetClient') as MockClient:
+        with patch("edinet_tools._client.EdinetClient") as MockClient:
             mock_instance = MockClient.return_value
             mock_instance.get_documents_by_date.return_value = []
 
-            configure(api_key='test-key')
+            configure(api_key="test-key")
             toyota = edinet_tools.entity("7203")
             docs = toyota.documents(days=1)
             assert docs == []
@@ -192,35 +212,44 @@ class TestEntityAutoClient:
         from edinet_tools.document import Document
 
         _reset_client()
-        with patch('edinet_tools._client.EdinetClient') as MockClient:
+        with patch("edinet_tools._client.EdinetClient") as MockClient:
             mock_instance = MockClient.return_value
-            mock_instance.download_filing_raw.return_value = b'test content'
+            mock_instance.download_filing_raw.return_value = b"test content"
 
-            configure(api_key='test-key')
-            doc = Document({
-                'docID': 'S100TEST', 'docTypeCode': '350',
-                'submitDateTime': '2026-01-15 09:30',
-                'edinetCode': 'E12345', 'filerName': 'Test Corp',
-            })
+            configure(api_key="test-key")
+            doc = Document(
+                {
+                    "docID": "S100TEST",
+                    "docTypeCode": "350",
+                    "submitDateTime": "2026-01-15 09:30",
+                    "edinetCode": "E12345",
+                    "filerName": "Test Corp",
+                }
+            )
             content = doc.fetch()
-            assert content == b'test content'
+            assert content == b"test content"
 
     def test_document_parse_returns_report(self):
         """Document.parse() returns a ParsedReport."""
         from edinet_tools.document import Document
         from edinet_tools.parsers.base import ParsedReport
 
-        doc = Document({
-            'docID': 'S100TEST', 'docTypeCode': '999',
-            'submitDateTime': '2026-01-15 09:30',
-            'edinetCode': 'E12345', 'filerName': 'Test Corp',
-        })
+        doc = Document(
+            {
+                "docID": "S100TEST",
+                "docTypeCode": "999",
+                "submitDateTime": "2026-01-15 09:30",
+                "edinetCode": "E12345",
+                "filerName": "Test Corp",
+            }
+        )
 
-        with patch.object(doc, 'fetch', return_value=b''):
+        with patch.object(doc, "fetch", return_value=b""):
             result = doc.parse()
             assert isinstance(result, ParsedReport)
 
     def test_fetch_and_parse_is_exported(self):
         """Verify fetch_and_parse is importable from the public API."""
         from edinet_tools import fetch_and_parse
+
         assert callable(fetch_and_parse)

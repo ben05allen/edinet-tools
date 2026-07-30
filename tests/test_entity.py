@@ -1,11 +1,20 @@
 """Tests for Entity and Fund classes."""
+
+import csv as _csv_module
 import warnings
+from pathlib import Path as _Path
 
 import pytest
 from unittest.mock import Mock, patch
 from edinet_tools.entity import (
-    Entity, entity, entity_by_ticker, entity_by_edinet_code, search_entities,
-    Fund, fund, funds_by_issuer
+    Entity,
+    entity,
+    entity_by_ticker,
+    entity_by_edinet_code,
+    search_entities,
+    Fund,
+    fund,
+    funds_by_issuer,
 )
 
 
@@ -15,20 +24,20 @@ class TestEntityBasics:
     def test_entity_has_required_attributes(self):
         """Entity should have all expected attributes."""
         data = {
-            'edinet_code': 'E02144',
-            'name_jp': 'トヨタ自動車株式会社',
-            'name_en': 'TOYOTA MOTOR CORPORATION',
-            'ticker': '7203',
-            'is_listed': True,
-            'submitter_type': 'Listed company',
-            'industry': 'Automobiles',
+            "edinet_code": "E02144",
+            "name_jp": "トヨタ自動車株式会社",
+            "name_en": "TOYOTA MOTOR CORPORATION",
+            "ticker": "7203",
+            "is_listed": True,
+            "submitter_type": "Listed company",
+            "industry": "Automobiles",
         }
         entity = Entity(data)
 
-        assert entity.edinet_code == 'E02144'
-        assert entity.name_jp == 'トヨタ自動車株式会社'
-        assert entity.name_en == 'TOYOTA MOTOR CORPORATION'
-        assert entity.ticker == '7203'
+        assert entity.edinet_code == "E02144"
+        assert entity.name_jp == "トヨタ自動車株式会社"
+        assert entity.name_en == "TOYOTA MOTOR CORPORATION"
+        assert entity.ticker == "7203"
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             assert entity.is_listed is True
@@ -36,34 +45,34 @@ class TestEntityBasics:
     def test_entity_name_property_prefers_english(self):
         """Entity.name should return English name if available."""
         data = {
-            'edinet_code': 'E02144',
-            'name_jp': 'トヨタ自動車株式会社',
-            'name_en': 'TOYOTA MOTOR CORPORATION',
+            "edinet_code": "E02144",
+            "name_jp": "トヨタ自動車株式会社",
+            "name_en": "TOYOTA MOTOR CORPORATION",
         }
         entity = Entity(data)
-        assert entity.name == 'TOYOTA MOTOR CORPORATION'
+        assert entity.name == "TOYOTA MOTOR CORPORATION"
 
     def test_entity_name_falls_back_to_japanese(self):
         """Entity.name should fall back to Japanese if no English."""
         data = {
-            'edinet_code': 'E12345',
-            'name_jp': 'テスト株式会社',
-            'name_en': None,
+            "edinet_code": "E12345",
+            "name_jp": "テスト株式会社",
+            "name_en": None,
         }
         entity = Entity(data)
-        assert entity.name == 'テスト株式会社'
+        assert entity.name == "テスト株式会社"
 
     def test_entity_repr(self):
         """Entity repr should be informative."""
         data = {
-            'edinet_code': 'E02144',
-            'name_jp': 'トヨタ自動車株式会社',
-            'name_en': 'TOYOTA MOTOR CORPORATION',
-            'ticker': '7203',
+            "edinet_code": "E02144",
+            "name_jp": "トヨタ自動車株式会社",
+            "name_en": "TOYOTA MOTOR CORPORATION",
+            "ticker": "7203",
         }
         entity = Entity(data)
         repr_str = repr(entity)
-        assert 'E02144' in repr_str
+        assert "E02144" in repr_str
 
 
 class TestEntityLookup:
@@ -73,25 +82,25 @@ class TestEntityLookup:
         """Look up Toyota by ticker."""
         result = entity_by_ticker("7203")
         assert result is not None
-        assert result.edinet_code == 'E02144'
+        assert result.edinet_code == "E02144"
 
     def test_entity_by_ticker_with_suffix(self):
         """Ticker lookup handles .T suffix."""
         result = entity_by_ticker("7203.T")
         assert result is not None
-        assert result.edinet_code == 'E02144'
+        assert result.edinet_code == "E02144"
 
     def test_entity_by_edinet_code(self):
         """Look up by EDINET code."""
         result = entity_by_edinet_code("E02144")
         assert result is not None
-        assert 'TOYOTA' in result.name.upper()
+        assert "TOYOTA" in result.name.upper()
 
     def test_entity_smart_lookup_ticker(self):
         """Smart lookup resolves ticker."""
         result = entity("7203")
         assert result is not None
-        assert result.edinet_code == 'E02144'
+        assert result.edinet_code == "E02144"
 
     def test_entity_smart_lookup_edinet_code(self):
         """Smart lookup resolves EDINET code."""
@@ -102,7 +111,7 @@ class TestEntityLookup:
         """Smart lookup resolves name."""
         result = entity("Toyota")
         assert result is not None
-        assert result.edinet_code == 'E02144'
+        assert result.edinet_code == "E02144"
 
     def test_entity_not_found_returns_none(self):
         """Lookup returns None for unknown identifiers."""
@@ -118,7 +127,7 @@ class TestEntitySearch:
         """Search finds entities by name."""
         results = search_entities("Toyota", limit=5)
         assert len(results) > 0
-        assert any(e.edinet_code == 'E02144' for e in results)
+        assert any(e.edinet_code == "E02144" for e in results)
 
     def test_search_entities_returns_entity_objects(self):
         """Search returns Entity objects."""
@@ -137,25 +146,25 @@ class TestFundBasics:
     def test_fund_has_required_attributes(self):
         """Fund has expected attributes."""
         data = {
-            'fund_code': 'G01003',
-            'name': 'しんきんインデックスファンド225',
-            'issuer_edinet_code': 'E12422',
-            'issuer_name': 'しんきんアセットマネジメント投信株式会社',
+            "fund_code": "G01003",
+            "name": "しんきんインデックスファンド225",
+            "issuer_edinet_code": "E12422",
+            "issuer_name": "しんきんアセットマネジメント投信株式会社",
         }
         f = Fund(data)
-        assert f.fund_code == 'G01003'
-        assert f.issuer_edinet_code == 'E12422'
+        assert f.fund_code == "G01003"
+        assert f.issuer_edinet_code == "E12422"
 
     def test_fund_repr(self):
         """Fund repr is informative."""
         data = {
-            'fund_code': 'G01003',
-            'name': 'しんきんインデックスファンド225',
-            'issuer_edinet_code': 'E12422',
-            'issuer_name': 'しんきんアセットマネジメント投信',
+            "fund_code": "G01003",
+            "name": "しんきんインデックスファンド225",
+            "issuer_edinet_code": "E12422",
+            "issuer_name": "しんきんアセットマネジメント投信",
         }
         f = Fund(data)
-        assert 'G01003' in repr(f)
+        assert "G01003" in repr(f)
 
 
 class TestFundLookup:
@@ -165,7 +174,7 @@ class TestFundLookup:
         """Look up fund by fund code."""
         result = fund("G01003")
         assert result is not None
-        assert result.fund_code == 'G01003'
+        assert result.fund_code == "G01003"
 
     def test_funds_by_issuer_returns_list(self):
         """funds_by_issuer returns a list."""
@@ -226,11 +235,11 @@ class TestEntityDocuments:
         assert toyota._client is None
 
         _reset_client()
-        with patch('edinet_tools._client.EdinetClient') as MockClient:
+        with patch("edinet_tools._client.EdinetClient") as MockClient:
             mock_instance = MockClient.return_value
             mock_instance.get_documents_by_date.return_value = []
 
-            configure(api_key='test-key')
+            configure(api_key="test-key")
             # Should NOT raise RuntimeError - uses module-level client
             docs = toyota.documents(days=1)
             assert docs == []
@@ -241,11 +250,11 @@ class TestEntityDocuments:
         # Mock client response
         mock_filings = [
             {
-                'docID': 'S100TEST1',
-                'docTypeCode': '350',
-                'submitDateTime': '2026-01-15 09:30',
-                'edinetCode': 'E02144',
-                'filerName': 'トヨタ',
+                "docID": "S100TEST1",
+                "docTypeCode": "350",
+                "submitDateTime": "2026-01-15 09:30",
+                "edinetCode": "E02144",
+                "filerName": "トヨタ",
             }
         ]
 
@@ -262,8 +271,20 @@ class TestEntityDocuments:
         """Entity.documents() filters by doc type."""
 
         mock_filings = [
-            {'docID': 'S1', 'docTypeCode': '350', 'submitDateTime': '2026-01-15 09:30', 'edinetCode': 'E02144', 'filerName': 'トヨタ'},
-            {'docID': 'S2', 'docTypeCode': '120', 'submitDateTime': '2026-01-15 09:30', 'edinetCode': 'E02144', 'filerName': 'トヨタ'},
+            {
+                "docID": "S1",
+                "docTypeCode": "350",
+                "submitDateTime": "2026-01-15 09:30",
+                "edinetCode": "E02144",
+                "filerName": "トヨタ",
+            },
+            {
+                "docID": "S2",
+                "docTypeCode": "120",
+                "submitDateTime": "2026-01-15 09:30",
+                "edinetCode": "E02144",
+                "filerName": "トヨタ",
+            },
         ]
 
         mock_client = Mock()
@@ -282,11 +303,11 @@ class TestEntityDocuments:
 
         mock_filings = [
             {
-                'docID': 'S100TEST1',
-                'docTypeCode': '350',
-                'submitDateTime': '2026-01-15 09:30',
-                'edinetCode': 'E02144',
-                'filerName': 'トヨタ',
+                "docID": "S100TEST1",
+                "docTypeCode": "350",
+                "submitDateTime": "2026-01-15 09:30",
+                "edinetCode": "E02144",
+                "filerName": "トヨタ",
             }
         ]
 
@@ -300,31 +321,36 @@ class TestEntityDocuments:
         assert len(docs) > 0
         assert all(isinstance(d, Document) for d in docs)
 
+
 def test_entity_has_industry_attribute():
     """Verify Entity objects expose the industry field."""
     from edinet_tools import entity_by_edinet_code
+
     # Toyota — should have industry data in the bundled CSV
-    entity = entity_by_edinet_code('E02144')
-    assert hasattr(entity, 'industry')
+    entity = entity_by_edinet_code("E02144")
+    assert hasattr(entity, "industry")
     # industry may be None for some entities, but the attribute must exist
 
 
 def test_entity_has_phonetic_attribute():
     """Regression: Entity.name_phonetic should be populated for known entities."""
     import edinet_tools
+
     # E03533 = 株式会社三菱ＵＦＪ銀行; CSV col 8 = カブシキガイシャミツビシユーエフジェイギンコウ
     e = edinet_tools.entity_by_edinet_code("E03533")
     assert e is not None
     assert e.name_phonetic is not None
     assert len(e.name_phonetic) > 0
     # Phonetic field is katakana
-    assert any('゠' <= c <= 'ヿ' for c in e.name_phonetic), \
+    assert any("゠" <= c <= "ヿ" for c in e.name_phonetic), (
         f"Expected katakana in phonetic name, got: {e.name_phonetic!r}"
+    )
 
 
 def test_entity_has_corporate_number_attribute():
     """Regression: Entity.corporate_number should be populated for known entities."""
     import edinet_tools
+
     # E03533 = 株式会社三菱ＵＦＪ銀行; CSV col 12 = 5010001008846
     e = edinet_tools.entity_by_edinet_code("E03533")
     assert e is not None
@@ -336,6 +362,7 @@ def test_entity_has_corporate_number_attribute():
 def test_entity_by_corporate_number_known():
     """Known 法人番号 returns the corresponding entity."""
     import edinet_tools
+
     # E03533 = 株式会社三菱ＵＦＪ銀行, 法人番号 5010001008846
     e = edinet_tools.entity_by_corporate_number("5010001008846")
     assert e is not None
@@ -345,12 +372,14 @@ def test_entity_by_corporate_number_known():
 def test_entity_by_corporate_number_unknown():
     """Unknown 法人番号 returns None."""
     import edinet_tools
+
     assert edinet_tools.entity_by_corporate_number("9999999999999") is None
 
 
 def test_entity_by_corporate_number_empty():
     """Empty / None / malformed inputs return None."""
     import edinet_tools
+
     assert edinet_tools.entity_by_corporate_number("") is None
     assert edinet_tools.entity_by_corporate_number(None) is None
     assert edinet_tools.entity_by_corporate_number("abc") is None
@@ -365,6 +394,7 @@ def test_search_smbc_half_width_finds_full_width_catalog():
     same key and resolve to E23615.
     """
     import edinet_tools
+
     results = edinet_tools.search_entities("SMBC日興証券株式会社")
     codes = [e.edinet_code for e in results]
     assert "E23615" in codes, f"Expected E23615 in results, got: {codes}"
@@ -373,6 +403,7 @@ def test_search_smbc_half_width_finds_full_width_catalog():
 def test_search_full_width_ufj_matches():
     """株式会社三菱UFJ銀行 (half-width) finds E03533 (catalog has full-width ＵＦＪ)."""
     import edinet_tools
+
     results = edinet_tools.search_entities("株式会社三菱UFJ銀行")
     codes = [e.edinet_code for e in results]
     assert "E03533" in codes
@@ -386,6 +417,7 @@ def test_search_individual_name_space_variance_query_no_space():
     to ASCII; bidirectional whitespace handling must still bridge them.
     """
     import edinet_tools
+
     results = edinet_tools.search_entities("伊藤翔太")
     codes = [e.edinet_code for e in results]
     assert "E36920" in codes, f"Expected E36920 in results, got: {codes}"
@@ -397,6 +429,7 @@ def test_search_individual_name_space_variance_query_with_space():
     Real case: query '代永　衛' (U+3000) vs catalog '代永衛' (no space).
     """
     import edinet_tools
+
     results = edinet_tools.search_entities("代永　衛")
     codes = [e.edinet_code for e in results]
     assert "E10888" in codes, f"Expected E10888 in results, got: {codes}"
@@ -405,6 +438,7 @@ def test_search_individual_name_space_variance_query_with_space():
 def test_search_kabushiki_gaiji_matches():
     """㈱ in query matches 株式会社 in catalog."""
     import edinet_tools
+
     # JPモルガン証券㈱ should find E20021 (catalog: ＪＰモルガン証券株式会社)
     results = edinet_tools.search_entities("JPモルガン証券㈱")
     codes = [e.edinet_code for e in results]
@@ -414,6 +448,7 @@ def test_search_kabushiki_gaiji_matches():
 def test_search_empty_returns_empty_list():
     """Empty / whitespace-only query returns empty list."""
     import edinet_tools
+
     assert edinet_tools.search_entities("") == []
     assert edinet_tools.search_entities("   ") == []
     assert edinet_tools.search_entities("　　") == []  # full-width spaces
@@ -422,12 +457,14 @@ def test_search_empty_returns_empty_list():
 def test_search_no_match_returns_empty_list():
     """Query that matches no entity returns empty list."""
     import edinet_tools
+
     assert edinet_tools.search_entities("zzz-not-a-real-entity-xyz") == []
 
 
 def test_search_respects_limit():
     """limit parameter caps the returned list."""
     import edinet_tools
+
     results = edinet_tools.search_entities("株式会社", limit=5)
     assert len(results) <= 5
 
@@ -435,6 +472,7 @@ def test_search_respects_limit():
 def test_search_toyota_still_works():
     """Regression: existing 'Toyota' test still passes after rewrite."""
     import edinet_tools
+
     results = edinet_tools.search_entities("Toyota", limit=10)
     codes = [e.edinet_code for e in results]
     assert "E02144" in codes
@@ -444,6 +482,7 @@ def test_search_exact_match_is_fast():
     """Performance canary: exact-match path completes in under 0.1s for 100 calls."""
     import edinet_tools
     import time
+
     # Warm-up to ensure classifier is loaded (load time isn't what we're measuring)
     edinet_tools.search_entities("Toyota Motor Corporation", limit=1)
     start = time.perf_counter()
@@ -453,25 +492,23 @@ def test_search_exact_match_is_fast():
     assert elapsed < 0.1, f"100 calls took {elapsed:.3f}s, expected <0.1s"
 
 
-import csv as _csv_module
-from pathlib import Path as _Path
-
-
 def _load_name_variants_fixture():
     """Load tests/data/name_variants.csv as a list of pytest.param tuples."""
-    fixture_path = _Path(__file__).parent / 'data' / 'name_variants.csv'
+    fixture_path = _Path(__file__).parent / "data" / "name_variants.csv"
     rows = []
-    with open(fixture_path, 'r', encoding='utf-8') as f:
+    with open(fixture_path, "r", encoding="utf-8") as f:
         reader = _csv_module.DictReader(f)
         for row in reader:
-            xfail_marker = row.get('xfail', '').strip().lower() == 'xfail'
-            marks = (pytest.mark.xfail(reason=row['scenario']),) if xfail_marker else ()
-            rows.append(pytest.param(
-                row['query'],
-                row['expected_edinet_code'],
-                id=row['scenario'],
-                marks=marks,
-            ))
+            xfail_marker = row.get("xfail", "").strip().lower() == "xfail"
+            marks = (pytest.mark.xfail(reason=row["scenario"]),) if xfail_marker else ()
+            rows.append(
+                pytest.param(
+                    row["query"],
+                    row["expected_edinet_code"],
+                    id=row["scenario"],
+                    marks=marks,
+                )
+            )
     return rows
 
 
@@ -485,15 +522,18 @@ def test_search_variants(query, expected_code):
     symbols, abbreviations) deliberately left for future work.
     """
     import edinet_tools
+
     results = edinet_tools.search_entities(query, limit=10)
     codes = [e.edinet_code for e in results]
-    assert expected_code in codes, \
+    assert expected_code in codes, (
         f"Expected {expected_code} in results for {query!r}, got: {codes}"
+    )
 
 
 def test_entity_by_ticker_alphanumeric_192A():
     """Alphanumeric ticker (192A class) resolves to its entity."""
     import edinet_tools
+
     e = edinet_tools.entity_by_ticker("192A")
     assert e is not None
     assert e.edinet_code == "E37627"
@@ -501,6 +541,7 @@ def test_entity_by_ticker_alphanumeric_192A():
 
 def test_entity_by_ticker_alphanumeric_262A():
     import edinet_tools
+
     e = edinet_tools.entity_by_ticker("262A")
     assert e is not None
     assert e.edinet_code == "E03492"
@@ -509,6 +550,7 @@ def test_entity_by_ticker_alphanumeric_262A():
 def test_entity_by_ticker_numeric_still_works():
     """Regression: existing 4-digit numeric lookup (Toyota 7203) still works."""
     import edinet_tools
+
     e = edinet_tools.entity_by_ticker("7203")
     assert e is not None
     assert e.edinet_code == "E02144"
@@ -517,6 +559,7 @@ def test_entity_by_ticker_numeric_still_works():
 def test_entity_by_ticker_with_T_suffix():
     """Regression: .T suffix is stripped."""
     import edinet_tools
+
     e = edinet_tools.entity_by_ticker("7203.T")
     assert e is not None
     assert e.edinet_code == "E02144"
@@ -525,6 +568,7 @@ def test_entity_by_ticker_with_T_suffix():
 def test_entity_by_ticker_unknown_returns_none():
     """Unknown ticker returns None."""
     import edinet_tools
+
     assert edinet_tools.entity_by_ticker("9999") is None
 
 
@@ -532,6 +576,7 @@ def test_entity_by_ticker_is_fast():
     """Performance canary: 100 lookups under 0.1s (was O(N) scan over 11k rows)."""
     import edinet_tools
     import time
+
     # Warm-up
     edinet_tools.entity_by_ticker("7203")
     start = time.perf_counter()
@@ -548,6 +593,7 @@ def test_search_homonym_returns_multiple():
     import edinet_tools
     from edinet_tools.entity_classifier import EntityClassifier
     from edinet_tools.normalize import normalize_for_matching
+
     c = EntityClassifier()
     homonyms = [(k, v) for k, v in c._by_normalized_name.items() if len(v) > 1]
     if not homonyms:
@@ -558,16 +604,17 @@ def test_search_homonym_returns_multiple():
     query = None
     for code in codes:
         raw = c._edinet_entities[code]
-        if normalize_for_matching(raw.get('name_jp')) == normalized_name:
-            query = raw['name_jp']
+        if normalize_for_matching(raw.get("name_jp")) == normalized_name:
+            query = raw["name_jp"]
             break
-        if normalize_for_matching(raw.get('name_en')) == normalized_name:
-            query = raw['name_en']
+        if normalize_for_matching(raw.get("name_en")) == normalized_name:
+            query = raw["name_en"]
             break
     assert query is not None, "Could not reconstruct a query for the homonym set"
     results = edinet_tools.search_entities(query, limit=20)
     result_codes = {e.edinet_code for e in results}
     intersection = set(codes) & result_codes
-    assert len(intersection) >= 2, \
-        f"Homonym query {query!r} (norm: {normalized_name!r}) returned {result_codes}, " \
+    assert len(intersection) >= 2, (
+        f"Homonym query {query!r} (norm: {normalized_name!r}) returned {result_codes}, "
         f"expected at least 2 of {codes}"
+    )

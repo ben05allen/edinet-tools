@@ -9,6 +9,7 @@ ratios, voting rights, and offer terms.
 Doc 240: Original tender offer registration
 Doc 250: Amendment to tender offer registration
 """
+
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -28,48 +29,44 @@ from .extraction import (
 # Namespace: jptoo-ton_cor (Japanese Public Tender Offer)
 ELEMENT_MAP = {
     # === DEI Elements ===
-    'edinet_code': 'jpdei_cor:EDINETCodeDEI',
-    'filer_name': 'jpdei_cor:FilerNameInJapaneseDEI',
-    'filer_name_en': 'jpdei_cor:FilerNameInEnglishDEI',
-    'security_code': 'jpdei_cor:SecurityCodeDEI',
-    'amendment_flag': 'jpdei_cor:AmendmentFlagDEI',
-
+    "edinet_code": "jpdei_cor:EDINETCodeDEI",
+    "filer_name": "jpdei_cor:FilerNameInJapaneseDEI",
+    "filer_name_en": "jpdei_cor:FilerNameInEnglishDEI",
+    "security_code": "jpdei_cor:SecurityCodeDEI",
+    "amendment_flag": "jpdei_cor:AmendmentFlagDEI",
     # === Cover Page (structured) ===
-    'document_title': 'jptoo-ton_cor:DocumentTitleCoverPage',
-    'place_of_filing': 'jptoo-ton_cor:PlaceOfFilingCoverPage',
-    'filing_date': 'jptoo-ton_cor:FilingDateCoverPage',
-    'acquirer_name': 'jptoo-ton_cor:FullNameOrNameOfFilerOfNotificationCoverPage',
-    'acquirer_address': 'jptoo-ton_cor:ResidentialAddressOrLocationOfFilerOfNotificationCoverPage',
-    'contact_phone': 'jptoo-ton_cor:TelephoneNumberCoverPage',
-    'contact_name': 'jptoo-ton_cor:NameOfContactPersonCoverPage',
-    'legal_representative': 'jptoo-ton_cor:NameOfLegalRepresentativeCoverPage',
-    'legal_representative_address': 'jptoo-ton_cor:ResidentialAddressOrLocationOfLegalRepresentativeCoverPage',
-
+    "document_title": "jptoo-ton_cor:DocumentTitleCoverPage",
+    "place_of_filing": "jptoo-ton_cor:PlaceOfFilingCoverPage",
+    "filing_date": "jptoo-ton_cor:FilingDateCoverPage",
+    "acquirer_name": "jptoo-ton_cor:FullNameOrNameOfFilerOfNotificationCoverPage",
+    "acquirer_address": "jptoo-ton_cor:ResidentialAddressOrLocationOfFilerOfNotificationCoverPage",
+    "contact_phone": "jptoo-ton_cor:TelephoneNumberCoverPage",
+    "contact_name": "jptoo-ton_cor:NameOfContactPersonCoverPage",
+    "legal_representative": "jptoo-ton_cor:NameOfLegalRepresentativeCoverPage",
+    "legal_representative_address": "jptoo-ton_cor:ResidentialAddressOrLocationOfLegalRepresentativeCoverPage",
     # === Ownership / Voting Rights (structured) ===
-    'voting_rights_to_purchase': 'jptoo-ton_cor:NumberOfVotingRightsRepresentedByShareCertificatesEtcToBePurchasedA',
-    'voting_rights_owned_by_offeror': 'jptoo-ton_cor:NumberNumberOfVotingRightsRepresentedByShareCertificatesEtcOwnedByTenderOfferorD',
-    'voting_rights_special_interest': 'jptoo-ton_cor:NumberNumberOfVotingRightsRepresentedByShareCertificatesEtcOwnedBySpecialInterestPartiesG',
-    'total_voting_rights': 'jptoo-ton_cor:NumberNumberOfVotingRightsOwnedByAllShareholdersEtcOfSubjectCompanyJ',
-    'purchase_ratio': 'jptoo-ton_cor:RatioOfNumberOfVotingRightsRepresentedByShareCertificatesEtcToBePurchasedAmongNumberOfVotingRightsOwnedByAllShareholdersEtcOfSubjectCompany',
-    'holding_ratio_after': 'jptoo-ton_cor:HoldingRatioOfShareCertificatesEtcAfterPurchaseEtc',
-
+    "voting_rights_to_purchase": "jptoo-ton_cor:NumberOfVotingRightsRepresentedByShareCertificatesEtcToBePurchasedA",
+    "voting_rights_owned_by_offeror": "jptoo-ton_cor:NumberNumberOfVotingRightsRepresentedByShareCertificatesEtcOwnedByTenderOfferorD",
+    "voting_rights_special_interest": "jptoo-ton_cor:NumberNumberOfVotingRightsRepresentedByShareCertificatesEtcOwnedBySpecialInterestPartiesG",
+    "total_voting_rights": "jptoo-ton_cor:NumberNumberOfVotingRightsOwnedByAllShareholdersEtcOfSubjectCompanyJ",
+    "purchase_ratio": "jptoo-ton_cor:RatioOfNumberOfVotingRightsRepresentedByShareCertificatesEtcToBePurchasedAmongNumberOfVotingRightsOwnedByAllShareholdersEtcOfSubjectCompany",
+    "holding_ratio_after": "jptoo-ton_cor:HoldingRatioOfShareCertificatesEtcAfterPurchaseEtc",
     # === Base Dates for Voting Rights ===
-    'base_date_offeror': 'jptoo-ton_cor:BaseDateNumberOfVotingRightsRepresentedByShareCertificatesEtcOwnedByTenderOfferorD',
-    'base_date_special_interest': 'jptoo-ton_cor:BaseDateNumberOfVotingRightsRepresentedByShareCertificatesEtcOwnedBySpecialInterestPartiesG',
-    'base_date_total': 'jptoo-ton_cor:BaseDateNumberOfVotingRightsOwnedByAllShareholdersEtcOfSubjectCompanyJ',
-
+    "base_date_offeror": "jptoo-ton_cor:BaseDateNumberOfVotingRightsRepresentedByShareCertificatesEtcOwnedByTenderOfferorD",
+    "base_date_special_interest": "jptoo-ton_cor:BaseDateNumberOfVotingRightsRepresentedByShareCertificatesEtcOwnedBySpecialInterestPartiesG",
+    "base_date_total": "jptoo-ton_cor:BaseDateNumberOfVotingRightsOwnedByAllShareholdersEtcOfSubjectCompanyJ",
     # === Key TextBlock Elements ===
-    'target_name': 'jptoo-ton_cor:NameOfSubjectCompanyTextBlock',
-    'share_class': 'jptoo-ton_cor:ClassesOfShareCertificatesEtcToAcquireByPurchaseEtcTextBlock',
-    'purpose_text': 'jptoo-ton_cor:PurposesOfPurchaseEtcTextBlock',
-    'price_text': 'jptoo-ton_cor:PriceOfPurchaseEtcTextBlock',
-    'shares_text': 'jptoo-ton_cor:NumberOfShareCertificatesEtcIntendedToPurchaseTextBlock',
-    'period_text': 'jptoo-ton_cor:OriginalPeriodAtFilingTextBlock',
-    'funding_text': 'jptoo-ton_cor:FundEtcForPurchaseEtcTextBlock',
-    'settlement_date_text': 'jptoo-ton_cor:DateOfCommencementOfSettlementTextBlock',
-    'acquirer_history_text': 'jptoo-ton_cor:HistoryOfOrganizationTextBlock',
-    'major_shareholders_text': 'jptoo-ton_cor:MajorShareholdersInformationAboutSubjectCompanyTextBlock',
-    'stock_price_info_text': 'jptoo-ton_cor:InformationAboutStockPricesTextBlock',
+    "target_name": "jptoo-ton_cor:NameOfSubjectCompanyTextBlock",
+    "share_class": "jptoo-ton_cor:ClassesOfShareCertificatesEtcToAcquireByPurchaseEtcTextBlock",
+    "purpose_text": "jptoo-ton_cor:PurposesOfPurchaseEtcTextBlock",
+    "price_text": "jptoo-ton_cor:PriceOfPurchaseEtcTextBlock",
+    "shares_text": "jptoo-ton_cor:NumberOfShareCertificatesEtcIntendedToPurchaseTextBlock",
+    "period_text": "jptoo-ton_cor:OriginalPeriodAtFilingTextBlock",
+    "funding_text": "jptoo-ton_cor:FundEtcForPurchaseEtcTextBlock",
+    "settlement_date_text": "jptoo-ton_cor:DateOfCommencementOfSettlementTextBlock",
+    "acquirer_history_text": "jptoo-ton_cor:HistoryOfOrganizationTextBlock",
+    "major_shareholders_text": "jptoo-ton_cor:MajorShareholdersInformationAboutSubjectCompanyTextBlock",
+    "stock_price_info_text": "jptoo-ton_cor:InformationAboutStockPricesTextBlock",
 }
 
 
@@ -135,21 +132,24 @@ class TenderOfferReport(ParsedReport):
         """Resolve acquirer to Entity if possible."""
         if self.acquirer_edinet_code:
             from edinet_tools.entity import entity_by_edinet_code
+
             return entity_by_edinet_code(self.acquirer_edinet_code)
         return None
 
     def __repr__(self) -> str:
-        acquirer = self.acquirer_name or 'Unknown'
+        acquirer = self.acquirer_name or "Unknown"
         if len(acquirer) > 25:
-            acquirer = acquirer[:22] + '...'
-        target = self.target_name or '?'
+            acquirer = acquirer[:22] + "..."
+        target = self.target_name or "?"
         if len(target) > 25:
-            target = target[:22] + '...'
-        amend = ' [AMENDED]' if self.is_amendment else ''
+            target = target[:22] + "..."
+        amend = " [AMENDED]" if self.is_amendment else ""
         return f"TenderOfferReport(acquirer='{acquirer}', target='{target}'{amend})"
 
 
-def parse_tender_offer(document=None, *, csv_files=None, doc_id=None, doc_type_code=None) -> TenderOfferReport:
+def parse_tender_offer(
+    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+) -> TenderOfferReport:
     """
     Parse a Tender Offer Registration filing.
 
@@ -178,57 +178,59 @@ def parse_tender_offer(document=None, *, csv_files=None, doc_id=None, doc_type_c
             text_blocks={},
         )
 
-    source_files = [f['filename'] for f in csv_files]
+    source_files = [f["filename"] for f in csv_files]
 
     # Helper to get value
     def get(key: str, context: list[str] | None = None) -> str | None:
-        return extract_value(csv_files, ELEMENT_MAP.get(key, ''), context_patterns=context)
+        return extract_value(csv_files, ELEMENT_MAP.get(key, ""), context_patterns=context)
 
     # Extract DEI elements with context filtering
-    edinet_code = get('edinet_code', ['FilingDateInstant'])
-    filer_name = get('filer_name', ['FilingDateInstant'])
-    filer_name_en = get('filer_name_en', ['FilingDateInstant'])
-    security_code = get('security_code', ['FilingDateInstant'])
-    amendment_flag = get('amendment_flag', ['FilingDateInstant'])
+    edinet_code = get("edinet_code", ["FilingDateInstant"])
+    filer_name = get("filer_name", ["FilingDateInstant"])
+    filer_name_en = get("filer_name_en", ["FilingDateInstant"])
+    security_code = get("security_code", ["FilingDateInstant"])  # noqa: F841 — reserved for future use
+    amendment_flag = get("amendment_flag", ["FilingDateInstant"])
 
     # Acquirer name from cover page (preferred) or DEI fallback
-    acquirer_name = get('acquirer_name') or filer_name
-    acquirer_address = get('acquirer_address')
+    acquirer_name = get("acquirer_name") or filer_name
+    acquirer_address = get("acquirer_address")
 
     # Filing date
-    filing_date = parse_date(get('filing_date'))
+    filing_date = parse_date(get("filing_date"))
 
     # Contact / legal representative
-    contact_name = get('contact_name')
-    contact_phone = get('contact_phone')
-    legal_representative = get('legal_representative')
-    legal_representative_address = get('legal_representative_address')
+    contact_name = get("contact_name")
+    contact_phone = get("contact_phone")
+    legal_representative = get("legal_representative")
+    legal_representative_address = get("legal_representative_address")
 
     # Amendment flag
-    is_amendment = amendment_flag == 'true' if amendment_flag else False
+    is_amendment = amendment_flag == "true" if amendment_flag else False
 
     # Target company info (TextBlock elements)
-    target_name = get('target_name')
-    share_class = get('share_class')
+    target_name = get("target_name")
+    share_class = get("share_class")
 
     # Ownership / voting rights (structured numeric fields)
-    voting_rights_to_purchase = parse_int(get('voting_rights_to_purchase'))
-    voting_rights_owned_by_offeror = parse_int(get('voting_rights_owned_by_offeror'))
-    voting_rights_special_interest = parse_int(get('voting_rights_special_interest'))
-    total_voting_rights = parse_int(get('total_voting_rights'))
-    purchase_ratio = parse_percentage(get('purchase_ratio'))
-    holding_ratio_after = parse_percentage(get('holding_ratio_after'))
+    voting_rights_to_purchase = parse_int(get("voting_rights_to_purchase"))
+    voting_rights_owned_by_offeror = parse_int(get("voting_rights_owned_by_offeror"))
+    voting_rights_special_interest = parse_int(get("voting_rights_special_interest"))
+    total_voting_rights = parse_int(get("total_voting_rights"))
+    purchase_ratio = parse_percentage(get("purchase_ratio"))
+    holding_ratio_after = parse_percentage(get("holding_ratio_after"))
 
     # Key text blocks
-    purpose_text = get('purpose_text')
-    price_text = get('price_text')
-    shares_text = get('shares_text')
-    period_text = get('period_text')
-    funding_text = get('funding_text')
-    settlement_date_text = get('settlement_date_text')
+    purpose_text = get("purpose_text")
+    price_text = get("price_text")
+    shares_text = get("shares_text")
+    period_text = get("period_text")
+    funding_text = get("funding_text")
+    settlement_date_text = get("settlement_date_text")
 
     # Categorize all elements
-    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(
+        csv_files, ELEMENT_MAP
+    )
 
     return TenderOfferReport(
         doc_id=doc_id,
@@ -238,24 +240,20 @@ def parse_tender_offer(document=None, *, csv_files=None, doc_id=None, doc_type_c
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
         raw_facts=raw_facts,
-
         # Acquirer identification
-        acquirer_name=acquirer_name or getattr(document, 'filer_name', None),
+        acquirer_name=acquirer_name or getattr(document, "filer_name", None),
         acquirer_name_en=filer_name_en,
-        acquirer_edinet_code=edinet_code or getattr(document, 'filer_edinet_code', None),
+        acquirer_edinet_code=edinet_code or getattr(document, "filer_edinet_code", None),
         acquirer_address=acquirer_address,
-
         # Cover page
         filing_date=filing_date,
         contact_name=contact_name,
         contact_phone=contact_phone,
         legal_representative=legal_representative,
         legal_representative_address=legal_representative_address,
-
         # Target
         target_name=target_name,
         share_class=share_class,
-
         # Ownership
         voting_rights_to_purchase=voting_rights_to_purchase,
         voting_rights_owned_by_offeror=voting_rights_owned_by_offeror,
@@ -263,10 +261,8 @@ def parse_tender_offer(document=None, *, csv_files=None, doc_id=None, doc_type_c
         total_voting_rights=total_voting_rights,
         purchase_ratio=purchase_ratio,
         holding_ratio_after=holding_ratio_after,
-
         # Amendment
         is_amendment=is_amendment,
-
         # Text blocks
         purpose_text=purpose_text,
         price_text=price_text,

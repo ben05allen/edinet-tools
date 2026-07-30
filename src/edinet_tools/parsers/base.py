@@ -3,6 +3,7 @@ Base classes for document parsers.
 
 ParsedReport is the base class for all parsed documents.
 """
+
 from dataclasses import dataclass, field, fields as dataclass_fields
 from typing import Any
 
@@ -25,6 +26,7 @@ class ParsedReport:
         unmapped_fields: Elements not mapped to explicit fields (excluding TextBlocks)
         text_blocks: TextBlock elements by name
     """
+
     doc_id: str
     doc_type_code: str
     source_files: list[str] = field(default_factory=list)
@@ -43,7 +45,7 @@ class ParsedReport:
         for f in dataclass_fields(self):
             value = getattr(self, f.name)
             # Skip complex fields that don't serialize well
-            if f.name not in ('raw_fields', 'unmapped_fields', 'text_blocks'):
+            if f.name not in ("raw_fields", "unmapped_fields", "text_blocks"):
                 result[f.name] = value
         return result
 

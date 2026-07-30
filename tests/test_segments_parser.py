@@ -6,6 +6,7 @@ Two layers tested separately:
 
 Real-EDINET fixture-driven regression tests (Task 10).
 """
+
 import pytest
 
 from edinet_tools.parsers.segments import SegmentRow
@@ -13,26 +14,26 @@ from edinet_tools.parsers.segments import SegmentRow
 
 def test_segment_row_dataclass_basic():
     row = SegmentRow(
-        segment_name='Asia-Pacific',
-        axis_family='OperatingSegments',
-        metrics={'Sales': '100000000', 'OperatingProfit': '5000000'},
-        period='CurrentYear',
-        consolidation_axis='Consolidated',
+        segment_name="Asia-Pacific",
+        axis_family="OperatingSegments",
+        metrics={"Sales": "100000000", "OperatingProfit": "5000000"},
+        period="CurrentYear",
+        consolidation_axis="Consolidated",
     )
-    assert row.segment_name == 'Asia-Pacific'
-    assert row.axis_family == 'OperatingSegments'
-    assert row.metrics['Sales'] == '100000000'
-    assert row.period == 'CurrentYear'
-    assert row.consolidation_axis == 'Consolidated'
+    assert row.segment_name == "Asia-Pacific"
+    assert row.axis_family == "OperatingSegments"
+    assert row.metrics["Sales"] == "100000000"
+    assert row.period == "CurrentYear"
+    assert row.consolidation_axis == "Consolidated"
 
 
 def test_segment_row_consolidation_axis_optional():
     """consolidation_axis defaults to None (most filings are consolidated)."""
     row = SegmentRow(
-        segment_name='Materials',
-        axis_family='OperatingSegments',
-        metrics={'Sales': '500'},
-        period='CurrentYear',
+        segment_name="Materials",
+        axis_family="OperatingSegments",
+        metrics={"Sales": "500"},
+        period="CurrentYear",
     )
     assert row.consolidation_axis is None
 
@@ -40,9 +41,10 @@ def test_segment_row_consolidation_axis_optional():
 def test_securities_report_has_segments_field():
     """SecuritiesReport gains segments + segments_text_only fields."""
     from edinet_tools.parsers.securities import SecuritiesReport
-    report = SecuritiesReport(doc_id='S100TEST', doc_type_code='120')
-    assert hasattr(report, 'segments')
-    assert hasattr(report, 'segments_text_only')
+
+    report = SecuritiesReport(doc_id="S100TEST", doc_type_code="120")
+    assert hasattr(report, "segments")
+    assert hasattr(report, "segments_text_only")
     assert report.segments == []
     assert report.segments_text_only is False
 
@@ -51,17 +53,27 @@ def _load_fixture(name: str):
     """Load a test fixture CSV into the csv_files structure."""
     import csv as csv_module
     from pathlib import Path
-    fixture_path = Path(__file__).parent / 'fixtures' / 'segments' / f'{name}.csv'
-    with open(fixture_path, 'r', encoding='utf-8') as f:
-        reader = csv_module.reader(f, delimiter='\t')
+
+    fixture_path = Path(__file__).parent / "fixtures" / "segments" / f"{name}.csv"
+    with open(fixture_path, "r", encoding="utf-8") as f:
+        reader = csv_module.reader(f, delimiter="\t")
         rows = list(reader)
     if not rows:
         return []
-    columns = ['要素ID', '項目名', 'コンテキストID', '相対年度',
-               '連結・個別', '期間・時点', 'ユニットID', '単位', '値']
+    columns = [
+        "要素ID",
+        "項目名",
+        "コンテキストID",
+        "相対年度",
+        "連結・個別",
+        "期間・時点",
+        "ユニットID",
+        "単位",
+        "値",
+    ]
     # First row is the column-name header; rest are data
     data = [dict(zip(columns, row)) for row in rows[1:]]
-    return [{'filename': f'{name}.csv', 'data': data}]
+    return [{"filename": f"{name}.csv", "data": data}]
 
 
 def test_parse_segments_from_csv_recruit_ifrs():
@@ -74,23 +86,23 @@ def test_parse_segments_from_csv_recruit_ifrs():
     """
     from edinet_tools.parsers.segments import parse_segments_from_csv
 
-    csv_files = _load_fixture('recruit_ifrs')
+    csv_files = _load_fixture("recruit_ifrs")
     segments, segments_text_only, _ = parse_segments_from_csv(csv_files)
 
     assert segments_text_only is False
     segment_names = {s.segment_name for s in segments}
     # EXACT set — the 3 reportable segments + 2 aggregation rows.
     assert segment_names == {
-        'HRTechnologyReportableSegment',
-        'MatchingAndSolutionsReportableSegment',
-        'StaffingReportableSegments',
-        'ReconcilingItems',
-        'TotalOfReportableSegmentsAndOthers',
+        "HRTechnologyReportableSegment",
+        "MatchingAndSolutionsReportableSegment",
+        "StaffingReportableSegments",
+        "ReconcilingItems",
+        "TotalOfReportableSegmentsAndOthers",
     }, f"unexpected segment set: {segment_names}"
     # axis_family classification: operating segments vs aggregation.
     by_family = {s.segment_name: s.axis_family for s in segments}
-    assert by_family['HRTechnologyReportableSegment'] == 'OperatingSegments'
-    assert by_family['ReconcilingItems'] == 'TotalReconciling'
+    assert by_family["HRTechnologyReportableSegment"] == "OperatingSegments"
+    assert by_family["ReconcilingItems"] == "TotalReconciling"
 
 
 def test_parse_segments_from_csv_daikin_jgaap_has_reconciling():
@@ -103,23 +115,25 @@ def test_parse_segments_from_csv_daikin_jgaap_has_reconciling():
     """
     from edinet_tools.parsers.segments import parse_segments_from_csv
 
-    csv_files = _load_fixture('daikin_jgaap')
+    csv_files = _load_fixture("daikin_jgaap")
     segments, segments_text_only, _ = parse_segments_from_csv(csv_files)
 
     assert segments_text_only is False
     segment_names = {s.segment_name for s in segments}
     # EXACT set: 2 reportable segments + 4 aggregation/other rows.
     assert segment_names == {
-        'AirConditioningAndRefrigerationEquipmentReportableSegments',
-        'ChemicalsReportableSegments',
-        'OperatingSegmentsNotIncludedInReportableSegmentsAndOtherRevenueGeneratingBusinessActivities',
-        'ReconcilingItems',
-        'ReportableSegments',
-        'TotalOfReportableSegmentsAndOthers',
+        "AirConditioningAndRefrigerationEquipmentReportableSegments",
+        "ChemicalsReportableSegments",
+        "OperatingSegmentsNotIncludedInReportableSegmentsAndOtherRevenueGeneratingBusinessActivities",
+        "ReconcilingItems",
+        "ReportableSegments",
+        "TotalOfReportableSegmentsAndOthers",
     }, f"unexpected segment set: {segment_names}"
     # The two operating segments carry segment financials (NetSales/OperatingIncome).
-    op_segs = [s for s in segments if s.axis_family == 'OperatingSegments']
-    assert any('NetSales' in s.metrics for s in op_segs), "expected NetSales in operating segment metrics"
+    op_segs = [s for s in segments if s.axis_family == "OperatingSegments"]
+    assert any("NetSales" in s.metrics for s in op_segs), (
+        "expected NetSales in operating segment metrics"
+    )
 
 
 def test_parse_segments_from_csv_mufg_bank_custom_namespace():
@@ -133,7 +147,7 @@ def test_parse_segments_from_csv_mufg_bank_custom_namespace():
     """
     from edinet_tools.parsers.segments import parse_segments_from_csv
 
-    csv_files = _load_fixture('mufg_bank')
+    csv_files = _load_fixture("mufg_bank")
     segments, segments_text_only, _ = parse_segments_from_csv(csv_files)
 
     assert segments_text_only is False
@@ -142,20 +156,20 @@ def test_parse_segments_from_csv_mufg_bank_custom_namespace():
     # Validates the BusinessGroup suffix is recognized as a segment-axis convention
     # (not just ReportableSegment), which is the key MUFG-specific shape.
     assert segment_names == {
-        'AssetManagementAndInvestorServicesBusinessGroup',
-        'CommercialBankingAndWealthManagementBusinessGroup',
-        'GlobalCommercialBankingBusinessGroup',
-        'GlobalCorporateAndInvestmentBankingBusinessGroup',
-        'GlobalMarketsBusinessGroup',
-        'JapaneseCorporateAndInvestmentBankingBusinessGroup',
-        'RetailAndDigitalBusinessGroup',
-        'Other',
-        'Total',
-        'TotalOfCustomerBusinessUnit',
+        "AssetManagementAndInvestorServicesBusinessGroup",
+        "CommercialBankingAndWealthManagementBusinessGroup",
+        "GlobalCommercialBankingBusinessGroup",
+        "GlobalCorporateAndInvestmentBankingBusinessGroup",
+        "GlobalMarketsBusinessGroup",
+        "JapaneseCorporateAndInvestmentBankingBusinessGroup",
+        "RetailAndDigitalBusinessGroup",
+        "Other",
+        "Total",
+        "TotalOfCustomerBusinessUnit",
     }, f"unexpected segment set: {segment_names}"
     # The 7 BusinessGroup members are operating segments, not aggregation.
-    op_segs = {s.segment_name for s in segments if s.axis_family == 'OperatingSegments'}
-    assert len(op_segs) == 7 and all(n.endswith('BusinessGroup') for n in op_segs)
+    op_segs = {s.segment_name for s in segments if s.axis_family == "OperatingSegments"}
+    assert len(op_segs) == 7 and all(n.endswith("BusinessGroup") for n in op_segs)
 
 
 def test_parse_segments_from_csv_temairazu_nonconsolidated_nesting():
@@ -168,7 +182,7 @@ def test_parse_segments_from_csv_temairazu_nonconsolidated_nesting():
     """
     from edinet_tools.parsers.segments import parse_segments_from_csv
 
-    csv_files = _load_fixture('temairazu_nonconsolidated')
+    csv_files = _load_fixture("temairazu_nonconsolidated")
     segments, segments_text_only, _ = parse_segments_from_csv(csv_files)
 
     # Temairazu IS axis-discrete (parent-only filer with NonConsolidatedMember-nested segments).
@@ -178,14 +192,14 @@ def test_parse_segments_from_csv_temairazu_nonconsolidated_nesting():
     segment_names = {s.segment_name for s in segments}
     # EXACT set: 2 reportable segments + 2 aggregation rows.
     assert segment_names == {
-        'ApplicationServiceReportableSegment',
-        'InternetMediaReportableSegment',
-        'ReconcilingItems',
-        'TotalOfReportableSegmentsAndOthers',
+        "ApplicationServiceReportableSegment",
+        "InternetMediaReportableSegment",
+        "ReconcilingItems",
+        "TotalOfReportableSegmentsAndOthers",
     }, f"unexpected segment set: {segment_names}"
     # The NonConsolidatedMember axis nesting must be captured as consolidation_axis.
     consolidation_values = {s.consolidation_axis for s in segments}
-    assert 'NonConsolidated' in consolidation_values, (
+    assert "NonConsolidated" in consolidation_values, (
         f"NonConsolidated axis nesting lost; consolidation_values={consolidation_values}"
     )
 
@@ -200,7 +214,7 @@ def test_parse_segments_from_csv_komatsu_usgaap_textblock_fallback():
     """
     from edinet_tools.parsers.segments import parse_segments_from_csv
 
-    csv_files = _load_fixture('komatsu_usgaap')
+    csv_files = _load_fixture("komatsu_usgaap")
     segments, segments_text_only, _ = parse_segments_from_csv(csv_files)
 
     # US-GAAP filer with no axis-discrete segments: BOTH must hold — the fallback
@@ -217,47 +231,56 @@ def test_parse_segments_from_csv_dash_null_coercion():
     # Use realistic ReportableSegment-suffix member names so the anchored-union
     # discriminator recognizes them (bare 'SegmentAMember' would not match the
     # segment-axis naming convention — that's by design, not a coercion bug).
-    csv_files = [{
-        'filename': 'dash_test.csv',
-        'data': [
-            {'要素ID': 'jpcrp_cor:Sales',
-             'コンテキストID': 'CurrentYearDuration_jpcrp_cor:SegmentAReportableSegmentMember',
-             'ユニットID': 'JPY', '値': '1000'},
-            {'要素ID': 'jpcrp_cor:Sales',
-             'コンテキストID': 'CurrentYearDuration_jpcrp_cor:SegmentBReportableSegmentMember',
-             'ユニットID': 'JPY', '値': '－'},  # dash null
-        ],
-    }]
+    csv_files = [
+        {
+            "filename": "dash_test.csv",
+            "data": [
+                {
+                    "要素ID": "jpcrp_cor:Sales",
+                    "コンテキストID": "CurrentYearDuration_jpcrp_cor:SegmentAReportableSegmentMember",
+                    "ユニットID": "JPY",
+                    "値": "1000",
+                },
+                {
+                    "要素ID": "jpcrp_cor:Sales",
+                    "コンテキストID": "CurrentYearDuration_jpcrp_cor:SegmentBReportableSegmentMember",
+                    "ユニットID": "JPY",
+                    "値": "－",
+                },  # dash null
+            ],
+        }
+    ]
     segments, segments_text_only, _ = parse_segments_from_csv(csv_files)
 
     # Both must be present (no vacuous-pass via missing member).
     by_name = {s.segment_name: s for s in segments}
-    assert 'SegmentAReportableSegment' in by_name, f"SegmentA missing: {list(by_name)}"
-    assert 'SegmentBReportableSegment' in by_name, f"SegmentB missing: {list(by_name)}"
+    assert "SegmentAReportableSegment" in by_name, f"SegmentA missing: {list(by_name)}"
+    assert "SegmentBReportableSegment" in by_name, f"SegmentB missing: {list(by_name)}"
     # A has the numeric value; B's '－' must coerce to absent (not stored).
-    assert by_name['SegmentAReportableSegment'].metrics.get('Sales') == '1000'
-    assert 'Sales' not in by_name['SegmentBReportableSegment'].metrics, \
+    assert by_name["SegmentAReportableSegment"].metrics.get("Sales") == "1000"
+    assert "Sales" not in by_name["SegmentBReportableSegment"].metrics, (
         "dash placeholder must coerce to None and be omitted from metrics"
+    )
 
 
 def test_parse_securities_report_populates_segments():
     """parse_securities_report() now populates the segments field."""
     from edinet_tools.parsers.securities import parse_securities_report
 
-    csv_files = _load_fixture('recruit_ifrs')
-    report = parse_securities_report(csv_files=csv_files, doc_id='S100TEST', doc_type_code='120')
+    csv_files = _load_fixture("recruit_ifrs")
+    report = parse_securities_report(csv_files=csv_files, doc_id="S100TEST", doc_type_code="120")
 
     # segments field is populated with the exact recruit_ifrs segment set
     # (3 reportable segments + 2 aggregation rows; rows = names × periods/axes).
-    assert hasattr(report, 'segments')
+    assert hasattr(report, "segments")
     assert isinstance(report.segments, list)
     names = {s.segment_name for s in report.segments}
     assert names == {
-        'HRTechnologyReportableSegment',
-        'MatchingAndSolutionsReportableSegment',
-        'StaffingReportableSegments',
-        'ReconcilingItems',
-        'TotalOfReportableSegmentsAndOthers',
+        "HRTechnologyReportableSegment",
+        "MatchingAndSolutionsReportableSegment",
+        "StaffingReportableSegments",
+        "ReconcilingItems",
+        "TotalOfReportableSegmentsAndOthers",
     }, f"unexpected segment set on parsed report: {names}"
 
 
@@ -265,8 +288,8 @@ def test_parse_securities_report_segments_text_only_flag_on_komatsu():
     """parse_securities_report() sets segments_text_only=True on US-GAAP filer."""
     from edinet_tools.parsers.securities import parse_securities_report
 
-    csv_files = _load_fixture('komatsu_usgaap')
-    report = parse_securities_report(csv_files=csv_files, doc_id='S100TEST', doc_type_code='120')
+    csv_files = _load_fixture("komatsu_usgaap")
+    report = parse_securities_report(csv_files=csv_files, doc_id="S100TEST", doc_type_code="120")
 
     assert report.segments_text_only is True
     assert report.segments == []
@@ -277,41 +300,44 @@ def test_parse_securities_report_preserves_existing_fields():
     or any other existing extraction behavior. Per fact-bag-preservation principle."""
     from edinet_tools.parsers.securities import parse_securities_report
 
-    csv_files = _load_fixture('recruit_ifrs')
-    report = parse_securities_report(csv_files=csv_files, doc_id='S100TEST', doc_type_code='120')
+    csv_files = _load_fixture("recruit_ifrs")
+    report = parse_securities_report(csv_files=csv_files, doc_id="S100TEST", doc_type_code="120")
 
     # All other fact-bag fields populate
-    assert hasattr(report, 'raw_fields')
+    assert hasattr(report, "raw_fields")
     assert isinstance(report.raw_fields, dict)
-    assert hasattr(report, 'text_blocks')
+    assert hasattr(report, "text_blocks")
     assert isinstance(report.text_blocks, dict)
-    assert hasattr(report, 'unmapped_fields')
+    assert hasattr(report, "unmapped_fields")
     assert isinstance(report.unmapped_fields, dict)
-    assert hasattr(report, 'raw_facts')
+    assert hasattr(report, "raw_facts")
     assert isinstance(report.raw_facts, list)
 
 
-@pytest.mark.parametrize('fixture_name', [
-    'recruit_ifrs',
-    'daikin_jgaap',
-    'mufg_bank',
-    'temairazu_nonconsolidated',
-    'komatsu_usgaap',
-])
+@pytest.mark.parametrize(
+    "fixture_name",
+    [
+        "recruit_ifrs",
+        "daikin_jgaap",
+        "mufg_bank",
+        "temairazu_nonconsolidated",
+        "komatsu_usgaap",
+    ],
+)
 def test_fact_bag_preserved_alongside_segments(fixture_name):
     """For every fixture, raw_fields / text_blocks / unmapped_fields populate
     alongside segments. Per spec §3.1 fact-bag preservation principle."""
     from edinet_tools.parsers.securities import parse_securities_report
 
     csv_files = _load_fixture(fixture_name)
-    report = parse_securities_report(csv_files=csv_files, doc_id='S100TEST', doc_type_code='120')
+    report = parse_securities_report(csv_files=csv_files, doc_id="S100TEST", doc_type_code="120")
 
     # Some bucket should populate from the fixture's elements
     total_populated = (
-        len(report.raw_fields) +
-        len(report.text_blocks) +
-        len(report.unmapped_fields) +
-        len(report.raw_facts)
+        len(report.raw_fields)
+        + len(report.text_blocks)
+        + len(report.unmapped_fields)
+        + len(report.raw_facts)
     )
     assert total_populated > 0, f"all fact-bag buckets empty for {fixture_name} — extraction broke"
 
@@ -323,8 +349,8 @@ def test_segments_parsing_does_not_pollute_raw_fields():
     """raw_fields[elem_id] last-wins behavior unchanged after segments parsing."""
     from edinet_tools.parsers.securities import parse_securities_report
 
-    csv_files = _load_fixture('recruit_ifrs')
-    report = parse_securities_report(csv_files=csv_files, doc_id='S100TEST', doc_type_code='120')
+    csv_files = _load_fixture("recruit_ifrs")
+    report = parse_securities_report(csv_files=csv_files, doc_id="S100TEST", doc_type_code="120")
 
     # raw_fields is dict — no duplicates per key
     assert isinstance(report.raw_fields, dict)
@@ -342,21 +368,28 @@ def test_segments_parsing_does_not_pollute_raw_fields():
 # ---------------------------------------------------------------------------
 
 _TOKIO_MARINE_EXPECTED_SEGMENTS = {
-    'DomesticPropertyAndCasualtyInsuranceReportableSegments',
-    'DomesticLifeInsuranceReportableSegments',
-    'OverseasInsuranceReportableSegments',
-    'FinancialAndOtherReportableSegments',
-    'ReportableSegments',       # aggregation (total of reportable segments)
-    'ReconcilingItems',         # aggregation
+    "DomesticPropertyAndCasualtyInsuranceReportableSegments",
+    "DomesticLifeInsuranceReportableSegments",
+    "OverseasInsuranceReportableSegments",
+    "FinancialAndOtherReportableSegments",
+    "ReportableSegments",  # aggregation (total of reportable segments)
+    "ReconcilingItems",  # aggregation
 }
 
 # Non-segment members present in the fixture that MUST be excluded.
 _TOKIO_MARINE_NOISE_MEMBERS = {
-    'Row1', 'Row2', 'Row3',                      # generic enumeration (wage-gap table)
-    'ShareholdersEquity', 'RetainedEarnings', 'CapitalStock', 'TreasuryStock',
-    'DeferredGainsOrLossesOnHedges', 'ForeignCurrencyTranslationAdjustment',  # equity components
-    'OrdinaryShare',                              # share class
-    'SatoruKomiya', 'RobertFeldman',             # director names
+    "Row1",
+    "Row2",
+    "Row3",  # generic enumeration (wage-gap table)
+    "ShareholdersEquity",
+    "RetainedEarnings",
+    "CapitalStock",
+    "TreasuryStock",
+    "DeferredGainsOrLossesOnHedges",
+    "ForeignCurrencyTranslationAdjustment",  # equity components
+    "OrdinaryShare",  # share class
+    "SatoruKomiya",
+    "RobertFeldman",  # director names
 }
 
 
@@ -364,7 +397,8 @@ def test_real_full_filing_excludes_noise_members():
     """Exact segment set + zero noise from a real filing containing noise rows."""
     import re
     from edinet_tools.parsers.segments import parse_segments_from_csv
-    csv_files = _load_fixture('tokio_marine_real_full')
+
+    csv_files = _load_fixture("tokio_marine_real_full")
     segments, segments_text_only, _ = parse_segments_from_csv(csv_files)
 
     assert segments_text_only is False
@@ -376,15 +410,19 @@ def test_real_full_filing_excludes_noise_members():
         f"  missing: {_TOKIO_MARINE_EXPECTED_SEGMENTS - names}"
     )
     # Explicit absence assertions (the regression the sanitized fixtures lacked).
-    assert not (names & _TOKIO_MARINE_NOISE_MEMBERS), f"noise leaked: {names & _TOKIO_MARINE_NOISE_MEMBERS}"
-    assert not any(re.match(r'^(Row|Item|No)\d', n) for n in names), f"generic member leaked: {names}"
+    assert not (names & _TOKIO_MARINE_NOISE_MEMBERS), (
+        f"noise leaked: {names & _TOKIO_MARINE_NOISE_MEMBERS}"
+    )
+    assert not any(re.match(r"^(Row|Item|No)\d", n) for n in names), (
+        f"generic member leaked: {names}"
+    )
     # The 4 real operating segments carry segment financials.
-    op = {s.segment_name for s in segments if s.axis_family == 'OperatingSegments'}
+    op = {s.segment_name for s in segments if s.axis_family == "OperatingSegments"}
     assert op == {
-        'DomesticPropertyAndCasualtyInsuranceReportableSegments',
-        'DomesticLifeInsuranceReportableSegments',
-        'OverseasInsuranceReportableSegments',
-        'FinancialAndOtherReportableSegments',
+        "DomesticPropertyAndCasualtyInsuranceReportableSegments",
+        "DomesticLifeInsuranceReportableSegments",
+        "OverseasInsuranceReportableSegments",
+        "FinancialAndOtherReportableSegments",
     }, f"operating-segment classification wrong: {op}"
 
 
@@ -398,16 +436,25 @@ def test_kurita_no_anchor_segments_extracted():
     equity / director / shareholder noise out (real noise present in the fixture).
     """
     from edinet_tools.parsers.segments import parse_segments_from_csv
+
     segments, segments_text_only, extraction_incomplete = parse_segments_from_csv(
-        _load_fixture('kurita_no_anchor'))
+        _load_fixture("kurita_no_anchor")
+    )
 
     assert segments_text_only is False
     assert extraction_incomplete is False  # segments were successfully extracted
-    op = {s.segment_name for s in segments if s.axis_family == 'OperatingSegments'}
-    assert op == {'ElectronicsIndustry', 'GeneralIndustry'}, f"got {op}"
+    op = {s.segment_name for s in segments if s.axis_family == "OperatingSegments"}
+    assert op == {"ElectronicsIndustry", "GeneralIndustry"}, f"got {op}"
     names = {s.segment_name for s in segments}
-    for noise in ('RetainedEarnings', 'CapitalStock', 'TreasuryStock', 'ShareholdersEquity',
-                  'No1MajorShareholders', 'AmanoKatsuya', 'Row1'):
+    for noise in (
+        "RetainedEarnings",
+        "CapitalStock",
+        "TreasuryStock",
+        "ShareholdersEquity",
+        "No1MajorShareholders",
+        "AmanoKatsuya",
+        "Row1",
+    ):
         assert noise not in names, f"noise member leaked as segment: {noise}"
 
 
@@ -421,12 +468,14 @@ def test_jal_no_anchor_excludes_reconciliation_artifact():
     hallucinate it as a segment. Guards the seed path against re-introducing noise.
     """
     from edinet_tools.parsers.segments import parse_segments_from_csv
+
     segments, segments_text_only, extraction_incomplete = parse_segments_from_csv(
-        _load_fixture('jal_no_anchor'))
+        _load_fixture("jal_no_anchor")
+    )
     names = {s.segment_name for s in segments}
-    assert 'DividendsReceived' not in names, "reconciliation artifact leaked as a segment"
+    assert "DividendsReceived" not in names, "reconciliation artifact leaked as a segment"
     # Segment-specific aggregation rows are present but no segments were extractable
     # → honest incomplete flag rather than a silent empty list.
     assert not segments and extraction_incomplete is True
-    for noise in ('RetainedEarnings', 'CapitalStock', 'ShareholdersEquity'):
+    for noise in ("RetainedEarnings", "CapitalStock", "ShareholdersEquity"):
         assert noise not in names, f"noise member leaked as segment: {noise}"

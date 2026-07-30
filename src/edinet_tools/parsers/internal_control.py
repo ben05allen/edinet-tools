@@ -10,6 +10,7 @@ effective or material weaknesses were found.
 Doc 235: Original internal control report
 Doc 236: Amendment to internal control report
 """
+
 from dataclasses import dataclass
 from datetime import date
 
@@ -26,31 +27,29 @@ from .extraction import (
 # Namespace: jpctl_cor (Japanese Internal Control)
 ELEMENT_MAP = {
     # === DEI Elements ===
-    'filer_name': 'jpdei_cor:FilerNameInJapaneseDEI',
-    'filer_name_en': 'jpdei_cor:FilerNameInEnglishDEI',
-    'filer_edinet_code': 'jpdei_cor:EDINETCodeDEI',
-    'security_code': 'jpdei_cor:SecurityCodeDEI',
-    'amendment_flag': 'jpdei_cor:AmendmentFlagDEI',
-
+    "filer_name": "jpdei_cor:FilerNameInJapaneseDEI",
+    "filer_name_en": "jpdei_cor:FilerNameInEnglishDEI",
+    "filer_edinet_code": "jpdei_cor:EDINETCodeDEI",
+    "security_code": "jpdei_cor:SecurityCodeDEI",
+    "amendment_flag": "jpdei_cor:AmendmentFlagDEI",
     # === Cover Page (jpctl_cor namespace) ===
-    'company_name': 'jpctl_cor:CompanyNameCoverPage',
-    'company_name_en': 'jpctl_cor:CompanyNameInEnglishCoverPage',
-    'filing_date': 'jpctl_cor:FilingDateCoverPage',
-    'document_title': 'jpctl_cor:DocumentTitleCoverPage',
-    'clause_of_stipulation': 'jpctl_cor:ClauseOfStipulationCoverPage',
-    'representative': 'jpctl_cor:TitleAndNameOfRepresentativeCoverPage',
-    'cfo': 'jpctl_cor:TitleAndNameOfChiefFinancialOfficerCoverPage',
-    'address': 'jpctl_cor:AddressOfRegisteredHeadquarterCoverPage',
-    'place_of_filing': 'jpctl_cor:PlaceOfFilingCoverPage',
-
+    "company_name": "jpctl_cor:CompanyNameCoverPage",
+    "company_name_en": "jpctl_cor:CompanyNameInEnglishCoverPage",
+    "filing_date": "jpctl_cor:FilingDateCoverPage",
+    "document_title": "jpctl_cor:DocumentTitleCoverPage",
+    "clause_of_stipulation": "jpctl_cor:ClauseOfStipulationCoverPage",
+    "representative": "jpctl_cor:TitleAndNameOfRepresentativeCoverPage",
+    "cfo": "jpctl_cor:TitleAndNameOfChiefFinancialOfficerCoverPage",
+    "address": "jpctl_cor:AddressOfRegisteredHeadquarterCoverPage",
+    "place_of_filing": "jpctl_cor:PlaceOfFilingCoverPage",
     # === Key TextBlock Elements ===
     # These are captured automatically by categorize_elements but also mapped
     # here for direct access on the dataclass.
-    'evaluation_result_text': 'jpctl_cor:ResultOfEvaluationTextBlock',
-    'scope_and_procedures_text': 'jpctl_cor:ScopeDateAndProceduresForEvaluationTextBlock',
-    'framework_text': 'jpctl_cor:BasicFrameworkOfInternalControlRelatedToFinancialReportingTextBlock',
-    'special_attention_text': 'jpctl_cor:OtherInformationForSpecialAttentionTextBlock',
-    'supplementary_info_text': 'jpctl_cor:SupplementaryInformationTextBlock',
+    "evaluation_result_text": "jpctl_cor:ResultOfEvaluationTextBlock",
+    "scope_and_procedures_text": "jpctl_cor:ScopeDateAndProceduresForEvaluationTextBlock",
+    "framework_text": "jpctl_cor:BasicFrameworkOfInternalControlRelatedToFinancialReportingTextBlock",
+    "special_attention_text": "jpctl_cor:OtherInformationForSpecialAttentionTextBlock",
+    "supplementary_info_text": "jpctl_cor:SupplementaryInformationTextBlock",
 }
 
 
@@ -108,14 +107,16 @@ class InternalControlReport(ParsedReport):
     is_amendment: bool = False
 
     def __repr__(self) -> str:
-        name = self.company_name or self.filer_name or 'Unknown'
+        name = self.company_name or self.filer_name or "Unknown"
         if len(name) > 25:
-            name = name[:22] + '...'
-        amend = ' [AMENDED]' if self.is_amendment else ''
+            name = name[:22] + "..."
+        amend = " [AMENDED]" if self.is_amendment else ""
         return f"InternalControlReport(filer='{name}'{amend})"
 
 
-def parse_internal_control(document=None, *, csv_files=None, doc_id=None, doc_type_code=None) -> InternalControlReport:
+def parse_internal_control(
+    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+) -> InternalControlReport:
     """
     Parse an Internal Control Report filing (Doc 235/236).
 
@@ -144,38 +145,40 @@ def parse_internal_control(document=None, *, csv_files=None, doc_id=None, doc_ty
             text_blocks={},
         )
 
-    source_files = [f['filename'] for f in csv_files]
+    source_files = [f["filename"] for f in csv_files]
 
     def get(key: str, context: list[str] | None = None) -> str | None:
-        return extract_value(csv_files, ELEMENT_MAP.get(key, ''), context_patterns=context)
+        return extract_value(csv_files, ELEMENT_MAP.get(key, ""), context_patterns=context)
 
     # DEI elements
-    filer_edinet_code = get('filer_edinet_code', ['FilingDateInstant'])
-    filer_name = get('filer_name', ['FilingDateInstant'])
-    filer_name_en = get('filer_name_en', ['FilingDateInstant'])
-    security_code = get('security_code', ['FilingDateInstant'])
-    amendment_flag = get('amendment_flag', ['FilingDateInstant'])
-    is_amendment = amendment_flag == 'true' if amendment_flag else False
+    filer_edinet_code = get("filer_edinet_code", ["FilingDateInstant"])
+    filer_name = get("filer_name", ["FilingDateInstant"])
+    filer_name_en = get("filer_name_en", ["FilingDateInstant"])
+    security_code = get("security_code", ["FilingDateInstant"])
+    amendment_flag = get("amendment_flag", ["FilingDateInstant"])
+    is_amendment = amendment_flag == "true" if amendment_flag else False
 
     # Cover page
-    company_name = get('company_name') or filer_name
-    company_name_en = get('company_name_en') or filer_name_en
-    filing_date = parse_date(get('filing_date'))
-    document_title = get('document_title')
-    clause_of_stipulation = get('clause_of_stipulation')
-    representative = get('representative')
-    cfo = get('cfo')
-    address = get('address')
-    place_of_filing = get('place_of_filing')
+    company_name = get("company_name") or filer_name
+    company_name_en = get("company_name_en") or filer_name_en
+    filing_date = parse_date(get("filing_date"))
+    document_title = get("document_title")
+    clause_of_stipulation = get("clause_of_stipulation")
+    representative = get("representative")
+    cfo = get("cfo")
+    address = get("address")
+    place_of_filing = get("place_of_filing")
 
     # Key text blocks
-    evaluation_result_text = get('evaluation_result_text')
-    scope_and_procedures_text = get('scope_and_procedures_text')
-    framework_text = get('framework_text')
-    special_attention_text = get('special_attention_text')
-    supplementary_info_text = get('supplementary_info_text')
+    evaluation_result_text = get("evaluation_result_text")
+    scope_and_procedures_text = get("scope_and_procedures_text")
+    framework_text = get("framework_text")
+    special_attention_text = get("special_attention_text")
+    supplementary_info_text = get("supplementary_info_text")
 
-    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(
+        csv_files, ELEMENT_MAP
+    )
 
     return InternalControlReport(
         doc_id=doc_id,
@@ -185,13 +188,13 @@ def parse_internal_control(document=None, *, csv_files=None, doc_id=None, doc_ty
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
         raw_facts=raw_facts,
-
         # Filer identification
         filer_name=filer_name,
         filer_name_en=filer_name_en,
-        filer_edinet_code=filer_edinet_code or getattr(document, 'filer_edinet_code', None) if document else filer_edinet_code,
+        filer_edinet_code=filer_edinet_code or getattr(document, "filer_edinet_code", None)
+        if document
+        else filer_edinet_code,
         security_code=security_code,
-
         # Cover page
         company_name=company_name,
         company_name_en=company_name_en,
@@ -202,14 +205,12 @@ def parse_internal_control(document=None, *, csv_files=None, doc_id=None, doc_ty
         cfo=cfo,
         address=address,
         place_of_filing=place_of_filing,
-
         # Key text blocks
         evaluation_result_text=evaluation_result_text,
         scope_and_procedures_text=scope_and_procedures_text,
         framework_text=framework_text,
         special_attention_text=special_attention_text,
         supplementary_info_text=supplementary_info_text,
-
         # Amendment
         is_amendment=is_amendment,
     )

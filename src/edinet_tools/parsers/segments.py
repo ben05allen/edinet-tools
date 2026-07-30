@@ -13,6 +13,7 @@ Handles per-audit variance:
 - TextBlock fallback flag (segments_text_only=True) for US-GAAP filers
   (Komatsu shape: no axis-discrete segment rows, data buried in TextBlock)
 """
+
 import re
 from dataclasses import dataclass, field
 
@@ -31,27 +32,33 @@ class SegmentRow:
     consolidation_axis: 'Consolidated' / 'NonConsolidated' / None.
         None for filings that don't tag a consolidation axis (most large filers).
     """
+
     segment_name: str
     axis_family: str
     metrics: dict = field(default_factory=dict)
-    period: str = ''
+    period: str = ""
     consolidation_axis: str | None = None
 
 
 # Pattern to strip the per-filer EDINET code prefix from custom member names.
 # Handles: E07801-000HRTechnologyReportableSegment → HRTechnologyReportableSegment
 # and:     E03606-000RetailAndDigitalBusinessGroup → RetailAndDigitalBusinessGroup
-_EDINET_FILER_PREFIX_RE = re.compile(r'^E\d{5}-\d{3}')
+_EDINET_FILER_PREFIX_RE = re.compile(r"^E\d{5}-\d{3}")
 
 # Base context period tokens (stripped from member extraction)
 _BASE_CONTEXT_TOKENS = {
-    'CurrentYearDuration', 'Prior1YearDuration', 'Prior2YearDuration',
-    'Prior3YearDuration', 'Prior4YearDuration', 'CurrentYearInstant',
-    'Prior1YearInstant', 'FilingDateInstant',
+    "CurrentYearDuration",
+    "Prior1YearDuration",
+    "Prior2YearDuration",
+    "Prior3YearDuration",
+    "Prior4YearDuration",
+    "CurrentYearInstant",
+    "Prior1YearInstant",
+    "FilingDateInstant",
 }
 
 # Consolidation member names
-_CONSOLIDATION_MEMBERS = {'NonConsolidated', 'Consolidated'}
+_CONSOLIDATION_MEMBERS = {"NonConsolidated", "Consolidated"}
 
 # Segment-axis member-name suffixes — the high-confidence anchors. A member
 # whose cleaned name ends with one of these is unambiguously an operating /
@@ -59,9 +66,11 @@ _CONSOLIDATION_MEMBERS = {'NonConsolidated', 'Consolidated'}
 # against 24 diverse filers (insurers, banks, trading houses, IFRS, J-GAAP):
 # every individual operating segment ends in one of these.
 _SEGMENT_NAME_SUFFIXES = (
-    'ReportableSegments', 'ReportableSegment',
-    'OperatingSegments', 'OperatingSegment',
-    'BusinessGroup',   # MUFG-style bank ("RetailAndDigitalBusinessGroup")
+    "ReportableSegments",
+    "ReportableSegment",
+    "OperatingSegments",
+    "OperatingSegment",
+    "BusinessGroup",  # MUFG-style bank ("RetailAndDigitalBusinessGroup")
 )
 
 # Reconciling / Total / Corporate member names that are aggregation rows of the
@@ -70,17 +79,17 @@ _SEGMENT_NAME_SUFFIXES = (
 # anchors them to the actual segment table and keeps same-named members from
 # other axes (a geographic "Other", an equity "Total") out.
 _AGGREGATION_MEMBERS = {
-    'ReconcilingItems',
-    'ReportableSegments',
-    'TotalOfReportableSegmentsAndOthers',
-    'OperatingSegmentsNotIncludedInReportableSegmentsAndOtherRevenueGeneratingBusinessActivities',
-    'TotalOfCustomerBusinessUnit',
-    'Total',
-    'Other',
-    'Adjustments',
-    'UnallocatedAmountsAndElimination',
-    'CorporateExpensesAndElimination',
-    'CorporateShared',
+    "ReconcilingItems",
+    "ReportableSegments",
+    "TotalOfReportableSegmentsAndOthers",
+    "OperatingSegmentsNotIncludedInReportableSegmentsAndOtherRevenueGeneratingBusinessActivities",
+    "TotalOfCustomerBusinessUnit",
+    "Total",
+    "Other",
+    "Adjustments",
+    "UnallocatedAmountsAndElimination",
+    "CorporateExpensesAndElimination",
+    "CorporateShared",
 }
 
 # The subset of _AGGREGATION_MEMBERS whose NAME is unambiguously a segment-table
@@ -89,22 +98,22 @@ _AGGREGATION_MEMBERS = {
 # `Adjustments`, `CorporateShared`, ...) are deliberately excluded — they also appear
 # in equity / geographic / employee tables, so seeding from them would pull in noise.
 _SEGMENT_AGGREGATION_SEEDS = {
-    'ReconcilingItems',
-    'TotalOfReportableSegmentsAndOthers',
-    'OperatingSegmentsNotIncludedInReportableSegmentsAndOtherRevenueGeneratingBusinessActivities',
-    'TotalOfCustomerBusinessUnit',
+    "ReconcilingItems",
+    "TotalOfReportableSegmentsAndOthers",
+    "OperatingSegmentsNotIncludedInReportableSegmentsAndOtherRevenueGeneratingBusinessActivities",
+    "TotalOfCustomerBusinessUnit",
 }
 
 # TextBlock element names that indicate US-GAAP filings when present with substantive content
 _USGAAP_TEXTBLOCK_INDICATORS = {
-    'NotesToConsolidatedFinancialStatementsUSGAAPTextBlock',
+    "NotesToConsolidatedFinancialStatementsUSGAAPTextBlock",
 }
 
 # Minimum character length for a TextBlock to be considered "substantive"
 _TEXTBLOCK_SUBSTANTIVE_LEN = 100
 
 # Keywords indicating US-GAAP standard in a TextBlock value
-_USGAAP_KEYWORDS = ('米国会計基準', 'U.S. GAAP', 'US GAAP', 'USGAAP')
+_USGAAP_KEYWORDS = ("米国会計基準", "U.S. GAAP", "US GAAP", "USGAAP")
 
 
 def _clean_member_name(member_name: str) -> str:
@@ -115,7 +124,7 @@ def _clean_member_name(member_name: str) -> str:
         'E03606-000RetailAndDigitalBusinessGroup' -> 'RetailAndDigitalBusinessGroup'
         'AirConditioningAndRefrigerationEquipmentReportableSegments' -> unchanged
     """
-    return _EDINET_FILER_PREFIX_RE.sub('', member_name)
+    return _EDINET_FILER_PREFIX_RE.sub("", member_name)
 
 
 def _parse_context_members(context_id: str) -> tuple[str, list[str]]:
@@ -130,40 +139,40 @@ def _parse_context_members(context_id: str) -> tuple[str, list[str]]:
         (period_token, [cleaned_member_names_without_Member_suffix])
     """
     if not context_id:
-        return '', []
+        return "", []
 
     # Split on underscores, reassemble namespace-prefix tokens
     # A logical token is: plain parts (no colon) followed by the colon-containing part.
     # Then the local-name portion (after colon) is the member name.
-    raw_parts = context_id.split('_')
+    raw_parts = context_id.split("_")
     tokens: list[str] = []
     pending: list[str] = []
 
     for part in raw_parts:
-        if ':' in part:
+        if ":" in part:
             pending.append(part)
-            tokens.append('_'.join(pending))
+            tokens.append("_".join(pending))
             pending = []
         else:
             if pending:
-                tokens.append('_'.join(pending))
+                tokens.append("_".join(pending))
                 pending = []
             pending.append(part)
 
     if pending:
-        tokens.append('_'.join(pending))
+        tokens.append("_".join(pending))
 
-    period = ''
+    period = ""
     members: list[str] = []
 
     for token in tokens:
         # Get local name (after colon if present)
-        local_name = token.split(':')[-1] if ':' in token else token
+        local_name = token.split(":")[-1] if ":" in token else token
 
         if local_name in _BASE_CONTEXT_TOKENS:
             period = local_name
-        elif local_name.endswith('Member') and len(local_name) > len('Member'):
-            raw_member = local_name[:-len('Member')]
+        elif local_name.endswith("Member") and len(local_name) > len("Member"):
+            raw_member = local_name[: -len("Member")]
             cleaned = _clean_member_name(raw_member)
             members.append(cleaned)
         # else: ignore intermediate namespace-only tokens
@@ -180,21 +189,21 @@ def _is_usgaap_textblock_filer(csv_files: list) -> bool:
        which contains '米国会計基準' in the value).
     """
     for csv_file in csv_files or []:
-        for row in csv_file.get('data', []) or []:
-            elem_id = row.get('要素ID', '') or ''
-            value = row.get('値', '') or ''
+        for row in csv_file.get("data", []) or []:
+            elem_id = row.get("要素ID", "") or ""
+            value = row.get("値", "") or ""
 
             if len(value) < _TEXTBLOCK_SUBSTANTIVE_LEN:
                 continue
 
-            local_name = elem_id.split(':')[-1] if ':' in elem_id else elem_id
+            local_name = elem_id.split(":")[-1] if ":" in elem_id else elem_id
 
             # Known US-GAAP TextBlock indicator
             if local_name in _USGAAP_TEXTBLOCK_INDICATORS:
                 return True
 
             # Any TextBlock containing US-GAAP keywords
-            if local_name.endswith('TextBlock'):
+            if local_name.endswith("TextBlock"):
                 if any(kw in value for kw in _USGAAP_KEYWORDS):
                     return True
 
@@ -235,14 +244,14 @@ def parse_segments_from_csv(csv_files: list) -> tuple:
 
     # Pass 1: collect every dimensional fact, indexed by member, tracking which
     # element local-names each member carries (for the segment-exclusive test).
-    facts: list[tuple] = []                 # (segment_name, consolidation_axis, period, local, value)
-    member_elems: dict[str, set] = {}       # segment_name -> set(element local-names)
+    facts: list[tuple] = []  # (segment_name, consolidation_axis, period, local, value)
+    member_elems: dict[str, set] = {}  # segment_name -> set(element local-names)
     anchors: set = set()
 
     for csv_file in csv_files or []:
-        for row in csv_file.get('data', []) or []:
-            context_id = row.get('コンテキストID', '') or ''
-            if 'Member' not in context_id:
+        for row in csv_file.get("data", []) or []:
+            context_id = row.get("コンテキストID", "") or ""
+            if "Member" not in context_id:
                 continue  # Skip non-dimensional rows
 
             period, members = _parse_context_members(context_id)
@@ -261,13 +270,13 @@ def parse_segments_from_csv(csv_files: list) -> tuple:
 
             segment_name = segment_members[-1]
 
-            elem_id = row.get('要素ID', '') or ''
-            local_name = elem_id.split(':')[-1] if ':' in elem_id else elem_id
-            if not local_name or local_name == '要素ID' or local_name.endswith('TextBlock'):
+            elem_id = row.get("要素ID", "") or ""
+            local_name = elem_id.split(":")[-1] if ":" in elem_id else elem_id
+            if not local_name or local_name == "要素ID" or local_name.endswith("TextBlock"):
                 # TextBlock members carry directors/footnotes; not segment metrics.
                 continue
 
-            value = coerce_numeric_value(row.get('値', '') or '')
+            value = coerce_numeric_value(row.get("値", "") or "")
             facts.append((segment_name, consolidation_axis, period, local_name, value))
             member_elems.setdefault(segment_name, set()).add(local_name)
             if any(segment_name.endswith(suffix) for suffix in _SEGMENT_NAME_SUFFIXES):
@@ -287,7 +296,8 @@ def parse_segments_from_csv(csv_files: list) -> tuple:
         if seed_aggs:
             seed_elems: set = set().union(*(member_elems[m] for m in seed_aggs))
             candidates = {
-                m for m in member_elems
+                m
+                for m in member_elems
                 if m not in _AGGREGATION_MEMBERS and (member_elems[m] & seed_elems)
             }
             if len(candidates) >= 2:
@@ -296,10 +306,13 @@ def parse_segments_from_csv(csv_files: list) -> tuple:
     # Pass 2: anchored-union membership.
     anchor_elems: set = set().union(*(member_elems[m] for m in anchors)) if anchors else set()
     non_segment = [m for m in member_elems if m not in anchors and m not in _AGGREGATION_MEMBERS]
-    other_elems: set = set().union(*(member_elems[m] for m in non_segment)) if non_segment else set()
+    other_elems: set = (
+        set().union(*(member_elems[m] for m in non_segment)) if non_segment else set()
+    )
     segment_exclusive = anchor_elems - other_elems
     qualifying_aggregation = {
-        m for m in member_elems
+        m
+        for m in member_elems
         if m in _AGGREGATION_MEMBERS and (member_elems[m] & segment_exclusive)
     }
     segment_members_set = anchors | qualifying_aggregation
@@ -309,7 +322,9 @@ def parse_segments_from_csv(csv_files: list) -> tuple:
     for segment_name, consolidation_axis, period, local_name, value in facts:
         if segment_name not in segment_members_set:
             continue
-        axis_family = 'TotalReconciling' if segment_name in _AGGREGATION_MEMBERS else 'OperatingSegments'
+        axis_family = (
+            "TotalReconciling" if segment_name in _AGGREGATION_MEMBERS else "OperatingSegments"
+        )
         key = (segment_name, consolidation_axis, period)
         if key not in segments_by_key:
             segments_by_key[key] = SegmentRow(

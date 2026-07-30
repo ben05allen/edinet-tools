@@ -8,8 +8,9 @@ IMPORTANT: Income statement data is year-to-date cumulative, not quarterly-only.
 - Q2 report: First 6 months (cumulative)
 - Q3 report: First 9 months (cumulative)
 """
+
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from datetime import date
 from typing import Optional
 
@@ -28,44 +29,39 @@ from .extraction import (
 # XBRL Element ID mappings for Doc 140 (Quarterly Reports)
 ELEMENT_MAP = {
     # === DEI Elements (Identification) ===
-    'edinet_code': 'jpdei_cor:EDINETCodeDEI',
-    'security_code': 'jpdei_cor:SecurityCodeDEI',
-    'company_name': 'jpdei_cor:FilerNameInJapaneseDEI',
-    'fiscal_year_end': 'jpdei_cor:CurrentFiscalYearEndDateDEI',
-    'filing_date': 'jpcrp_cor:FilingDateCoverPage',
-    'is_consolidated': 'jpdei_cor:WhetherConsolidatedFinancialStatementsArePreparedDEI',
-
+    "edinet_code": "jpdei_cor:EDINETCodeDEI",
+    "security_code": "jpdei_cor:SecurityCodeDEI",
+    "company_name": "jpdei_cor:FilerNameInJapaneseDEI",
+    "fiscal_year_end": "jpdei_cor:CurrentFiscalYearEndDateDEI",
+    "filing_date": "jpcrp_cor:FilingDateCoverPage",
+    "is_consolidated": "jpdei_cor:WhetherConsolidatedFinancialStatementsArePreparedDEI",
     # === Income Statement Elements (YTD Cumulative) ===
-    'net_sales': 'jppfs_cor:NetSales',
-    'operating_income': 'jppfs_cor:OperatingIncome',
-    'ordinary_income': 'jppfs_cor:OrdinaryIncome',
-    'net_income': 'jppfs_cor:ProfitLossAttributableToOwnersOfParent',
-
+    "net_sales": "jppfs_cor:NetSales",
+    "operating_income": "jppfs_cor:OperatingIncome",
+    "ordinary_income": "jppfs_cor:OrdinaryIncome",
+    "net_income": "jppfs_cor:ProfitLossAttributableToOwnersOfParent",
     # === Balance Sheet Elements (Point-in-Time) ===
-    'total_assets': 'jppfs_cor:Assets',
-    'net_assets': 'jppfs_cor:NetAssets',
-    'total_liabilities': 'jppfs_cor:Liabilities',
-
+    "total_assets": "jppfs_cor:Assets",
+    "net_assets": "jppfs_cor:NetAssets",
+    "total_liabilities": "jppfs_cor:Liabilities",
     # === Cash Flow Elements (YTD Cumulative) ===
-    'operating_cf': 'jpcrp_cor:NetCashProvidedByUsedInOperatingActivitiesSummaryOfBusinessResults',
-    'investing_cf': 'jpcrp_cor:NetCashProvidedByUsedInInvestingActivitiesSummaryOfBusinessResults',
-    'financing_cf': 'jpcrp_cor:NetCashProvidedByUsedInFinancingActivitiesSummaryOfBusinessResults',
-
+    "operating_cf": "jpcrp_cor:NetCashProvidedByUsedInOperatingActivitiesSummaryOfBusinessResults",
+    "investing_cf": "jpcrp_cor:NetCashProvidedByUsedInInvestingActivitiesSummaryOfBusinessResults",
+    "financing_cf": "jpcrp_cor:NetCashProvidedByUsedInFinancingActivitiesSummaryOfBusinessResults",
     # === Per Share Metrics ===
-    'eps_basic': 'jpcrp_cor:BasicEarningsLossPerShareSummaryOfBusinessResults',
-
+    "eps_basic": "jpcrp_cor:BasicEarningsLossPerShareSummaryOfBusinessResults",
     # === Key Ratios ===
-    'equity_ratio': 'jpcrp_cor:EquityToAssetRatioSummaryOfBusinessResults',
+    "equity_ratio": "jpcrp_cor:EquityToAssetRatioSummaryOfBusinessResults",
 }
 
 # IFRS fallback elements
 IFRS_FALLBACK_MAP = {
-    'jppfs_cor:NetSales': 'jpigp_cor:RevenueIFRS',
-    'jppfs_cor:OperatingIncome': 'jpigp_cor:OperatingProfitLossIFRS',
-    'jppfs_cor:ProfitLossAttributableToOwnersOfParent': 'jpigp_cor:ProfitLossAttributableToOwnersOfParentIFRS',
-    'jppfs_cor:Assets': 'jpigp_cor:AssetsIFRS',
-    'jppfs_cor:NetAssets': 'jpigp_cor:EquityIFRS',
-    'jppfs_cor:Liabilities': 'jpigp_cor:LiabilitiesIFRS',
+    "jppfs_cor:NetSales": "jpigp_cor:RevenueIFRS",
+    "jppfs_cor:OperatingIncome": "jpigp_cor:OperatingProfitLossIFRS",
+    "jppfs_cor:ProfitLossAttributableToOwnersOfParent": "jpigp_cor:ProfitLossAttributableToOwnersOfParentIFRS",
+    "jppfs_cor:Assets": "jpigp_cor:AssetsIFRS",
+    "jppfs_cor:NetAssets": "jpigp_cor:EquityIFRS",
+    "jppfs_cor:Liabilities": "jpigp_cor:LiabilitiesIFRS",
 }
 
 
@@ -117,15 +113,16 @@ class QuarterlyReport(ParsedReport):
         """Resolve filer to Entity if possible."""
         if self.filer_edinet_code:
             from edinet_tools.entity import entity_by_edinet_code
+
             return entity_by_edinet_code(self.filer_edinet_code)
         return None
 
     def __repr__(self) -> str:
-        filer = self.filer_name or 'Unknown'
+        filer = self.filer_name or "Unknown"
         if len(filer) > 25:
-            filer = filer[:22] + '...'
-        q = f"Q{self.quarter_number}" if self.quarter_number else 'Q?'
-        fy = self.fiscal_year_end.year if self.fiscal_year_end else '?'
+            filer = filer[:22] + "..."
+        q = f"Q{self.quarter_number}" if self.quarter_number else "Q?"
+        fy = self.fiscal_year_end.year if self.fiscal_year_end else "?"
         return f"QuarterlyReport(filer='{filer}', {q} FY{fy})"
 
 
@@ -148,8 +145,9 @@ def _derive_quarter_number(filing_date: date, fiscal_year_end: date) -> Optional
     fiscal_year_start = fiscal_year_end - relativedelta(years=1) + relativedelta(days=1)
 
     # Calculate months from fiscal year start to filing date
-    months_from_start = (filing_date.year - fiscal_year_start.year) * 12 + \
-                       (filing_date.month - fiscal_year_start.month)
+    months_from_start = (filing_date.year - fiscal_year_start.year) * 12 + (
+        filing_date.month - fiscal_year_start.month
+    )
 
     # Map to quarter (filing typically happens 1-2 months after quarter end)
     if 3 <= months_from_start <= 5:
@@ -162,7 +160,9 @@ def _derive_quarter_number(filing_date: date, fiscal_year_end: date) -> Optional
         return None
 
 
-def parse_quarterly_report(document=None, *, csv_files=None, doc_id=None, doc_type_code=None) -> QuarterlyReport:
+def parse_quarterly_report(
+    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+) -> QuarterlyReport:
     """
     Parse a Quarterly Report document.
 
@@ -191,27 +191,29 @@ def parse_quarterly_report(document=None, *, csv_files=None, doc_id=None, doc_ty
             text_blocks={},
         )
 
-    source_files = [f['filename'] for f in csv_files]
+    source_files = [f["filename"] for f in csv_files]
 
     # Helper to get DEI values
     def get_dei(key: str) -> str | None:
-        return extract_value(csv_files, ELEMENT_MAP.get(key, ''), context_patterns=['FilingDateInstant'])
+        return extract_value(
+            csv_files, ELEMENT_MAP.get(key, ""), context_patterns=["FilingDateInstant"]
+        )
 
     # Extract DEI elements
-    edinet_code = get_dei('edinet_code')
-    company_name = get_dei('company_name')
-    security_code = get_dei('security_code')
-    is_consolidated_raw = get_dei('is_consolidated')
-    is_consolidated = (is_consolidated_raw == 'true') if is_consolidated_raw else None
+    edinet_code = get_dei("edinet_code")
+    company_name = get_dei("company_name")
+    security_code = get_dei("security_code")
+    is_consolidated_raw = get_dei("is_consolidated")
+    is_consolidated = (is_consolidated_raw == "true") if is_consolidated_raw else None
 
     # Format ticker
     ticker = None
-    if security_code and security_code != '－':
+    if security_code and security_code != "－":
         ticker = f"{security_code.strip()[:4]}.T"
 
     # Extract period
-    fiscal_year_end = parse_date(get_dei('fiscal_year_end'))
-    filing_date_str = extract_value(csv_files, ELEMENT_MAP['filing_date'])
+    fiscal_year_end = parse_date(get_dei("fiscal_year_end"))
+    filing_date_str = extract_value(csv_files, ELEMENT_MAP["filing_date"])
     filing_date = parse_date(filing_date_str)
 
     # Derive quarter number
@@ -221,50 +223,52 @@ def parse_quarterly_report(document=None, *, csv_files=None, doc_id=None, doc_ty
 
     # Helper for financial extraction
     def get_fin(key: str, period: str) -> int | None:
-        element_id = ELEMENT_MAP.get(key, '')
+        element_id = ELEMENT_MAP.get(key, "")
         if not element_id:
             return None
         return extract_financial(csv_files, element_id, period, is_consolidated, IFRS_FALLBACK_MAP)
 
     # Income Statement (Current YTD)
-    revenue_ytd = get_fin('net_sales', 'CurrentYTDDuration')
-    operating_profit_ytd = get_fin('operating_income', 'CurrentYTDDuration')
-    ordinary_profit_ytd = get_fin('ordinary_income', 'CurrentYTDDuration')
-    net_income_ytd = get_fin('net_income', 'CurrentYTDDuration')
+    revenue_ytd = get_fin("net_sales", "CurrentYTDDuration")
+    operating_profit_ytd = get_fin("operating_income", "CurrentYTDDuration")
+    ordinary_profit_ytd = get_fin("ordinary_income", "CurrentYTDDuration")
+    net_income_ytd = get_fin("net_income", "CurrentYTDDuration")
 
     # Income Statement (Prior Year YTD)
-    prior_revenue_ytd = get_fin('net_sales', 'Prior1YTDDuration')
-    prior_operating_profit_ytd = get_fin('operating_income', 'Prior1YTDDuration')
-    prior_ordinary_profit_ytd = get_fin('ordinary_income', 'Prior1YTDDuration')
-    prior_net_income_ytd = get_fin('net_income', 'Prior1YTDDuration')
+    prior_revenue_ytd = get_fin("net_sales", "Prior1YTDDuration")
+    prior_operating_profit_ytd = get_fin("operating_income", "Prior1YTDDuration")
+    prior_ordinary_profit_ytd = get_fin("ordinary_income", "Prior1YTDDuration")
+    prior_net_income_ytd = get_fin("net_income", "Prior1YTDDuration")
 
     # Balance Sheet
-    total_assets = get_fin('total_assets', 'CurrentQuarterInstant')
-    net_assets = get_fin('net_assets', 'CurrentQuarterInstant')
-    total_liabilities = get_fin('total_liabilities', 'CurrentQuarterInstant')
+    total_assets = get_fin("total_assets", "CurrentQuarterInstant")
+    net_assets = get_fin("net_assets", "CurrentQuarterInstant")
+    total_liabilities = get_fin("total_liabilities", "CurrentQuarterInstant")
 
     # Cash Flow
-    operating_cf = get_fin('operating_cf', 'CurrentYTDDuration')
-    investing_cf = get_fin('investing_cf', 'CurrentYTDDuration')
-    financing_cf = get_fin('financing_cf', 'CurrentYTDDuration')
+    operating_cf = get_fin("operating_cf", "CurrentYTDDuration")
+    investing_cf = get_fin("investing_cf", "CurrentYTDDuration")
+    financing_cf = get_fin("financing_cf", "CurrentYTDDuration")
 
     # Per-share metrics
-    patterns = get_context_patterns(is_consolidated, 'CurrentYTDDuration')
-    eps_str = extract_value(csv_files, ELEMENT_MAP['eps_basic'], context_patterns=patterns)
+    patterns = get_context_patterns(is_consolidated, "CurrentYTDDuration")
+    eps_str = extract_value(csv_files, ELEMENT_MAP["eps_basic"], context_patterns=patterns)
     eps_basic = None
-    if eps_str and eps_str not in ('－', '―', '-', '—'):
+    if eps_str and eps_str not in ("－", "―", "-", "—"):
         try:
             eps_basic = Decimal(eps_str)
-        except:
+        except (ValueError, InvalidOperation):
             pass
 
     # Ratios
-    patterns = get_context_patterns(is_consolidated, 'CurrentQuarterInstant')
-    equity_str = extract_value(csv_files, ELEMENT_MAP['equity_ratio'], context_patterns=patterns)
+    patterns = get_context_patterns(is_consolidated, "CurrentQuarterInstant")
+    equity_str = extract_value(csv_files, ELEMENT_MAP["equity_ratio"], context_patterns=patterns)
     equity_ratio = parse_percentage(equity_str)
 
     # Categorize all elements
-    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(
+        csv_files, ELEMENT_MAP
+    )
 
     return QuarterlyReport(
         doc_id=doc_id,
@@ -274,43 +278,35 @@ def parse_quarterly_report(document=None, *, csv_files=None, doc_id=None, doc_ty
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
         raw_facts=raw_facts,
-
         # Identification
-        filer_name=company_name or getattr(document, 'filer_name', None),
-        filer_edinet_code=edinet_code or getattr(document, 'filer_edinet_code', None),
+        filer_name=company_name or getattr(document, "filer_name", None),
+        filer_edinet_code=edinet_code or getattr(document, "filer_edinet_code", None),
         ticker=ticker,
         is_consolidated=is_consolidated,
-
         # Period
         fiscal_year_end=fiscal_year_end,
         quarter_number=quarter_number,
         filing_date=filing_date,
-
         # Income Statement (Current YTD)
         revenue_ytd=revenue_ytd,
         operating_profit_ytd=operating_profit_ytd,
         ordinary_profit_ytd=ordinary_profit_ytd,
         net_income_ytd=net_income_ytd,
-
         # Income Statement (Prior Year YTD)
         prior_revenue_ytd=prior_revenue_ytd,
         prior_operating_profit_ytd=prior_operating_profit_ytd,
         prior_ordinary_profit_ytd=prior_ordinary_profit_ytd,
         prior_net_income_ytd=prior_net_income_ytd,
-
         # Balance Sheet
         total_assets=total_assets,
         net_assets=net_assets,
         total_liabilities=total_liabilities,
-
         # Cash Flow
         operating_cash_flow_ytd=operating_cf,
         investing_cash_flow_ytd=investing_cf,
         financing_cash_flow_ytd=financing_cf,
-
         # Per-Share
         eps_basic_ytd=eps_basic,
-
         # Ratios
         equity_ratio=equity_ratio,
     )

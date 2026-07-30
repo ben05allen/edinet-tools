@@ -290,4 +290,3 @@ class EdinetDataLoader:
 def get_data_loader() -> EdinetDataLoader:
     """Get the default data loader instance."""
     return EdinetDataLoader()
-

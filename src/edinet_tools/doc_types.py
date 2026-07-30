@@ -5,6 +5,7 @@ Provides metadata about document types including English/Japanese names
 and descriptions. Every doc type code a user might encounter is registered
 here, even those without typed parsers.
 """
+
 from dataclasses import dataclass
 
 
@@ -19,6 +20,7 @@ class DocType:
         name_jp: Japanese name
         description: Brief description of the document type
     """
+
     code: str
     name_en: str
     name_jp: str
@@ -33,7 +35,6 @@ class DocType:
 # periodic reports (120-210), treasury/internal control (220-236),
 # tender offer (240-340), large shareholding (350-380).
 _DOC_TYPES: dict[str, DocType] = {
-
     # === Securities Notification (有価証券通知書) family (010-020) ===
     "010": DocType(
         code="010",
@@ -47,7 +48,6 @@ _DOC_TYPES: dict[str, DocType] = {
         name_jp="有価証券通知書の訂正通知書",
         description="Amendment to securities notification",
     ),
-
     # === Securities Registration Statement (有価証券届出書) family (030-050) ===
     "030": DocType(
         code="030",
@@ -67,7 +67,6 @@ _DOC_TYPES: dict[str, DocType] = {
         name_jp="有価証券届出書の取下届出書",
         description="Withdrawal of securities registration statement",
     ),
-
     # === Issuance Registration / Shelf Registration (発行登録書) family (060-110) ===
     "060": DocType(
         code="060",
@@ -105,7 +104,6 @@ _DOC_TYPES: dict[str, DocType] = {
         name_jp="発行登録取下届出書",
         description="Withdrawal of issuance registration",
     ),
-
     # === Periodic Reports (有価証券報告書 / 四半期報告書 etc.) family (120-210) ===
     "120": DocType(
         code="120",
@@ -179,7 +177,6 @@ _DOC_TYPES: dict[str, DocType] = {
         name_jp="親会社等状況報告書の訂正報告書",
         description="Amendment to parent company status report",
     ),
-
     # === Treasury Stock / Internal Control (自己株 / 内部統制) family (220-236) ===
     "220": DocType(
         code="220",
@@ -205,7 +202,6 @@ _DOC_TYPES: dict[str, DocType] = {
         name_jp="内部統制報告書の訂正報告書",
         description="Amendment to internal control report",
     ),
-
     # === Tender Offer (公開買付) family (240-340) ===
     "240": DocType(
         code="240",
@@ -273,7 +269,6 @@ _DOC_TYPES: dict[str, DocType] = {
         name_jp="別途買付け禁止の特例を受けるための申出書の訂正届出書",
         description="Amendment to exemption application",
     ),
-
     # === Large Shareholding Reports (大量保有報告書) family (350-380) ===
     "350": DocType(
         code="350",

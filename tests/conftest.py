@@ -12,6 +12,7 @@ Add new fixtures here only when at least one test will use them; otherwise
 inline the test data with the test that needs it (easier to reason about,
 no spooky-action-at-a-distance shape coupling).
 """
+
 import os
 
 import pytest
@@ -26,16 +27,16 @@ def set_test_env_vars(request):
     placeholder so any accidental real-network code path fails on auth
     rather than silently hitting prod.
     """
-    is_integration_test = request.node.get_closest_marker('integration') is not None
+    is_integration_test = request.node.get_closest_marker("integration") is not None
 
     original_env = {}
     test_env_vars = {
-        'LLM_API_KEY': 'test-llm-key',
-        'LLM_MODEL': 'claude-4-sonnet',
-        'LLM_FALLBACK_MODEL': 'gpt-5-mini',
+        "LLM_API_KEY": "test-llm-key",
+        "LLM_MODEL": "claude-4-sonnet",
+        "LLM_FALLBACK_MODEL": "gpt-5-mini",
     }
     if not is_integration_test:
-        test_env_vars['EDINET_API_KEY'] = 'test-api-key'
+        test_env_vars["EDINET_API_KEY"] = "test-api-key"
 
     for key, value in test_env_vars.items():
         original_env[key] = os.environ.get(key)

@@ -1,6 +1,5 @@
 """Tests for normalize_for_matching."""
 
-
 from edinet_tools.normalize import normalize_for_matching
 
 
@@ -71,15 +70,18 @@ def test_middle_dot_stripped():
     # inconsistent presence across data sources. Stripped so 'モルガン・スタンレー'
     # and 'モルガンスタンレー' collapse to the same key.
     assert normalize_for_matching("モルガン・スタンレー") == "モルガンスタンレー"
-    assert normalize_for_matching("モルガン・スタンレー") == normalize_for_matching("モルガンスタンレー")
+    assert normalize_for_matching("モルガン・スタンレー") == normalize_for_matching(
+        "モルガンスタンレー"
+    )
 
 
 def test_smbc_variants_collapse():
     # Real-world variance from corpjapan prod data:
     # catalog stores ＳＭＢＣ (full-width); extraction yields SMBC (half-width).
     # Both must normalize to the same key.
-    assert normalize_for_matching("ＳＭＢＣ日興証券株式会社") == \
-           normalize_for_matching("SMBC日興証券株式会社")
+    assert normalize_for_matching("ＳＭＢＣ日興証券株式会社") == normalize_for_matching(
+        "SMBC日興証券株式会社"
+    )
 
 
 def test_idempotence():

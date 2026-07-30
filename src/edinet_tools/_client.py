@@ -4,6 +4,7 @@ Module-level client singleton for EDINET API access.
 Provides lazy initialization of EdinetClient from environment variables
 or explicit configuration.
 """
+
 import os
 import warnings
 from typing import Optional
@@ -26,7 +27,7 @@ def _get_client() -> EdinetClient:
     """
     global _client
     if _client is None:
-        api_key = _configured_api_key or os.environ.get('EDINET_API_KEY')
+        api_key = _configured_api_key or os.environ.get("EDINET_API_KEY")
         # Suppress deprecation warning for internal usage
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
@@ -68,7 +69,7 @@ def fetch_and_parse(doc_id: str, doc_type_code: str):
     """
     from .document import Document
 
-    doc = Document({'docID': doc_id, 'docTypeCode': doc_type_code}, client=_get_client())
+    doc = Document({"docID": doc_id, "docTypeCode": doc_type_code}, client=_get_client())
     return doc.parse()
 
 
@@ -93,6 +94,6 @@ def documents(date: Optional[str] = None, doc_type: Optional[str] = None) -> lis
     filings = client.get_documents_by_date(date)
 
     if doc_type:
-        filings = [f for f in filings if f.get('docTypeCode') == doc_type]
+        filings = [f for f in filings if f.get("docTypeCode") == doc_type]
 
     return [Document(f, client=client) for f in filings]

@@ -336,4 +336,3 @@ def get_supported_companies() -> list[dict[str, Any]]:
 def update_company_data(force_update: bool = True):
     """Update company data from official EDINET sources."""
     return _get_company_lookup().update_data(force_update=force_update)
-

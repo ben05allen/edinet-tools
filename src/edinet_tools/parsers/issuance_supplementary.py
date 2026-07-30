@@ -9,6 +9,7 @@ balance available under the shelf.
 
 Doc 100: Issuance supplementary document
 """
+
 from dataclasses import dataclass
 from datetime import date
 
@@ -25,32 +26,29 @@ from .extraction import (
 # Namespace: jpcrp_cor (same family as shelf_registration 080/090)
 ELEMENT_MAP = {
     # === DEI Elements ===
-    'filer_name': 'jpdei_cor:FilerNameInJapaneseDEI',
-    'filer_name_en': 'jpdei_cor:FilerNameInEnglishDEI',
-    'filer_edinet_code': 'jpdei_cor:EDINETCodeDEI',
-    'security_code': 'jpdei_cor:SecurityCodeDEI',
-    'amendment_flag': 'jpdei_cor:AmendmentFlagDEI',
-
+    "filer_name": "jpdei_cor:FilerNameInJapaneseDEI",
+    "filer_name_en": "jpdei_cor:FilerNameInEnglishDEI",
+    "filer_edinet_code": "jpdei_cor:EDINETCodeDEI",
+    "security_code": "jpdei_cor:SecurityCodeDEI",
+    "amendment_flag": "jpdei_cor:AmendmentFlagDEI",
     # === Cover Page (jpcrp_cor namespace) ===
-    'company_name': 'jpcrp_cor:CompanyNameCoverPage',
-    'company_name_en': 'jpcrp_cor:CompanyNameInEnglishCoverPage',
-    'filing_date': 'jpcrp_cor:FilingDateCoverPage',
-    'document_title': 'jpcrp_cor:DocumentTitleCoverPage',
-
+    "company_name": "jpcrp_cor:CompanyNameCoverPage",
+    "company_name_en": "jpcrp_cor:CompanyNameInEnglishCoverPage",
+    "filing_date": "jpcrp_cor:FilingDateCoverPage",
+    "document_title": "jpcrp_cor:DocumentTitleCoverPage",
     # === Supplement / Shelf registration linkage ===
-    'supplement_number': 'jpcrp_cor:ShelfRegistrationSupplementNumberCoverPage',
-    'parent_shelf_reg_number': 'jpcrp_cor:ShelfRegistrationNumberContentsOfShelfRegistrationStatementCoverPage',
-    'parent_filing_date': 'jpcrp_cor:FilingDateContentsOfShelfRegistrationStatementCoverPage',
-    'effective_date': 'jpcrp_cor:EffectiveDateContentsOfShelfRegistrationStatementCoverPage',
-    'end_of_issue_period': 'jpcrp_cor:EndOfPeriodOfIssueContentsOfShelfRegistrationStatementCoverPage',
-    'planned_amount': 'jpcrp_cor:PlannedAmountOfIssueOrLimitOnOutstandingBalanceContentsOfShelfRegistrationStatementCoverPage',
-    'remaining_balance': 'jpcrp_cor:RemainingBalanceCoverPage',
-    'security_types': 'jpcrp_cor:TypesOfSecuritiesToShelfRegisterForOfferingOrDistributionCoverPage',
-
+    "supplement_number": "jpcrp_cor:ShelfRegistrationSupplementNumberCoverPage",
+    "parent_shelf_reg_number": "jpcrp_cor:ShelfRegistrationNumberContentsOfShelfRegistrationStatementCoverPage",
+    "parent_filing_date": "jpcrp_cor:FilingDateContentsOfShelfRegistrationStatementCoverPage",
+    "effective_date": "jpcrp_cor:EffectiveDateContentsOfShelfRegistrationStatementCoverPage",
+    "end_of_issue_period": "jpcrp_cor:EndOfPeriodOfIssueContentsOfShelfRegistrationStatementCoverPage",
+    "planned_amount": "jpcrp_cor:PlannedAmountOfIssueOrLimitOnOutstandingBalanceContentsOfShelfRegistrationStatementCoverPage",
+    "remaining_balance": "jpcrp_cor:RemainingBalanceCoverPage",
+    "security_types": "jpcrp_cor:TypesOfSecuritiesToShelfRegisterForOfferingOrDistributionCoverPage",
     # === Filer / representative details ===
-    'address': 'jpcrp_cor:AddressOfRegisteredHeadquarterCoverPage',
-    'representative': 'jpcrp_cor:TitleAndNameOfRepresentativeCoverPage',
-    'place_of_filing': 'jpcrp_cor:PlaceOfFilingCoverPage',
+    "address": "jpcrp_cor:AddressOfRegisteredHeadquarterCoverPage",
+    "representative": "jpcrp_cor:TitleAndNameOfRepresentativeCoverPage",
+    "place_of_filing": "jpcrp_cor:PlaceOfFilingCoverPage",
 }
 
 
@@ -107,15 +105,17 @@ class IssuanceSupplementaryReport(ParsedReport):
     is_amendment: bool = False
 
     def __repr__(self) -> str:
-        name = self.company_name or self.filer_name or 'Unknown'
+        name = self.company_name or self.filer_name or "Unknown"
         if len(name) > 25:
-            name = name[:22] + '...'
-        supp = self.supplement_number or '?'
-        amend = ' [AMENDED]' if self.is_amendment else ''
+            name = name[:22] + "..."
+        supp = self.supplement_number or "?"
+        amend = " [AMENDED]" if self.is_amendment else ""
         return f"IssuanceSupplementaryReport(filer='{name}', supplement='{supp}'{amend})"
 
 
-def parse_issuance_supplementary(document=None, *, csv_files=None, doc_id=None, doc_type_code=None) -> IssuanceSupplementaryReport:
+def parse_issuance_supplementary(
+    document=None, *, csv_files=None, doc_id=None, doc_type_code=None
+) -> IssuanceSupplementaryReport:
     """
     Parse an Issuance Supplementary filing.
 
@@ -144,41 +144,43 @@ def parse_issuance_supplementary(document=None, *, csv_files=None, doc_id=None, 
             text_blocks={},
         )
 
-    source_files = [f['filename'] for f in csv_files]
+    source_files = [f["filename"] for f in csv_files]
 
     def get(key: str, context: list[str] | None = None) -> str | None:
-        return extract_value(csv_files, ELEMENT_MAP.get(key, ''), context_patterns=context)
+        return extract_value(csv_files, ELEMENT_MAP.get(key, ""), context_patterns=context)
 
     # DEI elements
-    filer_edinet_code = get('filer_edinet_code', ['FilingDateInstant'])
-    filer_name = get('filer_name', ['FilingDateInstant'])
-    filer_name_en = get('filer_name_en', ['FilingDateInstant'])
-    security_code = get('security_code', ['FilingDateInstant'])
-    amendment_flag = get('amendment_flag', ['FilingDateInstant'])
-    is_amendment = amendment_flag == 'true' if amendment_flag else False
+    filer_edinet_code = get("filer_edinet_code", ["FilingDateInstant"])
+    filer_name = get("filer_name", ["FilingDateInstant"])
+    filer_name_en = get("filer_name_en", ["FilingDateInstant"])
+    security_code = get("security_code", ["FilingDateInstant"])
+    amendment_flag = get("amendment_flag", ["FilingDateInstant"])
+    is_amendment = amendment_flag == "true" if amendment_flag else False
 
     # Cover page
-    company_name = get('company_name') or filer_name
-    company_name_en = get('company_name_en') or filer_name_en
-    filing_date = parse_date(get('filing_date'))
-    document_title = get('document_title')
+    company_name = get("company_name") or filer_name
+    company_name_en = get("company_name_en") or filer_name_en
+    filing_date = parse_date(get("filing_date"))
+    document_title = get("document_title")
 
     # Supplement / shelf linkage
-    supplement_number = get('supplement_number')
-    parent_shelf_reg_number = get('parent_shelf_reg_number')
-    parent_filing_date = parse_date(get('parent_filing_date'))
-    effective_date = get('effective_date')
-    end_of_issue_period = get('end_of_issue_period')
-    planned_amount = get('planned_amount')
-    remaining_balance = get('remaining_balance')
-    security_types = get('security_types')
+    supplement_number = get("supplement_number")
+    parent_shelf_reg_number = get("parent_shelf_reg_number")
+    parent_filing_date = parse_date(get("parent_filing_date"))
+    effective_date = get("effective_date")
+    end_of_issue_period = get("end_of_issue_period")
+    planned_amount = get("planned_amount")
+    remaining_balance = get("remaining_balance")
+    security_types = get("security_types")
 
     # Filer / representative details
-    address = get('address')
-    representative = get('representative')
-    place_of_filing = get('place_of_filing')
+    address = get("address")
+    representative = get("representative")
+    place_of_filing = get("place_of_filing")
 
-    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(csv_files, ELEMENT_MAP)
+    raw_fields, text_blocks, unmapped_fields, raw_facts = categorize_elements(
+        csv_files, ELEMENT_MAP
+    )
 
     return IssuanceSupplementaryReport(
         doc_id=doc_id,
@@ -188,19 +190,18 @@ def parse_issuance_supplementary(document=None, *, csv_files=None, doc_id=None, 
         unmapped_fields=unmapped_fields,
         text_blocks=text_blocks,
         raw_facts=raw_facts,
-
         # Filer identification
         filer_name=filer_name,
         filer_name_en=filer_name_en,
-        filer_edinet_code=filer_edinet_code or getattr(document, 'filer_edinet_code', None) if document else filer_edinet_code,
+        filer_edinet_code=filer_edinet_code or getattr(document, "filer_edinet_code", None)
+        if document
+        else filer_edinet_code,
         security_code=security_code,
-
         # Cover page
         company_name=company_name,
         company_name_en=company_name_en,
         filing_date=filing_date,
         document_title=document_title,
-
         # Supplement / shelf linkage
         supplement_number=supplement_number,
         parent_shelf_reg_number=parent_shelf_reg_number,
@@ -210,12 +211,10 @@ def parse_issuance_supplementary(document=None, *, csv_files=None, doc_id=None, 
         planned_amount=planned_amount,
         remaining_balance=remaining_balance,
         security_types=security_types,
-
         # Filer / representative details
         address=address,
         representative=representative,
         place_of_filing=place_of_filing,
-
         # Amendment
         is_amendment=is_amendment,
     )
