@@ -18,6 +18,26 @@ import os
 import pytest
 
 
+def pytest_collection_modifyitems(items):
+    """Auto-mark unmarked tests as ``unit``.
+
+    The test suite defines three markers:
+
+    * ``integration`` – hits a live API (explicit opt-in)
+    * ``slow``        – takes a long time (explicit opt-in)
+    * ``unit``        – everything else (implicit default)
+
+    Any test that is *not* already marked ``integration`` or ``slow`` gets
+    the ``unit`` marker added automatically.  This keeps individual test
+    files clean (no ``@pytest.mark.unit`` boilerplate) while still allowing
+    ``pytest -m unit`` / ``pytest -m integration`` filtering.
+    """
+    for item in items:
+        existing = {m.name for m in item.iter_markers()}
+        if not existing & {"integration", "slow"}:
+            item.add_marker(pytest.mark.unit)
+
+
 @pytest.fixture(autouse=True)
 def set_test_env_vars(request):
     """Scrub credentials for the duration of every non-integration test.

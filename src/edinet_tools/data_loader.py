@@ -33,8 +33,8 @@ class EdinetDataLoader:
                      Defaults to package data directory.
         """
         if data_dir is None:
-            # Use package data directory
-            package_dir = os.path.dirname(__file__)
+            # Use project-root data/ directory (sibling to src/)
+            package_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
             self.data_dir = os.path.join(package_dir, "data")
         else:
             self.data_dir = data_dir
