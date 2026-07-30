@@ -34,7 +34,7 @@ def pytest_collection_modifyitems(items):
     """
     for item in items:
         existing = {m.name for m in item.iter_markers()}
-        if not existing & {"integration", "slow"}:
+        if not existing & {"integration", "slow", "smoke"}:
             item.add_marker(pytest.mark.unit)
 
 

@@ -13,6 +13,7 @@ from edinet_tools.data import (
 )
 
 
+@pytest.mark.smoke
 class TestTickerLookup:
     """Test ticker symbol to EDINET code conversion."""
 
@@ -34,6 +35,7 @@ class TestTickerLookup:
         assert ticker_to_edinet("") is None
 
 
+@pytest.mark.smoke
 class TestCompanyResolution:
     """Test company identifier resolution."""
 
@@ -54,6 +56,7 @@ class TestCompanyResolution:
         assert resolve_company("") is None
 
 
+@pytest.mark.smoke
 class TestCompanySearch:
     """Test company search functionality."""
 
@@ -105,6 +108,7 @@ class TestCompanySearch:
         assert len(results) <= 2
 
 
+@pytest.mark.smoke
 class TestCompanyInfo:
     """Test company information retrieval."""
 
@@ -124,6 +128,7 @@ class TestCompanyInfo:
         assert info is None
 
 
+@pytest.mark.smoke
 class TestSupportedCompanies:
     """Test supported companies list."""
 
@@ -146,6 +151,7 @@ class TestSupportedCompanies:
         assert tickers == sorted(tickers)
 
 
+@pytest.mark.smoke
 class TestCompanyLookupClass:
     """Test CompanyLookup class directly."""
 
@@ -173,6 +179,7 @@ class TestCompanyLookupClass:
         assert len(toyota_variations) > 0
 
 
+@pytest.mark.smoke
 class TestEdgeCases:
     """Test edge cases and error conditions."""
 
@@ -201,6 +208,7 @@ class TestEdgeCases:
         assert len(results_mixed) > 0
 
 
+@pytest.mark.smoke
 class TestCSVDataIntegrity:
     """Test CSV data file integrity and structure."""
 

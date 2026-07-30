@@ -10,6 +10,7 @@ import datetime
 import functools
 import json
 import warnings
+from pathlib import Path
 from typing import List, Dict, Any, Optional, Union
 import logging
 
@@ -97,8 +98,8 @@ class EdinetClient:
                 "Get your API key from: https://disclosure.edinet-fsa.go.jp/",
             )
 
-        self.download_dir = download_dir
-        os.makedirs(download_dir, exist_ok=True)
+        self.download_dir = Path(download_dir)
+        self.download_dir.mkdir(parents=True, exist_ok=True)
 
         # Company lookup functionality is available via data module
 
@@ -409,7 +410,7 @@ class EdinetClient:
 
             # Save to downloads directory
             filename = f"{doc_id}.zip"
-            filepath = os.path.join(self.download_dir, filename)
+            filepath = self.download_dir / filename
 
             with open(filepath, "wb") as f:
                 f.write(doc_response)
@@ -539,7 +540,7 @@ class EdinetClient:
         """
         try:
             # Parse document ID from filename
-            filename = os.path.basename(zip_path)
+            filename = Path(zip_path).name
             doc_id = filename.replace(".zip", "").split("-")[0]
 
             # Use provided document type code or try to determine from filename

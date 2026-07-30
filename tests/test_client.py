@@ -4,6 +4,7 @@ Tests for edinet_tools.client module (EdinetClient functionality).
 
 import pytest
 import os
+from pathlib import Path
 import tempfile
 from unittest.mock import patch
 
@@ -20,6 +21,7 @@ from edinet_tools.exceptions import (
 pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
 
 
+@pytest.mark.smoke
 class TestEdinetClientInitialization:
     """Test EdinetClient initialization."""
 
@@ -49,10 +51,11 @@ class TestEdinetClientInitialization:
         with tempfile.TemporaryDirectory() as temp_dir:
             custom_dir = os.path.join(temp_dir, "custom_downloads")
             client = EdinetClient(api_key="test_key", download_dir=custom_dir)
-            assert client.download_dir == custom_dir
+            assert client.download_dir == Path(custom_dir)
             assert os.path.exists(custom_dir)
 
 
+@pytest.mark.smoke
 class TestCompanyLookup:
     """Test company lookup functionality in client."""
 
@@ -90,6 +93,7 @@ class TestCompanyLookup:
         assert "search_companies" in str(exc_info.value)
 
 
+@pytest.mark.smoke
 class TestDocumentMethods:
     """Test document retrieval methods."""
 
@@ -151,6 +155,7 @@ class TestDocumentMethods:
             assert mock_get_docs.call_count >= 1
 
 
+@pytest.mark.smoke
 class TestDocumentTypeMapping:
     """Test document type functionality."""
 
@@ -181,6 +186,7 @@ class TestDocumentTypeMapping:
         assert doc_type == "unknown"
 
 
+@pytest.mark.smoke
 class TestErrorHandling:
     """Test error handling throughout the client."""
 

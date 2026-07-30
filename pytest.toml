@@ -17,4 +17,5 @@ markers = [
   "unit: Unit tests that test individual components in isolation",
   "integration: Integration tests that test multiple components together",
   "slow: Tests that take a long time to run",
+  "smoke: Quick validation of core functionality (fastest critical path)",
 ]

@@ -12,7 +12,7 @@ import logging
 import re
 from typing import Dict, Optional, Any, List, Tuple
 from dataclasses import dataclass
-import os
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +161,7 @@ class EdinetXbrlCsvParser:
         self.text_blocks = []
 
         for csv_file in csv_files:
-            if os.path.exists(csv_file):
+            if Path(csv_file).exists():
                 logger.debug(f"Parsing XBRL CSV file: {csv_file}")
                 self._parse_single_csv_file(csv_file, extract_text_blocks=extract_text_blocks)
             else:
@@ -279,9 +279,9 @@ class EdinetXbrlCsvParser:
             japanese_label = cleaned_row[1]  # 項目名
             context = cleaned_row[2]  # コンテキストID
             period_description = cleaned_row[3]  # 相対年度
-            consolidation_type = cleaned_row[
+            consolidation_type = cleaned_row[  # noqa: F841 — reserved for future use
                 4
-            ]  # 連結・個別  # noqa: F841 — reserved for future use
+            ]  # 連結・個別
             period_type = cleaned_row[5]  # 期間・時点
             unit_id = cleaned_row[6]  # ユニットID
             unit_scale = cleaned_row[7]  # 単位
@@ -465,17 +465,14 @@ def extract_xbrl_financial_data(zip_extract_path: str) -> Dict[str, Any]:
     Returns:
         Dictionary of financial metrics or empty dict if no XBRL data
     """
-    xbrl_csv_dir = os.path.join(zip_extract_path, "XBRL_TO_CSV")
+    xbrl_csv_dir = Path(zip_extract_path) / "XBRL_TO_CSV"
 
-    if not os.path.exists(xbrl_csv_dir):
+    if not xbrl_csv_dir.exists():
         logger.debug("No XBRL_TO_CSV directory found")
         return {"has_xbrl_data": False}
 
     # Find all CSV files in the XBRL directory
-    csv_files = []
-    for filename in os.listdir(xbrl_csv_dir):
-        if filename.endswith(".csv"):
-            csv_files.append(os.path.join(xbrl_csv_dir, filename))
+    csv_files = [str(p) for p in xbrl_csv_dir.glob("*.csv")]
 
     if not csv_files:
         logger.debug("No CSV files found in XBRL_TO_CSV directory")

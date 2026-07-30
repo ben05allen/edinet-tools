@@ -3,14 +3,14 @@
 from dotenv import load_dotenv
 import logging
 import os
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
 # Load environment variables from project root
-project_root = os.path.dirname(os.path.dirname(__file__))  # Go up one level from edinet_tools/
-dotenv_path = os.path.join(project_root, ".env")
-if os.path.exists(dotenv_path):
+dotenv_path = Path(__file__).parents[1] / ".env"
+if dotenv_path.exists():
     load_dotenv(dotenv_path)
 else:
     # Try loading from current working directory as fallback

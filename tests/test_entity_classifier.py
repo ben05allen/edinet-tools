@@ -22,6 +22,7 @@ def classifier():
     return EntityClassifier()
 
 
+@pytest.mark.smoke
 class TestIndustryTranslation:
     """Test the JP→EN industry translation helper."""
 
@@ -57,6 +58,7 @@ class TestIndustryTranslation:
         assert translate_industry_to_english("個人（組合発行者を除く）") == "Others"
 
 
+@pytest.mark.smoke
 class TestColumnResolution:
     """Test the header-based column resolver."""
 
@@ -118,6 +120,7 @@ class TestColumnResolution:
         assert "Type of Submitter" in msg  # shows the tried aliases
 
 
+@pytest.mark.smoke
 class TestEntityClassifierLoading:
     """Test data loading and initialization."""
 
@@ -146,6 +149,7 @@ class TestEntityClassifierLoading:
         assert version["edinet_codes"] == "unknown" or len(version["edinet_codes"]) == 10
 
 
+@pytest.mark.smoke
 class TestListedCompanyClassification:
     """Test classification of listed companies."""
 
@@ -180,6 +184,7 @@ class TestListedCompanyClassification:
         assert classifier.get_entity_type("E02778") == EntityType.LISTED_COMPANY
 
 
+@pytest.mark.smoke
 class TestFundClassification:
     """Test classification of investment funds."""
 
@@ -218,6 +223,7 @@ class TestFundClassification:
         )
 
 
+@pytest.mark.smoke
 class TestUnknownEntities:
     """Test handling of unknown EDINET codes."""
 
@@ -241,6 +247,7 @@ class TestUnknownEntities:
         assert classifier.get_entity_type("ABCDE") == EntityType.UNKNOWN
 
 
+@pytest.mark.smoke
 class TestSecuritiesCodeFormatting:
     """Test securities code extraction and formatting."""
 
@@ -267,6 +274,7 @@ class TestSecuritiesCodeFormatting:
         assert classifier.get_securities_code("E99999") is None
 
 
+@pytest.mark.smoke
 class TestEntityNames:
     """Test entity name retrieval."""
 
@@ -291,6 +299,7 @@ class TestEntityNames:
         assert classifier.get_entity_name("E99999") is None
 
 
+@pytest.mark.smoke
 class TestRepr:
     """Test string representation."""
 
@@ -302,6 +311,7 @@ class TestRepr:
         assert "funds=" in repr_str
 
 
+@pytest.mark.smoke
 class TestReverseIndexes:
     """v0.6.0 — reverse indexes for O(1) lookup."""
 

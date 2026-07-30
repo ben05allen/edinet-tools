@@ -18,6 +18,7 @@ from edinet_tools.entity import (
 )
 
 
+@pytest.mark.smoke
 class TestEntityBasics:
     """Test Entity dataclass structure."""
 
@@ -75,6 +76,7 @@ class TestEntityBasics:
         assert "E02144" in repr_str
 
 
+@pytest.mark.smoke
 class TestEntityLookup:
     """Test entity lookup functions using real CSV data."""
 
@@ -120,6 +122,7 @@ class TestEntityLookup:
         assert entity_by_edinet_code("E99999") is None
 
 
+@pytest.mark.smoke
 class TestEntitySearch:
     """Test entity search using real CSV data."""
 
@@ -140,6 +143,7 @@ class TestEntitySearch:
         assert len(results) <= 5
 
 
+@pytest.mark.smoke
 class TestFundBasics:
     """Test Fund class structure."""
 
@@ -167,6 +171,7 @@ class TestFundBasics:
         assert "G01003" in repr(f)
 
 
+@pytest.mark.smoke
 class TestFundLookup:
     """Test fund lookup using real CSV data."""
 
@@ -185,6 +190,7 @@ class TestFundLookup:
         assert all(isinstance(f, Fund) for f in results)
 
 
+@pytest.mark.smoke
 class TestEntityFundIssuer:
     """Test entity fund issuer functionality."""
 
@@ -224,6 +230,7 @@ class TestEntityFundIssuer:
         assert all(isinstance(f, Fund) for f in funds_list)
 
 
+@pytest.mark.smoke
 class TestEntityDocuments:
     """Test Entity.documents() with mocked client."""
 

@@ -185,7 +185,7 @@ class EntityClassifier:
 
     def _find_latest_file(self, prefix: str) -> str | None:
         """Find the latest dated file matching prefix in data directory."""
-        data_dir = Path(__file__).parent.parent.parent / "data"
+        data_dir = Path(__file__).parents[2] / "data"
         pattern = str(data_dir / f"{prefix}*.csv")
         matches = glob.glob(pattern)
 

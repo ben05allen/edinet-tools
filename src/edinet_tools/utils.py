@@ -7,6 +7,7 @@ import tempfile
 import warnings
 import zipfile
 import logging
+from pathlib import Path
 from typing import Any
 
 from .processors import process_raw_csv_data
@@ -22,7 +23,7 @@ def detect_encoding(file_path):
             raw_data = file.read(1024)  # Read only first 1024 bytes for speed
         result = chardet.detect(raw_data)
         logger.debug(
-            f"Detected encoding {result['encoding']} with confidence {result['confidence']} for {os.path.basename(file_path)}"
+            f"Detected encoding {result['encoding']} with confidence {result['confidence']} for {Path(file_path).name}"
         )
         return result["encoding"]
     except IOError as e:
@@ -56,20 +57,16 @@ def read_csv_file(file_path):
         try:
             # Use low_memory=False to avoid DtypeWarning on mixed types
             df = pd.read_csv(file_path, encoding=encoding, sep="\t", dtype=str, low_memory=False)
-            logger.debug(
-                f"Successfully read {os.path.basename(file_path)} with encoding {encoding}"
-            )
+            logger.debug(f"Successfully read {Path(file_path).name} with encoding {encoding}")
             # Replace NaN with None to handle missing values consistently
             df = df.replace({float("nan"): None, "": None})
             return df.to_dict(orient="records")  # Return as list of dictionaries
         except (UnicodeDecodeError, pd.errors.EmptyDataError, pd.errors.ParserError) as e:
-            logger.debug(
-                f"Failed to read {os.path.basename(file_path)} with encoding {encoding}: {e}"
-            )
+            logger.debug(f"Failed to read {Path(file_path).name} with encoding {encoding}: {e}")
             continue
         except Exception as e:
             logger.error(
-                f"An unexpected error occurred reading {os.path.basename(file_path)} with encoding {encoding}: {e}"
+                f"An unexpected error occurred reading {Path(file_path).name} with encoding {encoding}: {e}"
             )
             continue
 
@@ -112,12 +109,12 @@ def process_zip_file(
             try:
                 with zipfile.ZipFile(path_to_zip_file, "r") as zip_ref:
                     zip_ref.extractall(temp_dir)
-                logger.debug(f"Extracted {os.path.basename(path_to_zip_file)} to {temp_dir}")
+                logger.debug(f"Extracted {Path(path_to_zip_file).name} to {temp_dir}")
             except zipfile.BadZipFile as e:
                 logger.error(f"Bad ZIP file: {path_to_zip_file}. Error: {e}")
                 return None
             except Exception as e:
-                logger.error(f"Error extracting {os.path.basename(path_to_zip_file)}: {e}")
+                logger.error(f"Error extracting {Path(path_to_zip_file).name}: {e}")
                 return None
 
             # Find and read all CSV files within the extracted structure
@@ -132,25 +129,23 @@ def process_zip_file(
 
             if not csv_file_paths:
                 logger.warning(
-                    f"No CSV files found in extracted zip: {os.path.basename(path_to_zip_file)}"
+                    f"No CSV files found in extracted zip: {Path(path_to_zip_file).name}"
                 )
                 return None
 
             for file_path in csv_file_paths:
                 # Skip auditor report files (start with 'jpaud')
-                if os.path.basename(file_path).startswith("jpaud"):
-                    logger.debug(f"Skipping auditor report file: {os.path.basename(file_path)}")
+                if Path(file_path).name.startswith("jpaud"):
+                    logger.debug(f"Skipping auditor report file: {Path(file_path).name}")
                     continue
 
                 csv_records = read_csv_file(file_path)
                 if csv_records is not None:
-                    raw_csv_data.append(
-                        {"filename": os.path.basename(file_path), "data": csv_records}
-                    )
+                    raw_csv_data.append({"filename": Path(file_path).name, "data": csv_records})
 
             if not raw_csv_data:
                 logger.warning(
-                    f"No valid data extracted from CSVs in {os.path.basename(path_to_zip_file)}"
+                    f"No valid data extracted from CSVs in {Path(path_to_zip_file).name}"
                 )
                 return None
 
@@ -159,12 +154,12 @@ def process_zip_file(
 
             if structured_data:
                 logger.info(
-                    f"Successfully processed structured data for {os.path.basename(path_to_zip_file)}"
+                    f"Successfully processed structured data for {Path(path_to_zip_file).name}"
                 )
                 return structured_data
             else:
                 logger.warning(
-                    f"Document processor returned no data for {os.path.basename(path_to_zip_file)}"
+                    f"Document processor returned no data for {Path(path_to_zip_file).name}"
                 )
                 return None
 
@@ -192,16 +187,17 @@ def process_zip_directory(
         stacklevel=2,
     )
     all_structured_data = []
-    if not os.path.isdir(directory_path):
+    dir_path = Path(directory_path)
+    if not dir_path.is_dir():
         logger.error(f"Directory not found: {directory_path}")
         return []
 
-    zip_files = [f for f in os.listdir(directory_path) if f.endswith(".zip")]
+    zip_files = [f.name for f in dir_path.iterdir() if f.suffix == ".zip"]
     total_files = len(zip_files)
     logger.info(f"Found {total_files} zip files in {directory_path} to process.")
 
     for i, filename in enumerate(zip_files, 1):
-        file_path = os.path.join(directory_path, filename)
+        file_path = dir_path / filename
         try:
             # Filename format: docID-docTypeCode-filerName.zip
             parts = filename.split("-", 2)

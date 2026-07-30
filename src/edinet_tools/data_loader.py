@@ -8,7 +8,7 @@ and integrates with corporate entity translations.
 import csv
 from datetime import datetime
 import logging
-import os
+from pathlib import Path
 import shutil
 import urllib.request
 import urllib.error
@@ -34,17 +34,16 @@ class EdinetDataLoader:
         """
         if data_dir is None:
             # Use project-root data/ directory (sibling to src/)
-            package_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            self.data_dir = os.path.join(package_dir, "data")
+            self.data_dir = Path(__file__).parents[2] / "data"
         else:
-            self.data_dir = data_dir
+            self.data_dir = Path(data_dir)
 
         # Ensure data directory exists
-        os.makedirs(self.data_dir, exist_ok=True)
+        self.data_dir.mkdir(parents=True, exist_ok=True)
 
-        self.edinet_codes_file = os.path.join(self.data_dir, "edinet_codes.csv")
-        self.translations_file = os.path.join(self.data_dir, "corporate_entity_translations.csv")
-        self.processed_data_file = os.path.join(self.data_dir, "processed_companies.csv")
+        self.edinet_codes_file = self.data_dir / "edinet_codes.csv"
+        self.translations_file = self.data_dir / "corporate_entity_translations.csv"
+        self.processed_data_file = self.data_dir / "processed_companies.csv"
 
     def download_edinet_codes(self, force_update: bool = False) -> bool:
         """
@@ -56,9 +55,9 @@ class EdinetDataLoader:
         Returns:
             True if download was successful, False otherwise
         """
-        if not force_update and os.path.exists(self.edinet_codes_file):
+        if not force_update and self.edinet_codes_file.exists():
             # Check if file is recent (less than 7 days old)
-            file_age = datetime.now().timestamp() - os.path.getmtime(self.edinet_codes_file)
+            file_age = datetime.now().timestamp() - self.edinet_codes_file.stat().st_mtime
             if file_age < 7 * 24 * 3600:  # 7 days in seconds
                 logger.info("EDINET codes file is recent, skipping download")
                 return True
@@ -97,7 +96,7 @@ class EdinetDataLoader:
 
         translations = {}
 
-        if not os.path.exists(translation_file):
+        if not Path(translation_file).exists():
             logger.warning(f"Translation file not found: {translation_file}")
             return translations
 
@@ -122,7 +121,7 @@ class EdinetDataLoader:
         Returns:
             List of company dictionaries with standardized fields
         """
-        if not os.path.exists(self.edinet_codes_file):
+        if not self.edinet_codes_file.exists():
             logger.error("EDINET codes file not found. Run download_edinet_codes() first.")
             return []
 
@@ -243,7 +242,7 @@ class EdinetDataLoader:
 
     def load_processed_data(self) -> list[dict]:
         """Load previously processed company data."""
-        if not os.path.exists(self.processed_data_file):
+        if not self.processed_data_file.exists():
             return []
 
         companies = []
@@ -278,7 +277,7 @@ class EdinetDataLoader:
                 return companies
 
         # Download and process if needed
-        if force_update or not os.path.exists(self.edinet_codes_file):
+        if force_update or not self.edinet_codes_file.exists():
             if not self.download_edinet_codes(force_update=force_update):
                 logger.error("Failed to download EDINET codes")
                 return []

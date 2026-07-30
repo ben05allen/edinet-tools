@@ -10,6 +10,7 @@ import io
 from datetime import date
 from unittest.mock import MagicMock
 import warnings
+import pytest
 import zipfile
 
 from edinet_tools.parsers.securities import parse_securities_report, SecuritiesReport
@@ -70,6 +71,7 @@ def make_mock_doc(
 # =====================================================================
 
 
+@pytest.mark.smoke
 class TestSecuritiesExtraction:
     """End-to-end extraction tests for parse_securities_report."""
 
@@ -430,6 +432,7 @@ class TestSecuritiesExtraction:
 # =====================================================================
 
 
+@pytest.mark.smoke
 class TestQuarterlyExtraction:
     """End-to-end extraction tests for parse_quarterly_report."""
 
@@ -530,6 +533,7 @@ class TestQuarterlyExtraction:
 # =====================================================================
 
 
+@pytest.mark.smoke
 class TestLargeHoldingExtraction:
     """End-to-end extraction tests for parse_large_holding."""
 
@@ -868,6 +872,7 @@ class TestLargeHoldingExtraction:
 # =====================================================================
 
 
+@pytest.mark.smoke
 class TestTreasuryStockExtraction:
     """End-to-end extraction tests for parse_treasury_stock_report."""
 
@@ -961,6 +966,7 @@ class TestTreasuryStockExtraction:
 # =====================================================================
 
 
+@pytest.mark.smoke
 class TestExtraordinaryExtraction:
     """End-to-end extraction tests for parse_extraordinary_report."""
 
@@ -1040,6 +1046,7 @@ class TestExtraordinaryExtraction:
 # =====================================================================
 
 
+@pytest.mark.smoke
 class TestSemiAnnualExtraction:
     """End-to-end extraction tests for parse_semi_annual_report."""
 
@@ -1130,6 +1137,7 @@ class TestSemiAnnualExtraction:
 # =====================================================================
 
 
+@pytest.mark.smoke
 class TestIFRSSummaryMetricsExtraction:
     """Verify ifrs_summary_basic_eps / _roe / _bps extraction from
     jpcrp_cor:*IFRSSummaryOfBusinessResults XBRL elements at the
