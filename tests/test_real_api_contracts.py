@@ -11,6 +11,7 @@ from datetime import date, timedelta
 import pytest
 
 from edinet_tools.api import fetch_document, fetch_documents_list, get_documents_for_date_range
+from edinet_tools.exceptions import APIError
 
 
 @pytest.mark.integration
@@ -199,25 +200,10 @@ class TestRealAPIContracts:
         """Test API handling of non-existent document IDs"""
         fake_doc_id = "S999FAKE999"
 
-        # API should return error response, not raise exception
-        result = fetch_document(fake_doc_id, api_key=self.api_key)
-
-        # Result could be bytes or dict depending on API response
-        if isinstance(result, bytes):
-            result_str = result.decode("utf-8").lower()
-        else:
-            result_str = str(result).lower()
-
-        # Should get error response (could be 404, 400, or other error)
-        assert (
-            "404" in result_str
-            or "not found" in result_str
-            or "statuscode" in result_str
-            or "error" in result_str
-            or "invalid" in result_str
-            or "bad request" in result_str
-            or "status" in result_str
-        ), f"Expected error response, got: {result_str[:200]}"
+        # API returns HTTP 200 with a JSON error body for invalid doc IDs;
+        # fetch_document detects this and raises APIError.
+        with pytest.raises(APIError, match="Bad Request"):
+            fetch_document(fake_doc_id, api_key=self.api_key)
 
     def test_api_rate_limit_respectful_usage(self):
         """Verify our API usage patterns are respectful"""
