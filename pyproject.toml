@@ -5,7 +5,10 @@ build-backend = "uv_build"
 [project]
 name = "edinet-tools"
 version = "0.7.1"
-authors = [{ name = "Matt Helmer" }]
+authors = [
+  { name = "Matt Helmer" },
+  { name = "Ben Allen" },
+]
 description = "Python package for accessing Japanese corporate financial data from EDINET"
 readme = "README.md"
 license-files = ["LICENSE"]
@@ -47,9 +50,10 @@ analysis = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/matthelmer/edinet-tools"
-"Repository" = "https://github.com/matthelmer/edinet-tools"
-"Bug Reports" = "https://github.com/matthelmer/edinet-tools/issues"
+"Homepage" = "https://github.com/ben05allen/edinet-tools"
+"Repository" = "https://github.com/ben05allen/edinet-tools"
+"Bug Reports" = "https://github.com/ben05allen/edinet-tools/issues"
+"Upstream" = "https://github.com/matthelmer/edinet-tools"
 
 [tool.ruff]
 line-length = 100

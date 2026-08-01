@@ -2,8 +2,10 @@
 
 [![PyPI](https://img.shields.io/pypi/v/edinet-tools)](https://pypi.org/project/edinet-tools/)
 [![Downloads](https://static.pepy.tech/badge/edinet-tools)](https://pepy.tech/project/edinet-tools)
-[![Tests](https://github.com/matthelmer/edinet-tools/actions/workflows/test.yml/badge.svg)](https://github.com/matthelmer/edinet-tools/actions/workflows/test.yml)
+[![Tests](https://github.com/ben05allen/edinet-tools/actions/workflows/test.yml/badge.svg)](https://github.com/ben05allen/edinet-tools/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+> **Fork** — This is a fork of [matthelmer/edinet-tools](https://github.com/matthelmer/edinet-tools) by Matt Helmer. The upstream project is the original author. This fork adds dependency reductions (pandas/chardet removed), additional typed parsers, CI improvements, and other enhancements.
 
 Python library for Japan's [EDINET](https://disclosure2.edinet-fsa.go.jp/) disclosure system — the official source for securities reports, shareholding notices, tender offers, and other regulatory filings from listed Japanese companies.
 
@@ -179,7 +181,8 @@ All unmarked tests are automatically tagged as `unit` via a `conftest.py` hook �
 
 - [Changelog](CHANGELOG.md)
 - [PyPI](https://pypi.org/project/edinet-tools/)
-- [GitHub](https://github.com/matthelmer/edinet-tools)
+- [GitHub (fork)](https://github.com/ben05allen/edinet-tools)
+- [GitHub (upstream)](https://github.com/matthelmer/edinet-tools)
 - [EDINET](https://disclosure2.edinet-fsa.go.jp/)
 
 ## License
