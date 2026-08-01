@@ -31,7 +31,7 @@ def _is_json_error_response(body: bytes) -> str | None:
         status = str(data.get("metadata", {}).get("status", ""))
         if status and status != "200":
             return data.get("metadata", {}).get("message", f"API error {status}")
-    except (json.JSONDecodeError, AttributeError, TypeError):
+    except (json.JSONDecodeError, AttributeError, TypeError, UnicodeDecodeError):
         pass
     return None
 
