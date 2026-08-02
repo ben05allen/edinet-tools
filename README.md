@@ -189,4 +189,17 @@ MIT
 
 ---
 
-*Independent project. Not affiliated with Japan's Financial Services Agency. Verify data independently before making financial decisions.*
+**Disclaimer** — This is a fork of
+[matthelmer/edinet-tools](https://github.com/matthelmer/edinet-tools) by Matt Helmer
+and is not affiliated with or endorsed by Japan's Financial Services Agency (FSA).
+The upstream project remains the original source.
+
+This library parses publicly available EDINET API responses into Python
+dataclasses. It does not independently verify filing contents, correct
+transcription errors, or guarantee completeness of any parsed data. XBRL
+mappings may lag behind EDINET schema changes or contain oversights.
+
+This software is provided as-is, without warranty of any kind. Always
+consult the [original filings on EDINET](https://disclosure2.edinet-fsa.go.jp/)
+and seek independent professional advice before making any financial or
+investment decisions based on data produced by this tool.
