@@ -1,7 +1,5 @@
 # edinet-tools
 
-[![PyPI](https://img.shields.io/pypi/v/edinet-tools)](https://pypi.org/project/edinet-tools/)
-[![Downloads](https://static.pepy.tech/badge/edinet-tools)](https://pepy.tech/project/edinet-tools)
 [![Tests](https://github.com/ben05allen/edinet-tools/actions/workflows/test.yml/badge.svg)](https://github.com/ben05allen/edinet-tools/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
